@@ -10,10 +10,11 @@ context:
   - docs/product.md
   - specs/README.md
   - specs/areas/specs.md
+  - specs/areas/claims.md
 steps:
   - n: 1
     title: furrow territory
-    after: [FUR-0001]
+    after: [FUR-0003.1]
     touches:
       - internal/territory/**
       - cmd/furrow/territory.go
@@ -71,3 +72,7 @@ It exits 0 when nothing is outside and unexplained, and 1 otherwise. `--json` pr
 - Wiring it into CI. FUR-0008 adds the workflow.
 
 ## Decisions
+
+- 2026-11-01: Now after FUR-0003.1, not FUR-0001. Reading the diff runs `git`, and only
+  `internal/gitx` (built in FUR-0003.1) may run a process (INV-7). `furrow next` showed this step
+  as ready to run beside FUR-0003.1, which would have meant two copies of the git runner.
