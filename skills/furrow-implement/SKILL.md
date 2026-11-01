@@ -1,0 +1,40 @@
+---
+name: furrow-implement
+description: Build a claimed Furrow spec step end to end, with tests first, inside its territory, and hand it back with furrow done. Use after furrow-next, or when told to implement a step like FUR-0007.2 on its claimed branch.
+---
+
+# Build a claimed step
+
+You're on the step's branch (`furrow claim` put you there). The spec's `## What` is the contract.
+Its acceptance criteria are what you prove.
+
+1. **Tests first.** For each criterion the step `covers` that has a `(test: Name)`, write that test,
+   with that name, and watch it fail. Use the repo's fakes and fixtures. Tests never touch the
+   network or real services.
+2. **Build until they pass.** Follow the repo's `AGENTS.md`/`CLAUDE.md`. Keep logic where it can be
+   tested.
+3. **Stay inside `touches`.** Run `furrow territory` as you go. It lists every changed file outside the
+   step's paths. If you truly must go outside, keep it small and explain each path under a
+   `## Territory` heading in the PR. `furrow territory --body-file <PR body>` then accepts it. If it's
+   big, stop and write a "Spec problem" instead.
+4. **Run the repo's check**: `check:` in `.furrow.yml`, or `make check`. Fix everything it reports.
+5. **Tick with evidence.** In the spec, tick each covered criterion you proved: `- [ ]` to `- [x]`.
+   Put the evidence in the PR next to each one: the test name, a command and its output, or a
+   screenshot. **Never tick a `human:` criterion**, even if you checked it yourself. It waits for the
+   owner in `furrow review`.
+6. **Log decisions.** Add `- YYYY-MM-DD: Chose X because Y.` to the spec's `## Decisions` for
+   anything the spec didn't say.
+7. **Hand it back.** `furrow done <REF>`. It sets the step's `merged: true` in this PR, so merging the
+   PR unblocks whatever waits on it. It refuses if a covered non-human criterion is unticked.
+8. **Last step of the spec?** Fold what the spec changed into `specs/areas/<area>.md`'s
+   `## Behaviour`, in present tense, as if it had always worked this way. Don't archive: the owner's
+   sign-off, or `furrow archive`, does that once every box is ticked.
+9. Run `furrow lint`, commit, push, and mark the PR ready.
+
+## When the spec is wrong
+
+- A small gap inside your territory, such as a name or an edge case: decide, log it in
+  `## Decisions`, carry on.
+- A criterion that can't be met as written, a contradiction with an invariant or another spec, or
+  work in another step's paths: **don't bend the criterion to fit your code**, and don't edit its
+  text. Write "Spec problem" in the PR with what you'd change, and stop.

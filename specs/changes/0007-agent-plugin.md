@@ -22,7 +22,7 @@ steps:
       - .claude/**
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
     size: m
-    merged: false
+    merged: true
 ---
 
 # FUR-0007: A Claude Code plugin that teaches agents, and swarms, to work with Furrow
@@ -69,10 +69,10 @@ No skill tells an agent to run `furrow signoff`, tick a `human:` box, or change 
 
 ## Acceptance criteria
 
-- [ ] AC-1: Both manifests are valid JSON with the documented fields (check: jq -e '.name == "furrow"' .claude-plugin/plugin.json && jq -e '.plugins[0].source == "./"' .claude-plugin/marketplace.json)
-- [ ] AC-2: Each of the five skills has `name` and `description` front matter (check: for s in next implement verify write swarm; do head -4 skills/furrow-$s/SKILL.md | grep -q "^name: furrow-$s"; done)
-- [ ] AC-3: No skill tells an agent to sign off or tick a human box (check: ! grep -rn "furrow signoff" skills | grep -v -i "never\|don't\|not")
-- [ ] AC-4: `.claude/skills` points at `skills` (check: test "$(readlink .claude/skills)" = ../skills)
+- [x] AC-1: Both manifests are valid JSON with the documented fields (check: jq -e '.name == "furrow"' .claude-plugin/plugin.json && jq -e '.plugins[0].source == "./"' .claude-plugin/marketplace.json)
+- [x] AC-2: Each of the five skills has `name` and `description` front matter (check: for s in next implement verify write swarm; do head -4 skills/furrow-$s/SKILL.md | grep -q "^name: furrow-$s"; done)
+- [x] AC-3: No skill tells an agent to sign off or tick a human box (check: ! grep -rn "furrow signoff" skills | grep -v -i "never\|don't\|not")
+- [x] AC-4: `.claude/skills` points at `skills` (check: test "$(readlink .claude/skills)" = ../skills)
 - [ ] AC-5: The skills read clearly and match how the owner wants agents to work (human: read the five SKILL.md files)
 - [ ] AC-6: A swarm run builds real steps of this repo in parallel without collisions (human: read the swarm's report in the PR)
 
@@ -81,3 +81,14 @@ No skill tells an agent to run `furrow signoff`, tick a `human:` box, or change 
 - Skills specific to one product (minirun proof, voice). Those stay in each repo.
 
 ## Decisions
+
+- 2026-11-01: `claude plugin validate .` passes. Its only advice is an install line in `README.md`
+  (`/plugin install furrow --marketplace devenjarvis/furrow`). The README is outside this step's
+  territory, so the line goes in with FUR-0008 (distribution).
+- 2026-11-01: The skills say "`furrow` (or the repo's pinned `bin/furrow`)", so they work before and
+  after FUR-0008's shim.
+- 2026-11-01: `furrow-swarm` is written from this repo's own first swarm. Three agents built FUR-0004.1,
+  FUR-0005.1 and FUR-0006.1 in parallel worktrees while the orchestrator built FUR-0003.1 and FUR-0002.2,
+  with no overlaps. Two lessons from that run went into the skill. Hidden dependencies show up as
+  "parallel" steps that both need a helper neither owns (FUR-0004 needed `internal/gitx`). And some
+  remotes refuse branch deletion, so leftover claims are released by the owner.
