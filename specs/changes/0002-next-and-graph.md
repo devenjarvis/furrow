@@ -30,7 +30,7 @@ steps:
       - cmd/furrow/next_test.go
     covers: [AC-7, AC-8]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0002: Say what can start now, and what can run together
@@ -103,8 +103,8 @@ remote can't be reached it prints `(Couldn't reach <remote>, so claimed steps ar
 - [x] AC-4: Text output matches the documented layout, and nothing ready prints the documented line (test: TestNextText)
 - [x] AC-5: `--json` has the documented keys and is byte-identical across two runs (test: TestNextJSON)
 - [x] AC-6: `furrow graph` puts each open step in the wave after the deepest open step it waits on (test: TestGraphWaves)
-- [ ] AC-7: A claimed step isn't offered, and a ready step overlapping a claimed one is held with that clash (test: TestNextLeavesOutClaims)
-- [ ] AC-8: With the remote unreachable, `next` still answers and says claims weren't checked (test: TestNextRemoteDown)
+- [x] AC-7: A claimed step isn't offered, and a ready step overlapping a claimed one is held with that clash (test: TestNextLeavesOutClaims)
+- [x] AC-8: With the remote unreachable, `next` still answers and says claims weren't checked (test: TestNextRemoteDown)
 
 ## Out of scope
 
@@ -122,3 +122,6 @@ remote can't be reached it prints `(Couldn't reach <remote>, so claimed steps ar
   criterion changed.
 - 2026-11-01: `branch` in `--json` is the claim branch for claimed steps and empty otherwise.
   Working out the branch to claim is `internal/claim`'s job (FUR-0003).
+- 2026-11-01: Step 2 claimed with `furrow claim FUR-0002.2`, the first step Furrow claimed for itself.
+- 2026-11-01: `graph` reads claims too, so claimed steps show as `[claimed]` there. It also takes
+  `--offline`.
