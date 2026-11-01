@@ -19,7 +19,7 @@ steps:
       - cmd/furrow/lifecycle.go
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8]
     size: m
-    merged: false
+    merged: true
 ---
 
 # FUR-0005: Hand back steps, sign off what a person must judge, archive finished specs
@@ -67,13 +67,13 @@ Dates come from an injectable clock, so tests are deterministic.
 
 ## Acceptance criteria
 
-- [ ] AC-1: `done` flips only that step's `merged` line and leaves every other byte of the file alone (test: TestDoneEditsOneLine)
-- [ ] AC-2: `done` refuses when an `after` isn't merged, or a covered non-human criterion is unticked (test: TestDoneRefusals)
-- [ ] AC-3: `review` lists only `human:` criteria whose covering steps are all merged (test: TestReview)
-- [ ] AC-4: `signoff` refuses when `CLAUDECODE` or `FURROW_AGENT` is set, and changes nothing (test: TestSignoffRefusesAgents)
-- [ ] AC-5: `signoff` ticks the box, writes the Decisions line that `furrow lint` accepts, and archives a now-complete spec (test: TestSignoffArchives)
-- [ ] AC-6: `archive` sets done, moves the file, and appends to the area's History (test: TestArchive)
-- [ ] AC-7: No command changes a criterion's text (test: TestCriteriaTextUntouched)
+- [x] AC-1: `done` flips only that step's `merged` line and leaves every other byte of the file alone (test: TestDoneEditsOneLine)
+- [x] AC-2: `done` refuses when an `after` isn't merged, or a covered non-human criterion is unticked (test: TestDoneRefusals)
+- [x] AC-3: `review` lists only `human:` criteria whose covering steps are all merged (test: TestReview)
+- [x] AC-4: `signoff` refuses when `CLAUDECODE` or `FURROW_AGENT` is set, and changes nothing (test: TestSignoffRefusesAgents)
+- [x] AC-5: `signoff` ticks the box, writes the Decisions line that `furrow lint` accepts, and archives a now-complete spec (test: TestSignoffArchives)
+- [x] AC-6: `archive` sets done, moves the file, and appends to the area's History (test: TestArchive)
+- [x] AC-7: No command changes a criterion's text (test: TestCriteriaTextUntouched)
 - [ ] AC-8: The review and sign-off flow is clear to the owner (human: run `furrow review` then `furrow signoff` on a test repo)
 
 ## Out of scope
@@ -82,3 +82,21 @@ Dates come from an injectable clock, so tests are deterministic.
   `furrow-implement` skill says so).
 
 ## Decisions
+
+- 2026-11-01: `--by` has no default yet: reading `git config user.name` means running git, and only
+  `internal/gitx` may (INV-7), which isn't on main. `signoff` refuses with "Say who checked it:
+  --by NAME." until a follow-up passes the git name in as the default.
+- 2026-11-01: `signoff` checks `CLAUDECODE` and `FURROW_AGENT` before it parses flags or loads the
+  repo, and a missing environment counts as an agent.
+- 2026-11-01: `done` on a step that's already merged says so, changes nothing and exits 0. When the
+  step completes its spec, or leaves `human:` checks waiting, `done` says what's next.
+- 2026-11-01: `review` lists only specs still in `changes/`, and a `human:` criterion no step covers
+  isn't listed (lint reports it). `review --json` is `{"specs": [{id, title, file, criteria: [{id,
+  text, look_at}]}]}`, with the proof text as `look_at`.
+- 2026-11-01: `signoff` ticks and logs criteria in AC order, ignores repeats, and refuses the whole
+  call if any one isn't waiting. A line appended to a section goes after its last line; an empty
+  section gets a blank line under the heading first.
+- 2026-11-01: `done` adds a `merged: true` line after a block step's `n:` line when the step has no
+  `merged` key; a flow-style step without one is refused.
+- 2026-11-01: `archive` works out every change (status line, destination, area History) before it
+  writes anything, and refuses if the destination exists or the area file is missing.
