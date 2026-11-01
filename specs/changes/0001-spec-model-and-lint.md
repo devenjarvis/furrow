@@ -25,7 +25,7 @@ steps:
       - internal/spec/**
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7]
     size: m
-    merged: false
+    merged: true
 ---
 
 # FUR-0001: Read the repo's specs and lint them
@@ -120,12 +120,12 @@ without touching `main.go`. `furrow` and `furrow help` list the commands. An unk
 
 ## Acceptance criteria
 
-- [ ] AC-1: Config is found by walking up, missing keys take the defaults, and with no file the error says to run `furrow init` (test: TestFindConfig)
-- [ ] AC-2: Changes, archive, areas and invariants load, including `after` refs in all three forms (test: TestLoadRepo)
-- [ ] AC-3: Each lint rule 1–12 has a case that triggers exactly its error, and the clean repo passes (test: TestLintRules)
-- [ ] AC-4: `Match` handles `*`, `**` and `?`, and `Overlap` follows the literal-prefix rule with aliases (test: TestMatch, TestOverlap)
-- [ ] AC-5: `furrow list` works out building and review, and `--json` has the listed fields (test: TestListStatus)
-- [ ] AC-6: Furrow's own specs pass (check: go run ./cmd/furrow lint)
+- [x] AC-1: Config is found by walking up, missing keys take the defaults, and with no file the error says to run `furrow init` (test: TestFindConfig)
+- [x] AC-2: Changes, archive, areas and invariants load, including `after` refs in all three forms (test: TestLoadRepo)
+- [x] AC-3: Each lint rule 1–12 has a case that triggers exactly its error, and the clean repo passes (test: TestLintRules)
+- [x] AC-4: `Match` handles `*`, `**` and `?`, and `Overlap` follows the literal-prefix rule with aliases (test: TestMatch, TestOverlap)
+- [x] AC-5: `furrow list` works out building and review, and `--json` has the listed fields (test: TestListStatus)
+- [x] AC-6: Furrow's own specs pass (check: go run ./cmd/furrow lint)
 - [ ] AC-7: The only module dependency is yaml.v3 (check: go list -m all)
 
 ## Out of scope
@@ -134,3 +134,18 @@ without touching `main.go`. `furrow` and `furrow help` list the commands. An unk
 - Line numbers in lint messages.
 
 ## Decisions
+
+- 2026-11-01: Built by hand. There was no `furrow next` or `furrow claim` yet, so the claim was a
+  plain `git push origin main:refs/heads/step/0001-1 --force-with-lease=refs/heads/step/0001-1:`,
+  which is what FUR-0003 automates.
+- 2026-11-01: A bare alias in `touches` (`cli`) stands for its whole folder (`cmd/furrow/**`), as
+  Edition's package names did. The What only said aliases resolve to their path.
+- 2026-11-01: `TBD` is only an error in prose. Inline code and fenced blocks are skipped, because
+  this spec's own rule list names the word and the linter refused it on the first run.
+- 2026-11-01: `internal/spec/spectest` builds fixture repos, so later specs' tests can make a valid
+  repo in one line and change only what they test.
+- 2026-11-01: **Spec problem, AC-7 left unticked.** `go list -m all` also lists
+  `gopkg.in/check.v1`, a test-only dependency of yaml.v3 that never reaches the binary. What the
+  criterion means holds: `go list -deps -f '{{if not .Standard}}{{.ImportPath}}{{end}}' ./cmd/furrow`
+  prints only yaml.v3 and furrow's own packages. Proposed: change AC-7's check to that command.
+  The owner decides (INV-4).
