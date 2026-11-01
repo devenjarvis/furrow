@@ -1,0 +1,10 @@
+# Furrow's own configuration: furrow is built with furrow.
+prefix: FUR
+specs: specs
+product: docs/product.md
+check: make check
+remote: origin
+base: main
+branch: step/{num}-{step}
+aliases:
+  cli: cmd/furrow
