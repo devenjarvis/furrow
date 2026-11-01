@@ -20,13 +20,14 @@ steps:
       - cmd/furrow/graph.go
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: Leave out steps claimed on the remote
     after: [1, FUR-0003.1]
     touches:
       - cmd/furrow/next.go
       - cmd/furrow/graph.go
+      - cmd/furrow/next_test.go
     covers: [AC-7, AC-8]
     size: s
     merged: false
@@ -96,12 +97,12 @@ remote can't be reached it prints `(Couldn't reach <remote>, so claimed steps ar
 
 ## Acceptance criteria
 
-- [ ] AC-1: Open steps are sorted into ready, waiting and blocked as described, and a step after a whole spec waits until every step of it is merged (test: TestStates)
-- [ ] AC-2: Ranking puts the step with the most open steps waiting on it first, then the longest chain, priority, and number (test: TestRanking)
-- [ ] AC-3: Picking never puts two overlapping steps together, respects `--agents N`, and gives each held step the clash (test: TestPickTogether)
-- [ ] AC-4: Text output matches the documented layout, and nothing ready prints the documented line (test: TestNextText)
-- [ ] AC-5: `--json` has the documented keys and is byte-identical across two runs (test: TestNextJSON)
-- [ ] AC-6: `furrow graph` puts each open step in the wave after the deepest open step it waits on (test: TestGraphWaves)
+- [x] AC-1: Open steps are sorted into ready, waiting and blocked as described, and a step after a whole spec waits until every step of it is merged (test: TestStates)
+- [x] AC-2: Ranking puts the step with the most open steps waiting on it first, then the longest chain, priority, and number (test: TestRanking)
+- [x] AC-3: Picking never puts two overlapping steps together, respects `--agents N`, and gives each held step the clash (test: TestPickTogether)
+- [x] AC-4: Text output matches the documented layout, and nothing ready prints the documented line (test: TestNextText)
+- [x] AC-5: `--json` has the documented keys and is byte-identical across two runs (test: TestNextJSON)
+- [x] AC-6: `furrow graph` puts each open step in the wave after the deepest open step it waits on (test: TestGraphWaves)
 - [ ] AC-7: A claimed step isn't offered, and a ready step overlapping a claimed one is held with that clash (test: TestNextLeavesOutClaims)
 - [ ] AC-8: With the remote unreachable, `next` still answers and says claims weren't checked (test: TestNextRemoteDown)
 
@@ -112,3 +113,12 @@ remote can't be reached it prints `(Couldn't reach <remote>, so claimed steps ar
   questions" for a later spec.
 
 ## Decisions
+
+- 2026-11-01: Step 1 built by hand: no `furrow claim` yet (FUR-0003.1 waits on this step).
+- 2026-11-01: Rendering (`Plan.Text`, `GraphText`) and JSON live in `internal/schedule`, so they're
+  tested there and the command files stay thin.
+- 2026-11-01: Step 2's touches now include `cmd/furrow/next_test.go`. Its criteria are tests
+  (AC-7, AC-8), and without a test file in its territory the step couldn't prove them. No
+  criterion changed.
+- 2026-11-01: `branch` in `--json` is the claim branch for claimed steps and empty otherwise.
+  Working out the branch to claim is `internal/claim`'s job (FUR-0003).
