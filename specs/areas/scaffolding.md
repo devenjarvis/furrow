@@ -35,3 +35,5 @@ placeholder, `## Behaviour` and `## History`, and prints the path. It refuses an
 Every file these commands write passes `furrow lint`.
 
 ## History
+
+- FUR-0006: Start Furrow in a repo, and start new specs and areas (archived 2026-11-01)

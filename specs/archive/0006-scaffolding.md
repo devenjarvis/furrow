@@ -1,7 +1,7 @@
 ---
 id: FUR-0006
 title: Start Furrow in a repo, and start new specs and areas
-status: accepted
+status: done
 area: scaffolding
 priority: p1
 human_review: optional

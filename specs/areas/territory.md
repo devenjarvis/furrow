@@ -39,3 +39,5 @@ It exits 0 when nothing is outside and unexplained, and 1 otherwise. `--json` pr
 `[]`.
 
 ## History
+
+- FUR-0004: Prove a step's diff stays inside its touches (archived 2026-11-01)

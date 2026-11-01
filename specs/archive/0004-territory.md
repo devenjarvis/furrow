@@ -1,7 +1,7 @@
 ---
 id: FUR-0004
 title: Prove a step's diff stays inside its touches
-status: accepted
+status: done
 area: territory
 priority: p1
 human_review: optional

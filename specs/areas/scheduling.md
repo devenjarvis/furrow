@@ -37,3 +37,5 @@ machine-readable JSON.
 open, and each later wave waits on the one before. Each step shows its state and what it waits on.
 
 ## History
+
+- FUR-0002: Say what can start now, and what can run together (archived 2026-11-01)

@@ -1,7 +1,7 @@
 ---
 id: FUR-0002
 title: Say what can start now, and what can run together
-status: accepted
+status: done
 area: scheduling
 priority: p0
 human_review: optional
