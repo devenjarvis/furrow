@@ -1,0 +1,11 @@
+{
+  "name": "furrow",
+  "owner": { "name": "Deven Jarvis" },
+  "plugins": [
+    {
+      "name": "furrow",
+      "source": "./",
+      "description": "Build a repo with a swarm of coding agents, one spec step per PR."
+    }
+  ]
+}
