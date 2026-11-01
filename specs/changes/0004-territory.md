@@ -20,7 +20,7 @@ steps:
       - cmd/furrow/territory.go
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0004: Prove a step's diff stays inside its touches
@@ -61,11 +61,11 @@ It exits 0 when nothing is outside and unexplained, and 1 otherwise. `--json` pr
 
 ## Acceptance criteria
 
-- [ ] AC-1: Works out the step from the branch name, and fails with the message off a step branch (test: TestStepFromBranch)
-- [ ] AC-2: Counts committed, uncommitted and untracked changes since the merge base (test: TestChangedFiles)
-- [ ] AC-3: The spec file and the area file are always inside, and touches with aliases and `**` match (test: TestInside)
-- [ ] AC-4: Paths listed under "## Territory" in the body file are explained, and the exit code follows the rule (test: TestExplained)
-- [ ] AC-5: `--json` has the documented keys (test: TestTerritoryJSON)
+- [x] AC-1: Works out the step from the branch name, and fails with the message off a step branch (test: TestStepFromBranch)
+- [x] AC-2: Counts committed, uncommitted and untracked changes since the merge base (test: TestChangedFiles)
+- [x] AC-3: The spec file and the area file are always inside, and touches with aliases and `**` match (test: TestInside)
+- [x] AC-4: Paths listed under "## Territory" in the body file are explained, and the exit code follows the rule (test: TestExplained)
+- [x] AC-5: `--json` has the documented keys (test: TestTerritoryJSON)
 
 ## Out of scope
 
@@ -76,3 +76,18 @@ It exits 0 when nothing is outside and unexplained, and 1 otherwise. `--json` pr
 - 2026-11-01: Now after FUR-0003.1, not FUR-0001. Reading the diff runs `git`, and only
   `internal/gitx` (built in FUR-0003.1) may run a process (INV-7). `furrow next` showed this step
   as ready to run beside FUR-0003.1, which would have meant two copies of the git runner.
+- 2026-11-01: The base isn't fetched first. `furrow territory` compares against the local
+  `<remote>/<base>` ref, so it works offline; CI fetches before it runs.
+- 2026-11-01: Changed files come from `git diff --name-only --no-renames --relative` and
+  `git ls-files --others --exclude-standard`, run at the repo root, so paths are relative to the
+  folder holding `.furrow.yml`, like `touches`.
+- 2026-11-01: The inside count is only files inside. Explained files are listed under
+  "Outside, explained in the PR:" so a reviewer sees them; it reads "1 file" for one.
+- 2026-11-01: Under `## Territory`, a path counts when it's a backtick span or a whole word, with
+  list markers and surrounding punctuation (quotes, brackets, `,;:!?*`, trailing `.`) trimmed.
+  `## Territory` matches case-insensitively and the section ends at the next `## ` heading.
+- 2026-11-01: The off-branch message uses the config's prefix (`--step FUR-NNNN.N` here). A
+  detached HEAD counts as off a step branch. A step branch for a step that doesn't exist is an
+  error that names it.
+- 2026-11-01: `--body-file` is read relative to the working directory. An error (no step, no
+  merge base, unreadable body file) exits 1 with the message on stderr.
