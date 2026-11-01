@@ -19,7 +19,7 @@ steps:
       - cmd/furrow/scaffold.go
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5]
     size: m
-    merged: false
+    merged: true
 ---
 
 # FUR-0006: Start Furrow in a repo, and start new specs and areas
@@ -59,14 +59,21 @@ Every file it writes passes `furrow lint`.
 
 ## Acceptance criteria
 
-- [ ] AC-1: `init` in an empty git repo creates every listed path, and a second run keeps them all (test: TestInit)
-- [ ] AC-2: `new` picks the next number across changes and archive, and the file passes lint once its area exists (test: TestNew)
-- [ ] AC-3: `new` refuses a bad slug and an unknown area with the messages (test: TestNewRefusals)
-- [ ] AC-4: `area` creates a lint-clean area and refuses a duplicate (test: TestArea)
-- [ ] AC-5: `invariants` lists this repo's seven invariants (test: TestInvariants)
+- [x] AC-1: `init` in an empty git repo creates every listed path, and a second run keeps them all (test: TestInit)
+- [x] AC-2: `new` picks the next number across changes and archive, and the file passes lint once its area exists (test: TestNew)
+- [x] AC-3: `new` refuses a bad slug and an unknown area with the messages (test: TestNewRefusals)
+- [x] AC-4: `area` creates a lint-clean area and refuses a duplicate (test: TestArea)
+- [x] AC-5: `invariants` lists this repo's seven invariants (test: TestInvariants)
 
 ## Out of scope
 
 - Converting another repo's specs. That's FUR-0009.
 
 ## Decisions
+
+- 2026-11-01: `init` treats a folder name with no ASCII letters as having none, so the prefix is `SPEC`; `--prefix` must be uppercase letters and digits starting with a letter.
+- 2026-11-01: When `.furrow.yml` already exists, `init` keeps it and uses its prefix, `specs` and `product` paths for the other files; `--prefix` then has no effect.
+- 2026-11-01: `init` writes every `.furrow.yml` key with its default (`check: ""` with a comment) so the owner sees what can be set.
+- 2026-11-01: `new` numbers from file names (`NNNN-*.md`) in changes and archive, so a spec that fails to parse still holds its number. It fills the top-level `id`, `title`, `status` and `area` lines and the first `# ` heading of the template, adding any key the template lacks; titles are YAML-quoted when needed.
+- 2026-11-01: `new` and `area` require `--title`; `area` refuses a name that isn't lowercase letters, digits and dashes, like a slug.
+- 2026-11-01: `invariants` fails when the product file is missing, and prints a hint (exit 0) when it has no invariants. AC-1 is tested in a temp folder with a `.git` folder, since only `internal/gitx` may run git.
