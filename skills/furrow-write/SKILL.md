@@ -18,6 +18,10 @@ description: Turn an idea into a draft Furrow spec, split into steps that can ru
      component, a changed call path, a state machine), draw it here as a ```` ```mermaid ````
      diagram: only the parts that change, new ones marked with `classDef added`, and every node a
      real file, package, type or function. A spec that doesn't change structure has no diagram.
+     Draw it for a reviewer on a phone: a one-sentence caption above saying what question it
+     answers; a line under it starting `Legend:` saying what a box, an arrow and each colour mean
+     (one meaning per arrow, or a label on each, like `-->|reads|`); at most 8 nodes, drawn
+     `flowchart TD`, split or left out if bigger; behaviour or data flow, not a call graph.
    - **Acceptance criteria**: `- [ ] AC-n: … (test: Name)`, `(check: command)` or
      `(human: what to look at)`. Observable, one behaviour each.
    - **Out of scope**: what a reasonable agent might do and mustn't.

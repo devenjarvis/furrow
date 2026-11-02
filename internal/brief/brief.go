@@ -107,8 +107,9 @@ func Build(g gitx.Git, repo *spec.Repo, opt Options) (*Brief, error) {
 
 	b.add(Behaviour, Placeholder+" before → after, in at most 80 words. Behaviour, not code. -->")
 	if blocks := MermaidBlocks(spec.SectionText(st.Spec.Body, "What")); len(blocks) > 0 {
-		b.add(Diagram, Placeholder+" mark what this step adds or changes with classDef added, or say it matches the spec as drawn -->\n\n"+
-			strings.Join(blocks, "\n\n"))
+		b.add(Diagram, Placeholder+` one sentence saying what this diagram answers. Mark what this step adds or changes with classDef added, or say it matches the spec as drawn. End with a "Legend:" line. -->`+"\n\n"+
+			strings.Join(blocks, "\n\n")+"\n\n"+
+			"Legend: "+Placeholder+" what a box, an arrow and each colour mean -->")
 	}
 	b.add(WhereToLook, b.whereToLook())
 	if len(b.Files.Visual) > 0 {

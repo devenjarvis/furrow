@@ -96,6 +96,17 @@ path, a state machine) draws it in `## What` as a ```` ```mermaid ```` diagram. 
 changes, with new parts marked by `classDef added`, and every node names a real file, package, type
 or function. A spec that doesn't change structure has no diagram.
 
+Every diagram, in a spec, an area or a PR, is drawn for a reviewer who didn't draw it, often on a
+phone:
+
+- **A caption.** One sentence above it says what question it answers.
+- **A legend.** A line under it, starting `Legend:`, says what a box, an arrow and each colour mean.
+  Every arrow means one thing, or each carries a label (`-->|reads|`).
+- **Small and narrow.** At most 8 nodes, drawn `flowchart TD`. Split a bigger picture, or leave it
+  out.
+- **Behaviour, not a call graph.** It shows what flows where, or what changes. Every node still
+  names a real file, package, type or function.
+
 ## Areas: living specs
 
 An area says how one part of the product works **now**, in present tense, with no history of how
