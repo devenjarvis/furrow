@@ -68,6 +68,9 @@ answer becomes a decision, with a date, and the status changes in the same commi
      joined onto one line with runs of whitespace made single;
    - when no item is left, the `## Open questions` heading and its blank lines go too.
 
+   Headings and list items inside fenced code blocks don't count, so a spec can show an example
+   `## Open questions` section, as this one does.
+
    Nothing else changes: not the criteria (INV-4), not the steps, not other sections, not other
    lines in Decisions. The date comes from the injected clock.
 5. It prints "FUR-0012 accepted. 5 proposed answers moved to ## Decisions. Commit it, and merge the
@@ -107,7 +110,7 @@ status: accepted
 
 - [ ] AC-1: Inside an agent session it refuses with its message before reading the repo (test: TestAcceptRefusesAgents)
 - [ ] AC-2: It moves each proposed answer to `## Decisions` in order, joined onto one dated line, removes the emptied `## Open questions` section, and sets `status: accepted` (test: TestAcceptMovesProposals)
-- [ ] AC-3: Only those lines change: the criteria, steps, other sections and existing Decisions are byte-identical (test: TestAcceptEditsOnlyItsLines)
+- [ ] AC-3: Only those lines change: the criteria, steps, other sections and existing Decisions are byte-identical, and an `## Open questions` heading inside a fenced code block is left alone (test: TestAcceptEditsOnlyItsLines)
 - [ ] AC-4: A question without `Proposed:`, a lint problem, or an unknown spec refuses with its message, naming every bad line, and changes nothing (test: TestAcceptRefusals)
 - [ ] AC-5: An accepted spec says so and changes nothing; a paused spec refuses (test: TestAcceptAlreadyAcceptedOrPaused)
 - [ ] AC-6: It prints the count and what to do next, and `--json` has `id`, `status` and `decisions` (test: TestAcceptOutput)
