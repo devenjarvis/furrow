@@ -24,12 +24,27 @@ Its acceptance criteria are what you prove.
    owner in `furrow review`.
 6. **Log decisions.** Add `- YYYY-MM-DD: Chose X because Y.` to the spec's `## Decisions` for
    anything the spec didn't say.
-7. **Hand it back.** `furrow done <REF>`. It sets the step's `merged: true` in this PR, so merging the
-   PR unblocks whatever waits on it. It refuses if a covered non-human criterion is unticked.
-8. **Last step of the spec?** Fold what the spec changed into `specs/areas/<area>.md`'s
-   `## Behaviour`, in present tense, as if it had always worked this way. Don't archive: the owner's
-   sign-off, or `furrow archive`, does that once every box is ticked.
-9. Run `furrow lint`, commit, push, and mark the PR ready.
+7. **Keep the diagram current.** If the spec's `## What` has a ```` ```mermaid ```` diagram and
+   your step changes what it shows, update it. Draw to the standard: a one-sentence caption above
+   saying what it answers, a `Legend:` line below saying what a box, an arrow and each colour
+   mean, at most 8 nodes, `flowchart TD`, and behaviour (what flows where), not a call graph.
+   Every node names a real file, package, type or function.
+8. **Visual proof.** If `furrow brief` has a `## Visual proof` section, capture each screen before
+   and after with the repo's own tools, as its `AGENTS.md` says, and put the images in the table.
+   A screenshot is evidence for the owner, never a reason to tick a `human:` criterion (INV-3).
+9. **Fill in the brief.** The PR description is `furrow brief`'s output. Regenerate it if the
+   diff changed, then fill every `<!-- furrow:` placeholder. `## Behaviour` says what a user or
+   caller sees before and after, in at most 80 words, not which files changed. Save it to a file,
+   then run `furrow brief --check <file>` and `furrow territory --body-file <file>`. Both must
+   exit 0.
+10. **Hand it back.** `furrow done <REF>`. It sets the step's `merged: true` in this PR, so merging
+    the PR unblocks whatever waits on it. It refuses if a covered non-human criterion is unticked.
+11. **Last step of the spec?** Fold what the spec changed into `specs/areas/<area>.md`'s
+    `## Behaviour`, in present tense, as if it had always worked this way, with the spec's diagram
+    if it has one. Don't archive: the owner's sign-off, or `furrow archive`, does that once every
+    box is ticked.
+12. Run `furrow lint`, commit, push, put the filled-in brief in the PR description, and mark the
+    PR ready.
 
 ## When the spec is wrong
 

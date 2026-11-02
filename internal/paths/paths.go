@@ -75,8 +75,8 @@ func Literal(entry string) []string {
 func IsGlob(entry string) bool { return strings.ContainsAny(entry, "*?[") }
 
 // Overlap reports whether two touches lists can name the same file, and the first clashing pair
-// ("x" when both are the same entry, "x and y" otherwise). Two entries overlap when their literal
-// prefixes agree up to the shorter one.
+// ("x" when both are the same entry, "x and y" otherwise). It never says no when some file could
+// match both: two globs are walked segment by segment, and anything it can't rule out overlaps.
 func Overlap(a, b []string, aliases map[string]string) (string, bool) {
 	for _, x := range a {
 		for _, y := range b {
@@ -104,11 +104,96 @@ func entriesOverlap(x, y string) bool {
 	if !IsGlob(y) && len(py) >= len(px) {
 		return Match(x, y)
 	}
-	n := min(len(px), len(py))
-	for i := 0; i < n; i++ {
-		if px[i] != py[i] {
+	if !IsGlob(x) || !IsGlob(y) {
+		// An exact file shallower than the glob's literal folders: they overlap when those agree.
+		n := min(len(px), len(py))
+		for i := 0; i < n; i++ {
+			if px[i] != py[i] {
+				return false
+			}
+		}
+		return true
+	}
+	return globsOverlap(split(x), split(y))
+}
+
+// globsOverlap walks two globs segment by segment from the root. A "**" in either can stand for any
+// depth, so it overlaps. Two segments that can't match the same name don't, and neither do two
+// globs of different depths with no "**" left.
+func globsOverlap(x, y []string) bool {
+	for len(x) > 0 && len(y) > 0 {
+		if x[0] == "**" || y[0] == "**" {
+			return true
+		}
+		if !segmentsOverlap(x[0], y[0]) {
 			return false
 		}
+		x, y = x[1:], y[1:]
 	}
-	return true
+	for _, seg := range append(x, y...) {
+		if seg == "**" {
+			return true
+		}
+	}
+	return len(x) == len(y)
+}
+
+// segmentsOverlap reports whether two segments can match the same name, judged by their literal
+// prefixes and suffixes: a name matching both starts with both prefixes and ends with both suffixes.
+func segmentsOverlap(a, b string) bool {
+	pa, sa := affixes(a)
+	pb, sb := affixes(b)
+	if !strings.HasPrefix(pa, pb) && !strings.HasPrefix(pb, pa) {
+		return false
+	}
+	return strings.HasSuffix(sa, sb) || strings.HasSuffix(sb, sa)
+}
+
+// affixes splits a segment into the literal text before its first glob token and after its last.
+// Tokens are "*", "?", a "\" escape with the character after it, and a whole "[...]" class. A
+// segment with no token is all prefix and all suffix. A class with no closing "]" runs to the end.
+func affixes(seg string) (prefix, suffix string) {
+	first, last := -1, -1
+	for i := 0; i < len(seg); i++ {
+		start := i
+		switch seg[i] {
+		case '*', '?':
+		case '\\':
+			i++
+		case '[':
+			i = classEnd(seg, i)
+		default:
+			continue
+		}
+		if first < 0 {
+			first = start
+		}
+		last = min(i, len(seg)-1)
+	}
+	if first < 0 {
+		return seg, seg
+	}
+	return seg[:first], seg[last+1:]
+}
+
+// classEnd returns the index of the "]" closing the class that opens at seg[open], or the last
+// index when it never closes. A "]" right after "[" or "[^" is part of the class, as is an escaped
+// one, so the end found is never earlier than the real one.
+func classEnd(seg string, open int) int {
+	i := open + 1
+	if i < len(seg) && (seg[i] == '^' || seg[i] == '!') {
+		i++
+	}
+	if i < len(seg) && seg[i] == ']' {
+		i++
+	}
+	for ; i < len(seg); i++ {
+		switch seg[i] {
+		case '\\':
+			i++
+		case ']':
+			return i
+		}
+	}
+	return len(seg) - 1
 }
