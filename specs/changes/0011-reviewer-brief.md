@@ -78,7 +78,7 @@ steps:
       - specs/areas/scaffolding.md
     covers: [AC-24, AC-25]
     size: s
-    merged: false
+    merged: true
   - n: 8
     title: furrow brief --spec writes the brief for a spec PR
     after: [1]
@@ -399,3 +399,5 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - 2026-11-02: Chose to make `--spec` with `--step` a `brief.ErrSpecAndStep` error that `furrow brief` exits 2 on, checked before the repo loads, so the step's tests can prove it without a test file in `cmd/furrow/`. `--pr` or `--offline` without `--spec` also exits 2.
 - 2026-11-02: Chose to set the spec's status to accepted in memory while `schedule.Waves` runs, and back after, to work out waves as if it were accepted, because the scheduler reads only accepted specs.
 - 2026-11-02: Chose to accept `https://` remotes with a user (`https://token@github.com/o/r`) as GitHub too, and to escape `[`, `]` and `\` in a linked question, because both occur and neither changes the link.
+- 2026-11-02: Chose to draw the brief area's diagram as data flow from `.furrow.yml`, the spec file and git through `brief.Build` and `brief.BuildSpec` to the PR description and back into `brief.Check`, with no colours, because it is the one picture a reviewer needs and fits in 8 nodes.
+- 2026-11-02: Chose to keep the full diagram rules in the brief area and a short paragraph in the specs area, because the brief is where Furrow asks for diagrams in a PR and the specs area says what a spec or area file holds.
