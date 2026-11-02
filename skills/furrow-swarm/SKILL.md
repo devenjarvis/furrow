@@ -40,11 +40,12 @@ that nothing else can run beside.
 `furrow next` says nothing is ready and no agent is out. Then report to the owner:
 - what merged, by ref, and anything an agent decided that they should know;
 - `furrow review`: the `human:` checks waiting for them;
-- spec problems, draft specs waiting to be accepted, and blocked steps with their reasons.
+- spec problems, spec PRs waiting for the owner to merge, and blocked steps with their reasons.
 
 ## Watch for
 
 - An agent that edits outside its territory: `furrow territory` catches it. Send it back.
 - Hidden dependencies: two "parallel" steps that both need something neither owns. Fix the spec's
   `after` in a spec commit before handing out more work.
-- Never let an agent sign off or accept a spec. Those are the owner's.
+- Never let an agent sign off or accept a spec. Those are the owner's. You merge step PRs that pass
+  review, but never merge a spec PR: merging it is the owner's decision.

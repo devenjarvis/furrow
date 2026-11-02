@@ -36,6 +36,15 @@ cycles, `touches` folders that exist, invariants that exist and force human revi
 for ticked `human:` boxes, done meaning done, and well-formed areas. It warns when an accepted spec
 is complete and ready to archive. It exits 1 on any error.
 
+**Deciding a spec.** A spec's PR is opened with `status: accepted`. The unmerged PR is the
+proposal, and merging it is the decision: `furrow next` runs from the base branch and never sees
+an unmerged spec. Closing the PR is the owner saying no. `draft` means parked: kept but never
+offered. `furrow new` starts specs as `draft`, so lint stays relaxed while one is written. In an
+`accepted` or `paused` spec, each top-level item under `## Open questions` carries `Proposed: …`,
+and that proposal is the answer unless the owner overrules it before merging. Lint reports an item
+without one by its line in the file, and ignores headings and items inside fenced code. Agents
+never merge a spec PR.
+
 **`furrow list [--json]`** shows each spec's worked-out status: draft, accepted, building, review,
 paused or done.
 
