@@ -59,7 +59,7 @@ steps:
       - internal/scaffold/assets/README.md
     covers: [AC-15]
     size: s
-    merged: false
+    merged: true
   - n: 6
     title: furrow init offers the visual key
     after: [1]
@@ -298,7 +298,7 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [ ] AC-12: furrow-next opens the PR with the brief, and furrow-implement runs `furrow brief --check` before `furrow done` (check: grep -q "furrow brief" skills/furrow-next/SKILL.md && grep -q "furrow brief --check" skills/furrow-implement/SKILL.md)
 - [ ] AC-13: furrow-implement says a screenshot is evidence for the owner and never a reason to tick a `human:` criterion (check: grep -n -i "screenshot" skills/furrow-implement/SKILL.md | grep -q -i "human")
 - [ ] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
-- [ ] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
+- [x] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
 - [ ] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
 - [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any; Answered lists `Owner chose` lines added since the merge base (test: TestSpecBriefSections)
 - [ ] AC-18: Your calls numbers questions Q1… in file order, and with `--pr N` and a GitHub remote in https or ssh form makes each question a link to its line in the PR's diff, else follows it with `(path:line)` (test: TestSpecBriefLineLinks)
@@ -339,3 +339,7 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
   Proposed: not yet. Other remotes get `path:line` until someone uses Furrow on one.
 
 ## Decisions
+
+- 2026-11-02: Chose to put the diagram rule after the body-sections table, and the area rule next to
+  "Required sections", in both copies of the standard, because that is where a writer reads what
+  goes in `## What` and in an area.
