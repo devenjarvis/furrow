@@ -24,8 +24,9 @@ pinned `bin/furrow`) knows what's free.
    Exit 3 means someone beat you to it: run `furrow next` again and pick another. Never work on a
    step you didn't claim.
 5. **Open a draft PR** with the forge's tools, titled exactly as `claim` printed: `[REF] <step
-   title>`. Use the repo's PR template if it has one. List the criteria the step `covers`, each
-   unticked.
+   title>`. Its body is `furrow brief`'s output, as printed: the reviewer's brief, which lists
+   the criteria the step `covers`, each unticked, and leaves `<!-- furrow:` placeholders for
+   `furrow-implement` to fill in. The brief is the template; don't use another.
 6. **Plan.** Write down the files you'll change (all inside `touches`), one test per covered
    criterion named as its `(test: …)` says, and anything unclear. If something unclear changes the
    work, write it under "Spec problem" in the PR and stop. Otherwise continue with
