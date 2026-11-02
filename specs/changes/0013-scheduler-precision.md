@@ -38,7 +38,7 @@ steps:
       - specs/areas/scheduling.md
     covers: [AC-5]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0013: furrow next tells patterns apart and says why a step is held
@@ -107,7 +107,7 @@ Claimed:
 - [x] AC-2: Every existing overlap case gives the same answer as before (check: go test ./internal/paths -run 'TestOverlap$')
 - [x] AC-3: With `--agents N`, the text lists each held step with its clash after the assignments (test: TestNextAgentsShowsHeld)
 - [x] AC-4: With ready steps but none assignable, the text says `Assignments: none.` and why, not an empty heading (test: TestNextAgentsNoneAssignable)
-- [ ] AC-5: The scheduling area describes overlap segment by segment and the held lines under `--agents` (check: grep -q "segment by segment" specs/areas/scheduling.md && grep -q "Assignments: none" specs/areas/scheduling.md)
+- [x] AC-5: The scheduling area describes overlap segment by segment and the held lines under `--agents` (check: grep -q "segment by segment" specs/areas/scheduling.md && grep -q "Assignments: none" specs/areas/scheduling.md)
 
 ## Out of scope
 
@@ -130,3 +130,4 @@ Claimed:
 - 2026-11-02: Chose to print `Assignments: none.` only when the together set is empty because then no step was picked, so every hold is against a claimed step and the message is true; when some steps are picked, the heading stays `Assignments:` and the held lines may name a picked step.
 - 2026-11-02: Chose to count a `\` escape (with the character after it) as a glob token, and a whole `[...]` class as one token ending at its closing `]`, because a prefix or suffix cut too short only makes Overlap more cautious, while a suffix taken from inside a class could miss a shared file.
 - 2026-11-02: Chose to leave an exact file shallower than a glob's literal folders on the old rule, because the spec keeps the exact-against-glob rules as they are; only two globs are walked segment by segment.
+- 2026-11-02: Chose to fold overlap into its own **Overlap** paragraph after **Picking**, and to mention the exact-file-shallower-than-glob rule, because Picking already has one job and the area should describe Overlap as the code behaves.
