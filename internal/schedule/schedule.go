@@ -264,10 +264,16 @@ func (p *Plan) Text(w io.Writer) {
 	if len(p.Ready) == 0 {
 		fmt.Fprintln(w, "Nothing is ready to start.")
 	} else if p.Agents > 0 {
-		fmt.Fprintln(w, "Assignments:")
+		if len(p.Together) == 0 {
+			// Nothing was picked, so every hold is against a claimed step.
+			fmt.Fprintln(w, "Assignments: none. Every ready step shares files with a claimed step.")
+		} else {
+			fmt.Fprintln(w, "Assignments:")
+		}
 		for _, it := range p.Together {
 			describe(it)
 		}
+		p.heldText(w)
 	} else {
 		fmt.Fprintln(w, "Ready to start:")
 		for _, it := range p.Ready {
@@ -278,9 +284,7 @@ func (p *Plan) Text(w io.Writer) {
 			names = append(names, it.Ref())
 		}
 		fmt.Fprintf(w, "Can run together: %s\n", strings.Join(names, ", "))
-		for _, h := range p.Held {
-			fmt.Fprintf(w, "  not %s: shares %s with %s\n", h.Item.Ref(), h.Paths, h.ClashWith.Ref())
-		}
+		p.heldText(w)
 	}
 	if len(p.Claimed) > 0 {
 		fmt.Fprintln(w, "Claimed:")
@@ -299,6 +303,13 @@ func (p *Plan) Text(w io.Writer) {
 		for _, it := range p.Blocked {
 			fmt.Fprintf(w, "  %-*s  %s\n", wd, it.Ref(), it.Step.Blocked)
 		}
+	}
+}
+
+// heldText writes one line per held step: what it shares, and with which step.
+func (p *Plan) heldText(w io.Writer) {
+	for _, h := range p.Held {
+		fmt.Fprintf(w, "  not %s: shares %s with %s\n", h.Item.Ref(), h.Paths, h.ClashWith.Ref())
 	}
 }
 
