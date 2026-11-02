@@ -209,8 +209,9 @@ above. Sections, in this order:
 2. **`## Your calls`**: built to be answered from a phone. It opens with `Merging accepts each
    proposed answer. To overrule one, reply to this PR with its number, like "Q2: no, keep it", or
    comment on its line. One reply can answer several.` Then each top-level item of the spec's
-   `## Open questions`, in file order, numbered `Q1`, `Q2`, …, as `**Q1** <question>` with its
-   `Proposed: …` text on the next line and a link to its line under that. An item with no
+   `## Open questions`, in file order, numbered `Q1`, `Q2`, …, as `**Q1** [<question>](<line
+   link>)`, the question itself being the link, with its `Proposed: …` text on the next line. An
+   item with no
    `Proposed:` keeps its number but is listed first, under `Needs an answer before merging:`,
    because merging can't accept an answer that isn't there. With no open questions: `None. Ready
    to accept.`
@@ -219,7 +220,7 @@ above. Sections, in this order:
    remote get-url`, `.git` and an `ssh` form allowed), the link opens the line in the PR's diff,
    where the owner can comment on it:
    `https://github.com/<owner>/<repo>/pull/<N>/files#diff-<sha256 of the path, hex>R<line>`.
-   Otherwise it's the plain `<spec file>:<line>`. The line is the item's first line in the working
+   Otherwise the question is plain text, followed by `(<spec file>:<line>)`. The line is the item's first line in the working
    tree. No forge is asked anything (INV-2).
 3. **`## Answered`** *when the spec's `## Decisions` gained `Owner chose` lines since the merge
    base*: those lines, so the owner sees their answers landed in the spec.
@@ -298,7 +299,7 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [ ] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
 - [ ] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
 - [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any; Answered lists `Owner chose` lines added since the merge base (test: TestSpecBriefSections)
-- [ ] AC-18: Your calls numbers questions Q1… in file order, and with `--pr N` and a GitHub remote in https or ssh form links each to its line in the PR's diff, else prints `path:line` (test: TestSpecBriefLineLinks)
+- [ ] AC-18: Your calls numbers questions Q1… in file order, and with `--pr N` and a GitHub remote in https or ssh form makes each question a link to its line in the PR's diff, else follows it with `(path:line)` (test: TestSpecBriefLineLinks)
 - [ ] AC-19: The Plan is a mermaid flowchart with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
 - [ ] AC-20: Collisions names each overlapping step of another accepted spec, marks claimed ones from the remote, and with `--offline` says claims weren't checked (test: TestSpecBriefCollisions)
 - [ ] AC-21: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
