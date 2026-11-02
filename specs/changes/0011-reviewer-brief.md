@@ -263,11 +263,15 @@ exits 1 and names it. `--json` prints `{"spec", "base", "sections": [{"heading",
   parts connect or how something flows (a new component, a changed call path, a state machine),
   showing only the parts that change, with new ones marked by `classDef added`. A spec that
   doesn't change structure has none. It opens the spec's PR with `furrow brief --spec`'s output
-  as the body, and fills in the Decision. Every open question gets a `Proposed:` answer. When the
-  owner overrules one, in a `Qn:` reply or on its line, the agent removes the question from
+  as the body, and fills in the Decision. Every open question gets a `Proposed:` answer. Then,
+  with the forge's tools, it opens one review thread per question on the question's lines in the
+  spec: `**Qn** <question>`, `Proposed: …`, and `Reply here to overrule. Merging without a reply
+  accepts the proposal.` It changes each question's link in the description to its thread. A
+  thread the owner resolves without replying leaves the proposal standing. When the owner
+  overrules one, in its thread or in a `Qn:` reply, the agent removes the question from
   `## Open questions`, adds `- YYYY-MM-DD: <question> Owner chose <answer> over the proposed
   <proposal>.` to `## Decisions`, regenerates the brief with `--pr`, and replies saying which
-  questions it recorded. If the list changed since the owner's reply, so a `Qn` could mean two
+  questions it recorded, and resolves their threads. If the list changed since the owner's reply, so a `Qn` could mean two
   questions, it asks instead of guessing. It never answers a question for the
   owner, and never accepts the spec.
 
@@ -302,7 +306,7 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [ ] AC-20: Collisions names each overlapping step of another accepted spec, marks claimed ones from the remote, and with `--offline` says claims weren't checked (test: TestSpecBriefCollisions)
 - [ ] AC-21: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
 - [ ] AC-22: `--check --spec` reports missing sections, placeholders and a long Decision; `--spec` with `--step` exits 2; an archived or unknown spec exits 1 with its message (test: TestSpecBriefCheckAndFailures)
-- [ ] AC-23: furrow-write opens the spec PR with `furrow brief --spec`, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
+- [ ] AC-23: furrow-write opens the spec PR with `furrow brief --spec`, opens a review thread per open question, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q -i "thread" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
 - [ ] AC-24: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
 - [ ] AC-25: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
 
@@ -314,6 +318,8 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - Rendering or validating mermaid syntax. That needs a dependency (INV-7).
 - Writing a forge PR template, such as `.github/pull_request_template.md`. The brief is the
   template.
+- Posting the question threads from `furrow` itself. That needs a forge's API (INV-2), so the
+  `furrow-write` skill does it with the agent's tools, and the brief works without them.
 - Making `furrow done` or `furrow lint` require a complete brief. `--check` is advice the skills
   run, for now.
 - A configurable list of test globs.
