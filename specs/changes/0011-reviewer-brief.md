@@ -35,7 +35,7 @@ steps:
     merged: false
   - n: 3
     title: furrow-next and furrow-implement write the brief
-    after: [1]
+    after: [1, 2, 9]
     touches:
       - skills/furrow-next/**
       - skills/furrow-implement/**
