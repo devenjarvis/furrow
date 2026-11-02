@@ -22,7 +22,7 @@ steps:
       - internal/spec/spectest/**
     covers: [AC-1, AC-2]
     size: s
-    merged: false
+    merged: true
   - n: 2
     title: The standard and the skills say a spec PR is proposed as accepted
     after: [1]
@@ -82,8 +82,8 @@ that pass review, never merges a spec PR.
 
 ## Acceptance criteria
 
-- [ ] AC-1: An accepted or paused spec with an open question lacking `Proposed:` fails lint with the message and line; a draft one passes (test: TestLintOpenQuestionsNeedProposals)
-- [ ] AC-2: An `## Open questions` heading and items inside a fenced code block are ignored by that rule (test: TestLintOpenQuestionsIgnoreFences)
+- [x] AC-1: An accepted or paused spec with an open question lacking `Proposed:` fails lint with the message and line; a draft one passes (test: TestLintOpenQuestionsNeedProposals)
+- [x] AC-2: An `## Open questions` heading and items inside a fenced code block are ignored by that rule (test: TestLintOpenQuestionsIgnoreFences)
 - [ ] AC-3: The standard's two copies say a spec PR is opened as accepted, merging it is the decision, and draft means parked (check: grep -q -i "parked" specs/README.md && grep -q -i "parked" internal/scaffold/assets/README.md && grep -q -i "merging it is the decision" specs/README.md && grep -q -i "merging it is the decision" internal/scaffold/assets/README.md)
 - [ ] AC-4: furrow-write opens spec PRs as accepted with a proposal for every question, and furrow-write and furrow-swarm never merge a spec PR (check: grep -q "status: accepted" skills/furrow-write/SKILL.md && grep -q -i "never merge" skills/furrow-write/SKILL.md && grep -q -i "never merge.*spec" skills/furrow-swarm/SKILL.md)
 - [ ] AC-5: Proposing and accepting a spec this way reads right to the owner end to end (human: merge the next spec PR without editing it, and read the spec on main)
@@ -105,3 +105,11 @@ that pass review, never merges a spec PR.
   yet. The forge already keeps merge rights with the owner, and Furrow can't check it.
 
 ## Decisions
+
+- 2026-11-02: Chose to count line numbers from the top of the file, front matter included, by
+  reading the spec's file again in lint, because that's the line an editor shows and `Spec` keeps
+  only the body.
+- 2026-11-02: Chose to treat a top-level item as running until the next top-level `- ` item or
+  heading, so `Proposed:` on any continuation or nested line counts, because questions wrap.
+- 2026-11-02: Chose to skip every line inside a fence of three or more backticks, closed by a run
+  at least as long, because a four-backtick fence often shows a three-backtick one.

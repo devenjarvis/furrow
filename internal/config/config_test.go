@@ -40,3 +40,26 @@ func TestFindConfig(t *testing.T) {
 		t.Error("a branch pattern without {step} should be refused")
 	}
 }
+
+func TestParseVisual(t *testing.T) {
+	cfg, err := Parse([]byte("prefix: FUR\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Visual == nil || len(cfg.Visual) != 0 {
+		t.Errorf("visual defaults to %#v, want an empty list", cfg.Visual)
+	}
+	cfg, err = Parse([]byte("visual: [web/src/**, ui, ' ', ' docs/*.png ']\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"web/src/**", "ui", "docs/*.png"}
+	if len(cfg.Visual) != len(want) {
+		t.Fatalf("visual = %#v, want %#v", cfg.Visual, want)
+	}
+	for i := range want {
+		if cfg.Visual[i] != want[i] {
+			t.Errorf("visual = %#v, want %#v", cfg.Visual, want)
+		}
+	}
+}
