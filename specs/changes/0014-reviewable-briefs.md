@@ -35,12 +35,13 @@ steps:
     title: The skills write and verify the new brief
     after: [1, 2]
     touches:
+      - internal/brief/check*
       - skills/furrow-implement/SKILL.md
       - skills/furrow-verify/SKILL.md
       - skills/furrow-write/SKILL.md
       - specs/areas/agents.md
-    covers: [AC-8, AC-9]
-    size: s
+    covers: [AC-8, AC-9, AC-10, AC-11]
+    size: m
     merged: false
 ---
 
@@ -114,6 +115,11 @@ On top of today's checks, it reports, in section order:
 
 The Behaviour word cap (80) counts only text outside code blocks and images.
 
+A `<!-- furrow:` placeholder inside a fenced code block is ignored only in `## Behaviour`, after
+its `**After:**` line, so "show it" can paste real `furrow brief` output. Anywhere else, a
+placeholder inside a fence is still a placeholder, so an unfilled section can't hide in a code
+block.
+
 ### The spec brief
 
 `furrow brief --spec`'s Decision placeholder becomes two lines, each at most 25 words:
@@ -129,7 +135,7 @@ The Behaviour word cap (80) counts only text outside code blocks and images.
 
 - **furrow-implement** fills the brief this way: Before and After as a user or caller sees it;
   one "show it" (for a CLI, the command and its output; for a UI, the screenshot; for a library, a
-  call and its result); at most 3 "Review this" items, each naming where a decision was made and
+  call and its result), as an excerpt of at most 15 lines showing only the part that changed; at most 3 "Review this" items, each naming where a decision was made and
   the question to ask; each invariant's line says how this diff touches it. It writes each
   `## Decisions` line in at most 30 words.
 - **furrow-verify** re-runs a "show it" command when it's cheap and compares the output, and checks
@@ -149,6 +155,8 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 - [x] AC-7: The spec brief's Decision is Commits us to and Instead of lines, and `--check --spec` reports a missing one or one over 25 words (test: TestSpecBriefDecisionLines)
 - [ ] AC-8: The three skills describe the new brief (check: grep -q "Before:" skills/furrow-implement/SKILL.md && grep -q "Review this" skills/furrow-implement/SKILL.md && grep -q -i "show it" skills/furrow-verify/SKILL.md && grep -q "Instead of" skills/furrow-write/SKILL.md)
 - [ ] AC-9: A step PR written with the new brief can be reviewed on a phone without wading through what doesn't need a person (human: open the first step PR made after this merges on your phone, and read it before the diff)
+- [ ] AC-10: `--check` ignores a placeholder inside a fence after Behaviour's After line, and still reports one inside a fence in any other section (test: TestBriefCheckFencedPlaceholders)
+- [ ] AC-11: furrow-implement keeps "show it" to an excerpt of at most 15 lines (check: grep -q "15 lines" skills/furrow-implement/SKILL.md)
 
 ## Out of scope
 
