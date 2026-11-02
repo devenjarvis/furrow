@@ -1,7 +1,7 @@
 ---
 id: FUR-0011
 title: A reviewer's brief for every step's PR
-status: draft
+status: accepted
 area: brief
 priority: p1
 human_review: required
@@ -29,8 +29,7 @@ steps:
     after: [1]
     touches:
       - cmd/furrow/brief.go
-      - internal/brief/check.go
-      - internal/brief/check_test.go
+      - internal/brief/check*
     covers: [AC-10, AC-11]
     size: s
     merged: false
@@ -85,8 +84,7 @@ steps:
     after: [1]
     touches:
       - cmd/furrow/brief.go
-      - internal/brief/spec.go
-      - internal/brief/spec_test.go
+      - internal/brief/spec*
       - skills/furrow-write/SKILL.md
     covers: [AC-17, AC-18, AC-19, AC-20, AC-21, AC-22, AC-23]
     size: m
