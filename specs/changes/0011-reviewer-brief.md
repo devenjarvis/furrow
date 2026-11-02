@@ -41,7 +41,7 @@ steps:
       - skills/furrow-implement/**
     covers: [AC-12, AC-13]
     size: s
-    merged: false
+    merged: true
   - n: 4
     title: furrow-verify checks the brief against the diff
     after: [2]
@@ -325,8 +325,8 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [x] AC-9: Off a step branch, an unknown step, and a missing base each exit 1 with their message (test: TestBriefFailures)
 - [x] AC-10: `--check` reports a missing section, a leftover placeholder, a Behaviour over 80 words, a missing mermaid block or `Legend:` line, and a visual row without images, each on its own line, and exits 1 (test: TestBriefCheckProblems)
 - [x] AC-11: `--check` exits 0 on a complete brief, changes no file, and `--json` prints `ok` and `problems` (test: TestBriefCheckComplete)
-- [ ] AC-12: furrow-next opens the PR with the brief, and furrow-implement runs `furrow brief --check` before `furrow done` (check: grep -q "furrow brief" skills/furrow-next/SKILL.md && grep -q "furrow brief --check" skills/furrow-implement/SKILL.md)
-- [ ] AC-13: furrow-implement says a screenshot is evidence for the owner and never a reason to tick a `human:` criterion (check: grep -n -i "screenshot" skills/furrow-implement/SKILL.md | grep -q -i "human")
+- [x] AC-12: furrow-next opens the PR with the brief, and furrow-implement runs `furrow brief --check` before `furrow done` (check: grep -q "furrow brief" skills/furrow-next/SKILL.md && grep -q "furrow brief --check" skills/furrow-implement/SKILL.md)
+- [x] AC-13: furrow-implement says a screenshot is evidence for the owner and never a reason to tick a `human:` criterion (check: grep -n -i "screenshot" skills/furrow-implement/SKILL.md | grep -q -i "human")
 - [x] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
 - [x] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
 - [x] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
@@ -389,3 +389,5 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - 2026-11-02: Chose to put furrow-verify's brief check as its own step right after territory, because both read the PR description, and the report step then lists brief findings with territory's.
 - 2026-11-02: Chose to put the four diagram rules as a list right after the diagram paragraph in both copies of the standard, and as one sentence in furrow-write's `## What` item, because that is where each already says when to draw one.
 - 2026-11-02: Chose to leave `--check`'s Diagram rules as they are, because the raw brief's `Legend:` line satisfies the `Legend:` rule and its placeholder is reported as a placeholder, so an unfilled Diagram fails once, for the placeholder (TestBriefDiagramAsksForLegend).
+- 2026-11-02: Chose to make furrow-implement's diagram, visual proof and brief work three numbered steps of their own, between logging decisions and `furrow done`, because the brief's Departures read the Decisions and `--check` must pass before the step is handed back.
+- 2026-11-02: Chose to have furrow-next say the brief replaces a repo's PR template, because "Out of scope" says the brief is the template.
