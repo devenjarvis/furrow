@@ -42,3 +42,20 @@ description: Turn an idea into a draft Furrow spec, split into steps that can ru
    `Proposed:`, then run `furrow lint` again. The PR is the proposal, and the owner merging it is the
    decision. Never merge a spec PR, even your own. Leave `status: draft` only for an idea the owner
    wants parked: written down but not built yet.
+10. **Open the spec's PR with its brief.** Open it with `furrow brief --spec <ID>`'s output as the
+    body, then, once you know its number, regenerate with `furrow brief --spec <ID> --pr <N>` so each
+    question links to its line, and paste that. Fill in `## Decision`: what accepting this commits
+    the owner to and the main alternative it rejects, in at most 80 words, without restating the
+    spec. Run `furrow brief --check <body file> --spec <ID>` until it exits 0.
+11. **One review thread per open question.** With the forge's tools, comment on each question's
+    lines in the spec's diff, opening a thread that says `**Qn** <question>`, then
+    `Proposed: …`, then `Reply here to overrule. Merging without a reply accepts the proposal.`
+    Change each question's link in the description to its thread. A thread the owner resolves
+    without replying leaves the proposal standing.
+12. **When the owner overrules one**, in its thread or in a `Qn:` reply to the PR: remove the
+    question from `## Open questions`, add
+    `- YYYY-MM-DD: <question> Owner chose <answer> over the proposed <proposal>.` to
+    `## Decisions`, regenerate the brief with `--pr`, reply saying which questions you recorded, and
+    resolve their threads. If the list changed since the owner's reply, so a `Qn` could mean two
+    questions, ask which one instead of guessing. Never answer a question for the owner, and never
+    accept the spec: the owner's merge does that.
