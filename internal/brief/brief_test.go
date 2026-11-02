@@ -197,7 +197,7 @@ func TestBriefCopiesSpecDiagram(t *testing.T) {
 	r := setup(t, s)
 	b := build(t, r, brief.Options{})
 	d := section(t, b, "Diagram")
-	if !strings.HasPrefix(d, "<!-- furrow: mark what this step adds or changes with classDef added") {
+	if !strings.HasPrefix(d, "<!-- furrow: one sentence saying what this diagram answers.") {
 		t.Errorf("Diagram should open with its placeholder:\n%s", d)
 	}
 	if !strings.Contains(d, mermaid+"\n\n"+second) {
@@ -205,6 +205,29 @@ func TestBriefCopiesSpecDiagram(t *testing.T) {
 	}
 	if strings.Contains(d, "not: a diagram") || strings.Contains(d, "Why --> Not") {
 		t.Errorf("Diagram copied something that isn't a mermaid block in ## What:\n%s", d)
+	}
+}
+
+func TestBriefDiagramAsksForLegend(t *testing.T) {
+	r := setup(t, spec7("This.\n\n"+mermaid, "", criteria))
+	r.Write("internal/thing/a.go", "package thing\n")
+	b := build(t, r, brief.Options{})
+	d := section(t, b, "Diagram")
+	caption := "<!-- furrow: one sentence saying what this diagram answers. Mark what this step adds or changes with classDef added, or say it matches the spec as drawn. End with a \"Legend:\" line. -->"
+	legend := "Legend: <!-- furrow: what a box, an arrow and each colour mean -->"
+	if want := caption + "\n\n" + mermaid + "\n\n" + legend; d != want {
+		t.Errorf("Diagram =\n%s\nwant\n%s", d, want)
+	}
+
+	// The raw brief has a Legend: line, so --check asks only for the placeholders to be written.
+	var problems []string
+	for _, p := range brief.Check(b, b.Markdown()).Problems {
+		if strings.Contains(p, "Diagram") {
+			problems = append(problems, p)
+		}
+	}
+	if want := []string{"`## Diagram` still has a placeholder. Write it."}; !reflect.DeepEqual(problems, want) {
+		t.Errorf("Diagram problems = %q, want %q", problems, want)
 	}
 }
 

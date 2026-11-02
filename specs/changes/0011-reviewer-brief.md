@@ -99,7 +99,7 @@ steps:
       - internal/brief/brief*
     covers: [AC-26, AC-27]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0011: A reviewer's brief for every step's PR
@@ -339,8 +339,8 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [ ] AC-23: furrow-write opens the spec PR with `furrow brief --spec`, opens a review thread per open question, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q -i "thread" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
 - [ ] AC-24: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
 - [ ] AC-25: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
-- [ ] AC-26: The Diagram section's placeholder asks for a caption and is followed by a `Legend:` placeholder line (test: TestBriefDiagramAsksForLegend)
-- [ ] AC-27: The standard's two copies and furrow-write give the caption, `Legend:`, 8-node and `flowchart TD` rules (check: for f in specs/README.md internal/scaffold/assets/README.md skills/furrow-write/SKILL.md; do grep -q "Legend:" $f && grep -q "flowchart TD" $f || exit 1; done)
+- [x] AC-26: The Diagram section's placeholder asks for a caption and is followed by a `Legend:` placeholder line (test: TestBriefDiagramAsksForLegend)
+- [x] AC-27: The standard's two copies and furrow-write give the caption, `Legend:`, 8-node and `flowchart TD` rules (check: for f in specs/README.md internal/scaffold/assets/README.md skills/furrow-write/SKILL.md; do grep -q "Legend:" $f && grep -q "flowchart TD" $f || exit 1; done)
 
 ## Out of scope
 
@@ -386,3 +386,5 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - 2026-11-02: Chose to report a placeholder outside the brief's sections (before the first heading, or under an extra heading such as `## Territory`) after the sections' problems, in the file's order, because "anywhere" includes them and section order doesn't place them.
 - 2026-11-02: Chose to number Visual proof rows from 1 after the header, skipping separator rows, to ignore `## ` lines inside code fences, and to read only the first section with a heading, because the spec doesn't say.
 - 2026-11-02: Chose to print `--check`'s problems on stdout, as `furrow territory` prints its report, with errors (an unreadable file, a missing base) on stderr.
+- 2026-11-02: Chose to put the four diagram rules as a list right after the diagram paragraph in both copies of the standard, and as one sentence in furrow-write's `## What` item, because that is where each already says when to draw one.
+- 2026-11-02: Chose to leave `--check`'s Diagram rules as they are, because the raw brief's `Legend:` line satisfies the `Legend:` rule and its placeholder is reported as a placeholder, so an unfilled Diagram fails once, for the placeholder (TestBriefDiagramAsksForLegend).
