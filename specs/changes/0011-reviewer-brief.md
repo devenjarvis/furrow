@@ -23,7 +23,7 @@ steps:
       - internal/config/**
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: furrow brief --check reads a filled-in brief
     after: [1]
@@ -284,15 +284,15 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 
 ## Acceptance criteria
 
-- [ ] AC-1: The brief has the eight sections in order, leaves out Diagram and Visual proof when they don't apply, and puts every agent-written part in a `<!-- furrow:` comment (test: TestBriefSections)
-- [ ] AC-2: Changed files are grouped Specs, Tests, Visual, Code, each file in the first group it matches, sorted (test: TestBriefGroupsFiles)
-- [ ] AC-3: A spec with mermaid blocks in `## What` gets a Diagram section with each block copied as is (test: TestBriefCopiesSpecDiagram)
-- [ ] AC-4: A diff touching a `visual` glob or alias gets a Visual proof section with the matching files and the table, and with `visual` empty there is none (test: TestBriefVisualProof)
-- [ ] AC-5: Departures lists Decisions lines added since the merge base, criteria whose text changed, and files outside territory, or `None.` (test: TestBriefDepartures)
-- [ ] AC-6: Files outside territory never appear under a `## Territory` heading, so `furrow territory --body-file` on the raw brief still reports them (test: TestBriefDoesNotExplainTerritory)
-- [ ] AC-7: Proven and Needs you list the covered criteria by kind, the spec's invariants by name, and required human review (test: TestBriefProvenAndNeedsYou)
-- [ ] AC-8: The same repo state gives byte-identical output, and `--json` has every documented key with lists never null (test: TestBriefDeterministicAndJSON)
-- [ ] AC-9: Off a step branch, an unknown step, and a missing base each exit 1 with their message (test: TestBriefFailures)
+- [x] AC-1: The brief has the eight sections in order, leaves out Diagram and Visual proof when they don't apply, and puts every agent-written part in a `<!-- furrow:` comment (test: TestBriefSections)
+- [x] AC-2: Changed files are grouped Specs, Tests, Visual, Code, each file in the first group it matches, sorted (test: TestBriefGroupsFiles)
+- [x] AC-3: A spec with mermaid blocks in `## What` gets a Diagram section with each block copied as is (test: TestBriefCopiesSpecDiagram)
+- [x] AC-4: A diff touching a `visual` glob or alias gets a Visual proof section with the matching files and the table, and with `visual` empty there is none (test: TestBriefVisualProof)
+- [x] AC-5: Departures lists Decisions lines added since the merge base, criteria whose text changed, and files outside territory, or `None.` (test: TestBriefDepartures)
+- [x] AC-6: Files outside territory never appear under a `## Territory` heading, so `furrow territory --body-file` on the raw brief still reports them (test: TestBriefDoesNotExplainTerritory)
+- [x] AC-7: Proven and Needs you list the covered criteria by kind, the spec's invariants by name, and required human review (test: TestBriefProvenAndNeedsYou)
+- [x] AC-8: The same repo state gives byte-identical output, and `--json` has every documented key with lists never null (test: TestBriefDeterministicAndJSON)
+- [x] AC-9: Off a step branch, an unknown step, and a missing base each exit 1 with their message (test: TestBriefFailures)
 - [ ] AC-10: `--check` reports a missing section, a leftover placeholder, a Behaviour over 80 words, a missing mermaid block, and a visual row without images, each on its own line, and exits 1 (test: TestBriefCheckProblems)
 - [ ] AC-11: `--check` exits 0 on a complete brief, changes no file, and `--json` prints `ok` and `problems` (test: TestBriefCheckComplete)
 - [ ] AC-12: furrow-next opens the PR with the brief, and furrow-implement runs `furrow brief --check` before `furrow done` (check: grep -q "furrow brief" skills/furrow-next/SKILL.md && grep -q "furrow brief --check" skills/furrow-implement/SKILL.md)
@@ -340,6 +340,11 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 
 ## Decisions
 
+- 2026-11-02: Chose to list Departures' new `## Decisions` items sorted, with a wrapped item's lines joined by a space, because INV-6 asks every list sorted and dated items then read in date order.
+- 2026-11-02: Chose to count an added or removed criterion as one whose text changed, when the spec file exists at the merge base, because only a person adds or drops a criterion too (INV-4). A spec file new on the branch reports none.
+- 2026-11-02: Chose `needs_you` in `--json` to keep the Markdown's order (`human:` criteria by number, then invariants by number, then `human_review: required`), as plain strings, because a plain string sort would put AC-10 before AC-2.
+- 2026-11-02: Chose "No files changed." for Where to look with an empty diff, and "None. Every criterion this step covers needs a person." for Proven with no test or check criterion, because the spec gives neither case a text.
+- 2026-11-02: Chose to test the failures (AC-9) on `brief.Build`'s errors, which `furrow brief` prints and exits 1 on, because the step's touches don't include a test file in `cmd/furrow/`. An unknown step's message is `spec.StepRef`'s "no step FUR-0099.1", as other commands print it.
 - 2026-11-02: Chose to put the diagram rule after the body-sections table, and the area rule next to
   "Required sections", in both copies of the standard, because that is where a writer reads what
   goes in `## What` and in an area.

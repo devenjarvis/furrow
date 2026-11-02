@@ -27,6 +27,9 @@ type Config struct {
 	Base    string            `yaml:"base"`
 	Branch  string            `yaml:"branch"`
 	Aliases map[string]string `yaml:"aliases"`
+	// Visual lists globs or aliases, resolved like touches. A diff touching one needs visual
+	// proof in its brief. Empty by default.
+	Visual []string `yaml:"visual"`
 }
 
 // Default returns the configuration used for every key a .furrow.yml leaves out.
@@ -39,6 +42,7 @@ func Default() Config {
 		Base:    "main",
 		Branch:  "step/{num}-{step}",
 		Aliases: map[string]string{},
+		Visual:  []string{},
 	}
 }
 
@@ -92,6 +96,11 @@ func Parse(data []byte) (Config, error) {
 	set(&cfg.Branch, raw.Branch)
 	for k, v := range raw.Aliases {
 		cfg.Aliases[k] = v
+	}
+	for _, v := range raw.Visual {
+		if v = strings.TrimSpace(v); v != "" {
+			cfg.Visual = append(cfg.Visual, v)
+		}
 	}
 	if !strings.Contains(cfg.Branch, "{num}") || !strings.Contains(cfg.Branch, "{step}") {
 		return Config{}, fmt.Errorf("%s: branch %q must contain {num} and {step}", FileName, cfg.Branch)
