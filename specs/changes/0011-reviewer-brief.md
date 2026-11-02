@@ -77,7 +77,7 @@ steps:
       - specs/areas/agents.md
       - specs/areas/specs.md
       - specs/areas/scaffolding.md
-    covers: [AC-23, AC-24]
+    covers: [AC-24, AC-25]
     size: s
     merged: false
   - n: 8
@@ -88,7 +88,7 @@ steps:
       - internal/brief/spec.go
       - internal/brief/spec_test.go
       - skills/furrow-write/SKILL.md
-    covers: [AC-17, AC-18, AC-19, AC-20, AC-21, AC-22]
+    covers: [AC-17, AC-18, AC-19, AC-20, AC-21, AC-22, AC-23]
     size: m
     merged: false
 ---
@@ -199,35 +199,45 @@ per problem, in section order, each saying what to do:
 
 It only reads. It never ticks a box or edits the spec. `--json` prints `{"ok", "problems"}`.
 
-### `furrow brief --spec ID [--base REF] [--offline] [--json]`
+### `furrow brief --spec ID [--pr N] [--base REF] [--offline] [--json]`
 
 Prints the brief for a PR that adds or amends spec `ID` in `changes/`. The base is found as
 above. Sections, in this order:
 
 1. **`## Decision`**: `<!-- furrow: what accepting this commits us to, and the main alternative
    it rejects, in at most 80 words. Don't restate the spec. -->`
-2. **`## Your calls`**: the owner answers these in the spec, not in the PR, so each one points at
-   its line. It opens with `Merging accepts each proposed answer. To overrule one, comment on its
-   line in the spec, or edit it.` Then each top-level item of the spec's `## Open questions`, in
-   order, as `- <spec file>:<line>: <question>`, with its `Proposed: …` text on the next line. The
-   line is the item's first line in the working tree. An item with no `Proposed:` is listed first,
-   under `Needs an answer before merging:`, because merging can't accept an answer that isn't
-   there. With no open questions: `None. Ready to accept.`
-3. **`## Plan`**: a ```` ```mermaid ```` `flowchart LR` of the spec's unmerged steps, worked out
+2. **`## Your calls`**: built to be answered from a phone. It opens with `Merging accepts each
+   proposed answer. To overrule one, reply to this PR with its number, like "Q2: no, keep it", or
+   comment on its line. One reply can answer several.` Then each top-level item of the spec's
+   `## Open questions`, in file order, numbered `Q1`, `Q2`, …, as `**Q1** <question>` with its
+   `Proposed: …` text on the next line and a link to its line under that. An item with no
+   `Proposed:` keeps its number but is listed first, under `Needs an answer before merging:`,
+   because merging can't accept an answer that isn't there. With no open questions: `None. Ready
+   to accept.`
+
+   **The line link.** With `--pr N` and an `https://github.com/<owner>/<repo>` remote (from `git
+   remote get-url`, `.git` and an `ssh` form allowed), the link opens the line in the PR's diff,
+   where the owner can comment on it:
+   `https://github.com/<owner>/<repo>/pull/<N>/files#diff-<sha256 of the path, hex>R<line>`.
+   Otherwise it's the plain `<spec file>:<line>`. The line is the item's first line in the working
+   tree. No forge is asked anything (INV-2).
+3. **`## Answered`** *when the spec's `## Decisions` gained `Owner chose` lines since the merge
+   base*: those lines, so the owner sees their answers landed in the spec.
+4. **`## Plan`**: a ```` ```mermaid ```` `flowchart LR` of the spec's unmerged steps, worked out
    as if the spec were accepted. One `subgraph` per wave, in wave order (`Wave 1`, `Wave 2`, …).
    Each step is a node `S<n>["<n>. <title> (<size>)"]`, with an edge from each `after` step of
    this spec. An `after` on another spec is a node named by its ref, with an edge to the step.
    Nodes and edges are sorted, so the block is the same for the same specs.
-4. **`## Collisions`**: each pair of this spec's unmerged step and another accepted spec's
+5. **`## Collisions`**: each pair of this spec's unmerged step and another accepted spec's
    unmerged step whose `touches` overlap, as `FUR-0011.1 and FUR-0009.2 (claimed) both touch
    cmd/furrow/brief.go.` The overlapping path is the one `internal/paths` reports. Claims come
    from the remote's branches, unless `--offline` is given, and then the line says `(claims not
    checked)` once at the top. With none: `None.`
-5. **`## What it costs later`**: each invariant in `invariants:` as `INV-n: <name>`;
+6. **`## What it costs later`**: each invariant in `invariants:` as `INV-n: <name>`;
    `human_review: required` when set; each `human:` criterion with its proof text, as the
    sign-offs accepting this signs the owner up for; and the step count by size, as `8 steps: 2 m,
    6 s.`
-6. **`## Changed criteria`** *when the spec file exists at the merge base*: each criterion added,
+7. **`## Changed criteria`** *when the spec file exists at the merge base*: each criterion added,
    removed, or whose text changed, with the old and new text. Its header line says `Only a person
    changes a criterion (INV-4).`
 
@@ -255,9 +265,11 @@ exits 1 and names it. `--json` prints `{"spec", "base", "sections": [{"heading",
   showing only the parts that change, with new ones marked by `classDef added`. A spec that
   doesn't change structure has none. It opens the spec's PR with `furrow brief --spec`'s output
   as the body, and fills in the Decision. Every open question gets a `Proposed:` answer. When the
-  owner overrules one, on its line in the PR or in a comment, the agent removes the question from
+  owner overrules one, in a `Qn:` reply or on its line, the agent removes the question from
   `## Open questions`, adds `- YYYY-MM-DD: <question> Owner chose <answer> over the proposed
-  <proposal>.` to `## Decisions`, and regenerates the brief. It never answers a question for the
+  <proposal>.` to `## Decisions`, regenerates the brief with `--pr`, and replies saying which
+  questions it recorded. If the list changed since the owner's reply, so a `Qn` could mean two
+  questions, it asks instead of guessing. It never answers a question for the
   owner, and never accepts the spec.
 
 ### The standard
@@ -285,14 +297,15 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [ ] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
 - [ ] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
 - [ ] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
-- [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any (test: TestSpecBriefSections)
-- [ ] AC-18: The Plan is a mermaid flowchart with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
-- [ ] AC-19: Collisions names each overlapping step of another accepted spec, marks claimed ones from the remote, and with `--offline` says claims weren't checked (test: TestSpecBriefCollisions)
-- [ ] AC-20: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
-- [ ] AC-21: `--check --spec` reports missing sections, placeholders and a long Decision; `--spec` with `--step` exits 2; an archived or unknown spec exits 1 with its message (test: TestSpecBriefCheckAndFailures)
-- [ ] AC-22: furrow-write opens the spec PR with `furrow brief --spec`, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
-- [ ] AC-23: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
-- [ ] AC-24: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
+- [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any; Answered lists `Owner chose` lines added since the merge base (test: TestSpecBriefSections)
+- [ ] AC-18: Your calls numbers questions Q1… in file order, and with `--pr N` and a GitHub remote in https or ssh form links each to its line in the PR's diff, else prints `path:line` (test: TestSpecBriefLineLinks)
+- [ ] AC-19: The Plan is a mermaid flowchart with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
+- [ ] AC-20: Collisions names each overlapping step of another accepted spec, marks claimed ones from the remote, and with `--offline` says claims weren't checked (test: TestSpecBriefCollisions)
+- [ ] AC-21: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
+- [ ] AC-22: `--check --spec` reports missing sections, placeholders and a long Decision; `--spec` with `--step` exits 2; an archived or unknown spec exits 1 with its message (test: TestSpecBriefCheckAndFailures)
+- [ ] AC-23: furrow-write opens the spec PR with `furrow brief --spec`, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
+- [ ] AC-24: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
+- [ ] AC-25: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
 
 ## Out of scope
 
@@ -317,5 +330,7 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - Is 80 words the right cap for Behaviour? Proposed: yes, about three sentences.
 - Does required visual proof belong in config globs, or should a spec opt in per step? Proposed:
   globs. The diff decides, so an agent can't skip it by leaving a flag off.
+- Should line links work for forges other than GitHub, through a URL template in `.furrow.yml`?
+  Proposed: not yet. Other remotes get `path:line` until someone uses Furrow on one.
 
 ## Decisions
