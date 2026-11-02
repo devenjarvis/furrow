@@ -30,8 +30,20 @@ const (
 	ChangedCriteria = "Changed criteria"
 )
 
-// MaxDecisionWords is the most words ## Decision may have.
+// MaxDecisionWords is the most words ## Decision may have in all, a backstop for prose beside its
+// two lines.
 const MaxDecisionWords = 80
+
+// The two lines of ## Decision, and the most words each may have after its label.
+const (
+	CommitsUsTo          = "**Commits us to:**"
+	InsteadOf            = "**Instead of:**"
+	MaxDecisionLineWords = 25
+)
+
+// decisionPlaceholder is ## Decision as furrow brief --spec writes it.
+var decisionPlaceholder = CommitsUsTo + " " + Placeholder + " what accepting this means we build, at most 25 words -->\n" +
+	InsteadOf + " " + Placeholder + " the main alternative it rejects, and why, at most 25 words -->"
 
 // PlanLegend follows the Plan's diagram, word for word.
 const PlanLegend = "Legend: each box is a step, with its size (s or m). An arrow points from a step to one that waits for it. Steps in the same wave can run at the same time unless they share files."
@@ -124,7 +136,7 @@ func BuildSpec(g gitx.Git, repo *spec.Repo, opt SpecOptions) (*SpecBrief, error)
 	old, existed := fileAt(g, mb, s.File)
 
 	b := &SpecBrief{Spec: s.ID, Base: base, Plan: []PlanWave{}, Collisions: []Collision{}, ChangedCriteria: []CriterionChange{}}
-	b.add(Decision, Placeholder+" what accepting this commits us to, and the main alternative it rejects, in at most 80 words. Don't restate the spec. -->")
+	b.add(Decision, decisionPlaceholder)
 	b.add(YourCalls, yourCalls(OpenQuestions(string(raw)), s.File, githubRepo(g, repo, opt.PR), opt.PR))
 
 	var oldDecisions []string
@@ -617,7 +629,8 @@ func CheckSpecFile(g gitx.Git, repo *spec.Repo, opt SpecOptions, file string) (*
 }
 
 // CheckSpec reads text, a filled-in spec brief, against b: every section present, no placeholder
-// left, and ## Decision at most 80 words. Problems are in b's section order, then any placeholder
+// left, and ## Decision with a Commits us to and an Instead of line of at most 25 words each, and
+// at most 80 words in all. Problems are in b's section order, then any placeholder
 // outside b's sections, in text order.
 func CheckSpec(b *SpecBrief, text string) *Report {
 	parts := split(text)
@@ -640,6 +653,9 @@ func CheckSpec(b *SpecBrief, text string) *Report {
 			rep.add("`## %s` still has a placeholder. Write it.", s.Heading)
 		}
 		if s.Heading == Decision {
+			for _, p := range decisionLines(body) {
+				rep.add("%s", p)
+			}
 			if n := len(strings.Fields(comment.ReplaceAllString(body, " "))); n > MaxDecisionWords {
 				rep.add("`## %s` is %d words. Keep it to %d.", Decision, n, MaxDecisionWords)
 			}
@@ -655,4 +671,29 @@ func CheckSpec(b *SpecBrief, text string) *Report {
 	}
 	rep.OK = len(rep.Problems) == 0
 	return rep
+}
+
+// decisionLines reports a missing Commits us to or Instead of line in ## Decision's body, or one
+// whose text after its label is over MaxDecisionLineWords words, comments not counted.
+func decisionLines(body string) []string {
+	labels := []string{CommitsUsTo, InsteadOf}
+	found := map[string]string{}
+	for _, line := range strings.Split(body, "\n") {
+		line = strings.TrimSpace(line)
+		for _, l := range labels {
+			if _, ok := found[l]; !ok && strings.HasPrefix(line, l) {
+				found[l] = strings.TrimPrefix(line, l)
+			}
+		}
+	}
+	if len(found) < len(labels) {
+		return []string{fmt.Sprintf("`## %s` needs a `%s` and an `%s` line.", Decision, CommitsUsTo, InsteadOf)}
+	}
+	var out []string
+	for _, l := range labels {
+		if n := len(strings.Fields(comment.ReplaceAllString(found[l], " "))); n > MaxDecisionLineWords {
+			out = append(out, fmt.Sprintf("`%s` is %d words. Keep it to %d.", l, n, MaxDecisionLineWords))
+		}
+	}
+	return out
 }

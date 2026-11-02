@@ -117,8 +117,8 @@ func TestSpecBriefSections(t *testing.T) {
 	if got := specHeadings(b); !reflect.DeepEqual(got, want) {
 		t.Errorf("headings = %v\nwant       %v", got, want)
 	}
-	if d := specSection(t, b, "Decision"); !strings.HasPrefix(d, "<!-- furrow:") || !strings.Contains(d, "80 words") {
-		t.Errorf("Decision should be a placeholder giving the 80-word limit: %q", d)
+	if d := specSection(t, b, "Decision"); !strings.HasPrefix(d, "**Commits us to:** <!-- furrow:") || !strings.Contains(d, "25 words") {
+		t.Errorf("Decision should be placeholder lines giving the 25-word limit: %q", d)
 	}
 
 	// Your calls: merging accepts the proposals; the question without one comes first.
@@ -395,13 +395,14 @@ func TestSpecBriefCheckAndFailures(t *testing.T) {
 	}
 
 	// Filled in, it passes.
-	filledIn := strings.Replace(b.Markdown(), specSection(t, b, "Decision"), "Accepting this commits us to a thing, not the other thing.", 1)
+	decision := "**Commits us to:** a thing.\n**Instead of:** the other thing."
+	filledIn := strings.Replace(b.Markdown(), specSection(t, b, "Decision"), decision, 1)
 	if rep := brief.CheckSpec(b, filledIn); !rep.OK || len(rep.Problems) != 0 || rep.ExitCode() != 0 {
 		t.Errorf("filled-in brief: %+v", rep)
 	}
 
-	// A long Decision and a missing Plan, in section order.
-	long := strings.Replace(filledIn, "Accepting this commits us to a thing, not the other thing.", strings.Repeat("word ", 81), 1)
+	// A long Decision (two short lines and prose, 81 words in all) and a missing Plan, in section order.
+	long := strings.Replace(filledIn, decision, decision+"\n\n"+strings.Repeat("word ", 71), 1)
 	long = strings.Replace(long, "## Plan\n", "## Plans\n", 1)
 	rep = brief.CheckSpec(b, long)
 	want := []string{
@@ -428,5 +429,65 @@ func TestSpecBriefCheckAndFailures(t *testing.T) {
 		if err == nil || err.Error() != msg || errors.Is(err, brief.ErrSpecAndStep) {
 			t.Errorf("%s: %v, want %q", id, err, msg)
 		}
+	}
+}
+
+func TestSpecBriefDecisionLines(t *testing.T) {
+	r, _ := specRepo(t)
+	r.Spec(draft(questions, "", nil))
+	b := buildSpec(t, r, brief.SpecOptions{Offline: true})
+
+	// The Decision is two placeholder lines, each giving its 25-word limit.
+	want := "**Commits us to:** <!-- furrow: what accepting this means we build, at most 25 words -->\n" +
+		"**Instead of:** <!-- furrow: the main alternative it rejects, and why, at most 25 words -->"
+	decision := specSection(t, b, "Decision")
+	if decision != want {
+		t.Errorf("Decision = %q\nwant       %q", decision, want)
+	}
+
+	with := func(body string) []string {
+		t.Helper()
+		return brief.CheckSpec(b, strings.Replace(b.Markdown(), decision, body, 1)).Problems
+	}
+	commits := "**Commits us to:** a two-line Decision a person reads in seconds."
+	instead := "**Instead of:** one free paragraph, because it ran long and buried the choice."
+
+	// Both lines filled in: no problems.
+	if got := with(commits + "\n" + instead); len(got) != 0 {
+		t.Errorf("filled in: %q", got)
+	}
+
+	// A missing line, either one, or both.
+	missing := "`## Decision` needs a `**Commits us to:**` and an `**Instead of:**` line."
+	for name, body := range map[string]string{
+		"no Commits us to": instead,
+		"no Instead of":    commits,
+		"neither":          "We build a thing instead of another thing.",
+	} {
+		if got := with(body); !reflect.DeepEqual(got, []string{missing}) {
+			t.Errorf("%s: %q", name, got)
+		}
+	}
+
+	// A line over 25 words; exactly 25 is fine, and a comment doesn't count.
+	long := "**Instead of:** " + strings.Repeat("word ", 31)
+	if got := with(commits + "\n" + long); !reflect.DeepEqual(got, []string{"`**Instead of:**` is 31 words. Keep it to 25."}) {
+		t.Errorf("long Instead of: %q", got)
+	}
+	both := "**Commits us to:** " + strings.Repeat("word ", 26) + "\n" + long
+	if got := with(both); !reflect.DeepEqual(got, []string{
+		"`**Commits us to:**` is 26 words. Keep it to 25.",
+		"`**Instead of:**` is 31 words. Keep it to 25.",
+	}) {
+		t.Errorf("both long: %q", got)
+	}
+	edge := "**Commits us to:** " + strings.Repeat("word ", 25) + "<!-- a note, not counted -->\n" + instead
+	if got := with(edge); len(got) != 0 {
+		t.Errorf("25 words and a comment: %q", got)
+	}
+
+	// The checks are deterministic.
+	if a, c := with(both), with(both); !reflect.DeepEqual(a, c) {
+		t.Errorf("not deterministic: %q then %q", a, c)
 	}
 }
