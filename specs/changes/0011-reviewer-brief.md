@@ -68,7 +68,7 @@ steps:
       - internal/scaffold/scaffold_test.go
     covers: [AC-16]
     size: s
-    merged: false
+    merged: true
   - n: 7
     title: Fold the brief into the areas
     after: [2, 3, 4, 5, 6, 8, 9]
@@ -329,7 +329,7 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [ ] AC-13: furrow-implement says a screenshot is evidence for the owner and never a reason to tick a `human:` criterion (check: grep -n -i "screenshot" skills/furrow-implement/SKILL.md | grep -q -i "human")
 - [ ] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
 - [x] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
-- [ ] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
+- [x] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
 - [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any; Answered lists `Owner chose` lines added since the merge base (test: TestSpecBriefSections)
 - [ ] AC-18: Your calls numbers questions Q1… in file order, and with `--pr N` and a GitHub remote in https or ssh form makes each question a link to its line in the PR's diff, else follows it with `(path:line)` (test: TestSpecBriefLineLinks)
 - [ ] AC-19: The Plan is a mermaid `flowchart TD` followed by its legend line, with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
@@ -380,3 +380,4 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - 2026-11-02: Chose to put the diagram rule after the body-sections table, and the area rule next to
   "Required sections", in both copies of the standard, because that is where a writer reads what
   goes in `## What` and in an area.
+- 2026-11-02: Chose to write the `visual` line as a comment after `aliases: {}`, worded `# visual: []   # globs or aliases; a diff touching these needs visual proof in the PR`, because the spec asks for `# visual: []`, the file's other inline comment (on `check:`) uses three spaces, and a commented key leaves the default empty until the owner opts in.
