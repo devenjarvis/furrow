@@ -5,6 +5,7 @@ package brief
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -18,17 +19,25 @@ import (
 // render if forgotten.
 const Placeholder = "<!-- furrow:"
 
-// Section headings, in the order a brief has them.
+// Section headings, in the order a brief has them. Proof follows them, folded, not as a section.
 const (
-	Behaviour   = "Behaviour"
-	Diagram     = "Diagram"
-	WhereToLook = "Where to look"
-	VisualProof = "Visual proof"
-	Departures  = "Departures from the spec"
-	Proven      = "Proven"
-	NeedsYou    = "Needs you"
-	NotDone     = "Not done"
+	Behaviour     = "Behaviour"
+	Diagram       = "Diagram"
+	ReviewThis    = "Review this"
+	VisualProof   = "Visual proof"
+	JudgmentCalls = "Judgment calls"
+	NeedsYou      = "Needs you"
+	NotDone       = "Not done"
 )
+
+// Labels of Behaviour's two lines.
+const (
+	BeforeLabel = "**Before:**"
+	AfterLabel  = "**After:**"
+)
+
+// datePrefix is the "YYYY-MM-DD: " a Decisions line starts with.
+var datePrefix = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}: `)
 
 // testGlobs are the files grouped as Tests.
 var testGlobs = []string{"**/*_test.*", "**/*.test.*", "**/*.spec.*", "**/test/**", "**/tests/**", "**/__tests__/**", "**/testdata/**"}
@@ -45,12 +54,20 @@ type Section struct {
 	Markdown string `json:"markdown"`
 }
 
-// Files are the changed files in their Where to look groups. Each file is in exactly one.
+// Files are the changed files in their Review this groups. Each file is in exactly one.
 type Files struct {
 	Code   []string `json:"code"`
 	Visual []string `json:"visual"`
 	Tests  []string `json:"tests"`
 	Specs  []string `json:"specs"`
+}
+
+// Proof is one covered criterion that isn't human: its ID, its proof text ("test: TestX"), and
+// whether its box is ticked.
+type Proof struct {
+	ID     string `json:"id"`
+	Proof  string `json:"proof"`
+	Ticked bool   `json:"ticked"`
 }
 
 // Brief is a step's brief: its sections, and the facts they were built from.
@@ -59,10 +76,11 @@ type Brief struct {
 	Base            string    `json:"base"`
 	Sections        []Section `json:"sections"`
 	Files           Files     `json:"files"`
-	DecisionsAdded  []string  `json:"decisions_added"`
+	JudgmentCalls   []string  `json:"judgment_calls"`
 	CriteriaChanged []string  `json:"criteria_changed"`
 	Outside         []string  `json:"outside"`
 	NeedsYou        []string  `json:"needs_you"`
+	Proof           []Proof   `json:"proof"`
 }
 
 // Build works out the step and base, reads the spec and the diff, and writes the brief. It reads
@@ -88,37 +106,43 @@ func Build(g gitx.Git, repo *spec.Repo, opt Options) (*Brief, error) {
 		Step:            st.Ref().String(),
 		Base:            base,
 		Files:           Group(repo, changed),
-		DecisionsAdded:  []string{},
+		JudgmentCalls:   []string{},
 		CriteriaChanged: []string{},
 		Outside:         []string{},
 		NeedsYou:        []string{},
+		Proof:           proof(st),
 	}
 	for _, f := range changed {
 		if !territory.Inside(repo, st, f) {
 			b.Outside = append(b.Outside, f)
 		}
 	}
+	var decisionsAdded []string
 	if old, ok := fileAt(g, mb, st.Spec.File); ok {
-		b.DecisionsAdded = added(decisions(old), decisions(st.Spec.Body))
+		decisionsAdded = added(decisions(old), decisions(st.Spec.Body))
 		b.CriteriaChanged = changedCriteria(old, st.Spec)
 	} else {
-		b.DecisionsAdded = added(nil, decisions(st.Spec.Body))
+		decisionsAdded = added(nil, decisions(st.Spec.Body))
+	}
+	for _, d := range decisionsAdded {
+		b.JudgmentCalls = append(b.JudgmentCalls, datePrefix.ReplaceAllString(d, ""))
 	}
 
-	b.add(Behaviour, Placeholder+" before → after, in at most 80 words. Behaviour, not code. -->")
+	b.add(Behaviour, BeforeLabel+" "+Placeholder+" what a user or caller saw, at most 20 words -->\n"+
+		AfterLabel+" "+Placeholder+" what they see now, at most 20 words -->\n\n"+
+		Placeholder+` show it: real command output, a screenshot, or a short usage example. "No visible effect." is an answer. -->`)
 	if blocks := MermaidBlocks(spec.SectionText(st.Spec.Body, "What")); len(blocks) > 0 {
 		b.add(Diagram, Placeholder+` one sentence saying what this diagram answers. Mark what this step adds or changes with classDef added, or say it matches the spec as drawn. End with a "Legend:" line. -->`+"\n\n"+
 			strings.Join(blocks, "\n\n")+"\n\n"+
 			"Legend: "+Placeholder+" what a box, an arrow and each colour mean -->")
 	}
-	b.add(WhereToLook, b.whereToLook())
+	b.add(ReviewThis, b.reviewThis())
 	if len(b.Files.Visual) > 0 {
 		b.add(VisualProof, list(b.Files.Visual)+"\n\n"+
 			"| Screen | Before | After |\n| --- | --- | --- |\n"+
 			"| "+Placeholder+" screen --> | "+Placeholder+" image, or \"new\" --> | "+Placeholder+" image --> |")
 	}
-	b.add(Departures, b.departures())
-	b.add(Proven, proven(st))
+	b.add(JudgmentCalls, b.judgmentCalls())
 	b.add(NeedsYou, b.needsYou(repo, st))
 	b.add(NotDone, Placeholder+` what this step leaves out, and its risks. "Nothing." is an answer. -->`)
 	return b, nil
@@ -205,13 +229,37 @@ func (b *Brief) add(heading, markdown string) {
 	b.Sections = append(b.Sections, Section{Heading: heading, Markdown: markdown})
 }
 
-// Markdown is the brief as it goes in the PR description.
+// Markdown is the brief as it goes in the PR description: the sections, then Proof, folded.
 func (b *Brief) Markdown() string {
 	var parts []string
 	for _, s := range b.Sections {
 		parts = append(parts, "## "+s.Heading+"\n\n"+s.Markdown+"\n")
 	}
+	parts = append(parts, b.proofMarkdown()+"\n")
 	return strings.Join(parts, "\n")
+}
+
+// proofMarkdown folds the proof of each covered criterion that isn't human into a <details>
+// whose summary marks each ticked or not. It has no placeholder: verify checks the proof itself.
+// The blank lines around the list let GitHub render it.
+func (b *Brief) proofMarkdown() string {
+	if len(b.Proof) == 0 {
+		return "<details><summary>Proof: none</summary>\n\nEvery criterion this step covers needs a person.\n\n</details>"
+	}
+	summary := []string{"Proof:"}
+	var lines []string
+	for _, p := range b.Proof {
+		mark, line := "✓", "- "+p.ID
+		if p.Proof != "" {
+			line += " (" + p.Proof + ")"
+		}
+		if !p.Ticked {
+			mark, line = "✗", line+" not ticked"
+		}
+		summary = append(summary, p.ID+" "+mark)
+		lines = append(lines, line)
+	}
+	return "<details><summary>" + strings.Join(summary, " ") + "</summary>\n\n" + strings.Join(lines, "\n") + "\n\n</details>"
 }
 
 func list(files []string) string {
@@ -222,32 +270,38 @@ func list(files []string) string {
 	return strings.Join(lines, "\n")
 }
 
-func (b *Brief) whereToLook() string {
+// reviewThis asks for at most three items a person should judge, then folds every changed file,
+// grouped, into a <details>. The blank lines around the groups let GitHub render them.
+func (b *Brief) reviewThis() string {
+	ask := Placeholder + " at most 3 numbered items, each \"`file` `name`: the question a reviewer should ask about it\" -->"
 	var parts []string
-	if len(b.Files.Code) > 0 {
-		parts = append(parts, "**Code**\n\n"+Placeholder+" name the files or functions that carry the decision, most important first -->\n\n"+list(b.Files.Code))
-	}
+	n := 0
 	for _, g := range []struct {
 		name  string
 		files []string
-	}{{"Visual", b.Files.Visual}, {"Tests", b.Files.Tests}, {"Specs", b.Files.Specs}} {
+	}{{"Code", b.Files.Code}, {"Visual", b.Files.Visual}, {"Tests", b.Files.Tests}, {"Specs", b.Files.Specs}} {
 		if len(g.files) > 0 {
 			parts = append(parts, "**"+g.name+"**\n\n"+list(g.files))
+			n += len(g.files)
 		}
 	}
-	if len(parts) == 0 {
-		return "No files changed."
+	if n == 0 {
+		return ask + "\n\nNo files changed."
 	}
-	return strings.Join(parts, "\n\n")
+	summary := fmt.Sprintf("All %d changed files", n)
+	if n == 1 {
+		summary = "1 changed file"
+	}
+	return ask + "\n\n<details><summary>" + summary + "</summary>\n\n" + strings.Join(parts, "\n\n") + "\n\n</details>"
 }
 
-// departures never writes a "## Territory" heading: that would make furrow territory --body-file
-// accept the outside files unexplained.
-func (b *Brief) departures() string {
+// judgmentCalls never writes a "## Territory" heading: that would make furrow territory
+// --body-file accept the outside files unexplained.
+func (b *Brief) judgmentCalls() string {
 	var parts []string
-	if len(b.DecisionsAdded) > 0 {
-		lines := []string{"Added to `## Decisions`:", ""}
-		for _, d := range b.DecisionsAdded {
+	if len(b.JudgmentCalls) > 0 {
+		var lines []string
+		for _, d := range b.JudgmentCalls {
 			lines = append(lines, "- "+d)
 		}
 		parts = append(parts, strings.Join(lines, "\n"))
@@ -276,27 +330,24 @@ func covered(st *spec.Step) []*spec.Criterion {
 	return out
 }
 
-func proven(st *spec.Step) string {
-	var lines []string
+// proof lists each covered criterion that isn't human, in criterion order. It's never nil.
+func proof(st *spec.Step) []Proof {
+	out := []Proof{}
 	for _, c := range covered(st) {
 		if c.Proof == "human" {
 			continue
 		}
-		box := " "
-		if c.Ticked {
-			box = "x"
+		text := c.Proof
+		if c.Detail != "" {
+			text += ": " + c.Detail
 		}
-		lines = append(lines, fmt.Sprintf("- [%s] %s: %s", box, c.ID, c.Text),
-			"  Evidence: "+Placeholder+" test name, command and output, or screenshot -->")
+		out = append(out, Proof{ID: c.ID, Proof: text, Ticked: c.Ticked})
 	}
-	if len(lines) == 0 {
-		return "None. Every criterion this step covers needs a person."
-	}
-	return strings.Join(lines, "\n")
+	return out
 }
 
-// needsYou lists the human criteria the step covers, then the spec's invariants, then required
-// human review. It fills b.NeedsYou in the same order.
+// needsYou lists the human criteria the step covers, then the spec's invariants, each with a
+// placeholder for how the diff touches it. It fills b.NeedsYou in the same order.
 func (b *Brief) needsYou(repo *spec.Repo, st *spec.Step) string {
 	var lines []string
 	for _, c := range covered(st) {
@@ -319,18 +370,14 @@ func (b *Brief) needsYou(repo *spec.Repo, st *spec.Step) string {
 	for _, id := range invs {
 		id = strings.TrimSpace(id)
 		item := id
-		if name := names[id]; name != "" {
+		if name := strings.TrimSuffix(names[id], "."); name != "" {
 			item = id + ": " + name
 		}
-		lines = append(lines, "- "+item)
+		lines = append(lines, "- "+item+". "+Placeholder+` how this diff touches it, or "Not touched." -->`)
 		b.NeedsYou = append(b.NeedsYou, item)
 	}
-	if st.Spec.HumanReview == "required" {
-		lines = append(lines, "- `human_review: required`")
-		b.NeedsYou = append(b.NeedsYou, "human_review: required")
-	}
 	if len(lines) == 0 {
-		return "Nothing. Every criterion has a test or a check."
+		return "Nothing."
 	}
 	return strings.Join(lines, "\n")
 }

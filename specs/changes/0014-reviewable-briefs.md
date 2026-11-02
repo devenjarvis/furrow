@@ -22,7 +22,7 @@ steps:
       - internal/brief/check*
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: The spec brief's Decision is two lines
     after: []
@@ -140,12 +140,12 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 
 ## Acceptance criteria
 
-- [ ] AC-1: Behaviour has the Before and After placeholder lines and the "show it" placeholder (test: TestBriefBehaviourBeforeAfter)
-- [ ] AC-2: Review this has the placeholder, then every changed file grouped inside a `<details>` whose summary counts them (test: TestBriefReviewThis)
-- [ ] AC-3: Judgment calls lists added decisions without their dates, then changed criteria and outside files, or `None.` (test: TestBriefJudgmentCalls)
-- [ ] AC-4: Needs you gives each invariant a placeholder for how the diff touches it, drops `human_review`, and says `Nothing.` when empty (test: TestBriefNeedsYouInvariants)
-- [ ] AC-5: The sections come in the new order, Proof is a closing `<details>` with one line per non-human criterion, and `--json` has `judgment_calls` and `proof` (test: TestBriefLayoutAndProof)
-- [ ] AC-6: `--check` reports a missing Before or After line, one over 20 words, a Behaviour that shows nothing, more than 3 Review items, and a judgment call over 30 words (test: TestBriefCheckReviewable)
+- [x] AC-1: Behaviour has the Before and After placeholder lines and the "show it" placeholder (test: TestBriefBehaviourBeforeAfter)
+- [x] AC-2: Review this has the placeholder, then every changed file grouped inside a `<details>` whose summary counts them (test: TestBriefReviewThis)
+- [x] AC-3: Judgment calls lists added decisions without their dates, then changed criteria and outside files, or `None.` (test: TestBriefJudgmentCalls)
+- [x] AC-4: Needs you gives each invariant a placeholder for how the diff touches it, drops `human_review`, and says `Nothing.` when empty (test: TestBriefNeedsYouInvariants)
+- [x] AC-5: The sections come in the new order, Proof is a closing `<details>` with one line per non-human criterion, and `--json` has `judgment_calls` and `proof` (test: TestBriefLayoutAndProof)
+- [x] AC-6: `--check` reports a missing Before or After line, one over 20 words, a Behaviour that shows nothing, more than 3 Review items, and a judgment call over 30 words (test: TestBriefCheckReviewable)
 - [ ] AC-7: The spec brief's Decision is Commits us to and Instead of lines, and `--check --spec` reports a missing one or one over 25 words (test: TestSpecBriefDecisionLines)
 - [ ] AC-8: The three skills describe the new brief (check: grep -q "Before:" skills/furrow-implement/SKILL.md && grep -q "Review this" skills/furrow-implement/SKILL.md && grep -q -i "show it" skills/furrow-verify/SKILL.md && grep -q "Instead of" skills/furrow-write/SKILL.md)
 - [ ] AC-9: A step PR written with the new brief can be reviewed on a phone without wading through what doesn't need a person (human: open the first step PR made after this merges on your phone, and read it before the diff)
@@ -168,3 +168,9 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
   criteria listed there already say what needs the owner.
 
 ## Decisions
+
+- 2026-11-02: Chose "1 changed file" for a single file, and "No files changed." without `<details>` for none, because "All 1 changed files" and an empty fold read badly.
+- 2026-11-02: Chose to end an all-human step's brief with "Proof: none" and a one-line reason, so every step brief closes the same way.
+- 2026-11-02: Chose to have `--check` ignore placeholders inside fenced code blocks, closed by a fence at least as long, so "show it" can paste raw `furrow brief` output.
+- 2026-11-02: Chose to sort judgment calls by their dated lines before dropping the dates, so they stay in date order.
+- 2026-11-02: Chose to count only unindented numbered lines as Review this items, and to check every Judgment calls line, list marker excluded, against the 30-word cap.

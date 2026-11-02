@@ -83,42 +83,92 @@ func section(t *testing.T, b *brief.Brief, heading string) string {
 
 const mermaid = "```mermaid\nflowchart LR\n  A --> B\n```"
 
-func TestBriefSections(t *testing.T) {
+const (
+	behaviourRaw = "**Before:** <!-- furrow: what a user or caller saw, at most 20 words -->\n" +
+		"**After:** <!-- furrow: what they see now, at most 20 words -->\n\n" +
+		"<!-- furrow: show it: real command output, a screenshot, or a short usage example. \"No visible effect.\" is an answer. -->"
+	reviewRaw = "<!-- furrow: at most 3 numbered items, each \"`file` `name`: the question a reviewer should ask about it\" -->"
+	invRaw    = " <!-- furrow: how this diff touches it, or \"Not touched.\" -->"
+)
+
+func TestBriefBehaviourBeforeAfter(t *testing.T) {
+	r := setup(t, spec7("This.", "", criteria))
+	r.Write("internal/thing/a.go", "package thing\n")
+	b := build(t, r, brief.Options{})
+	if got := section(t, b, "Behaviour"); got != behaviourRaw {
+		t.Errorf("Behaviour =\n%s\nwant\n%s", got, behaviourRaw)
+	}
+	if !strings.HasPrefix(b.Markdown(), "## Behaviour\n\n**Before:** <!-- furrow:") {
+		t.Errorf("the brief should open with Behaviour's Before line:\n%s", b.Markdown())
+	}
+}
+
+func TestBriefReviewThis(t *testing.T) {
+	r := setup(t, spec7("This.", "", criteria))
+	r.Write("internal/thing/a.go", "x\n")
+	r.Write("internal/thing/a_test.go", "x\n")
+	r.Write("web/css/site.css", "x\n")
+	r.Write("specs/areas/core.md", "x\n")
+	got := section(t, build(t, r, brief.Options{}), "Review this")
+	want := reviewRaw + "\n\n" +
+		"<details><summary>All 4 changed files</summary>\n\n" +
+		"**Code**\n\n- `internal/thing/a.go`\n\n" +
+		"**Visual**\n\n- `web/css/site.css`\n\n" +
+		"**Tests**\n\n- `internal/thing/a_test.go`\n\n" +
+		"**Specs**\n\n- `specs/areas/core.md`\n\n" +
+		"</details>"
+	if got != want {
+		t.Errorf("Review this =\n%s\nwant\n%s", got, want)
+	}
+
+	// One file: the summary says so in the singular.
+	r = setup(t, spec7("This.", "", criteria))
+	r.Write("internal/thing/a.go", "x\n")
+	got = section(t, build(t, r, brief.Options{}), "Review this")
+	want = reviewRaw + "\n\n<details><summary>1 changed file</summary>\n\n**Code**\n\n- `internal/thing/a.go`\n\n</details>"
+	if got != want {
+		t.Errorf("Review this, one file =\n%s\nwant\n%s", got, want)
+	}
+
+	// No changes: no list to fold.
+	r = setup(t, spec7("This.", "", criteria))
+	if got := section(t, build(t, r, brief.Options{}), "Review this"); got != reviewRaw+"\n\nNo files changed." {
+		t.Errorf("Review this, no changes = %q", got)
+	}
+}
+
+func TestBriefLayoutAndProof(t *testing.T) {
 	// Without a diagram or a visual change, Diagram and Visual proof are left out.
 	r := setup(t, spec7("This.", "", criteria))
 	r.Write("internal/thing/a.go", "package thing\n")
 	b := build(t, r, brief.Options{})
-	want := []string{"Behaviour", "Where to look", "Departures from the spec", "Proven", "Needs you", "Not done"}
+	want := []string{"Behaviour", "Review this", "Judgment calls", "Needs you", "Not done"}
 	if got := headings(b); !reflect.DeepEqual(got, want) {
 		t.Errorf("headings = %v\nwant       %v", got, want)
 	}
 
-	// With both, all eight, in order.
-	r = setup(t, spec7("This.\n\n"+mermaid, "", criteria))
+	// With both, all seven, in order.
+	crit := append([]string{}, criteria...)
+	crit[1] = "- [x] AC-2: It is checked (check: true)"
+	r = setup(t, spec7("This.\n\n"+mermaid, "", crit))
 	r.Write("internal/thing/a.go", "package thing\n")
 	r.Write("web/css/site.css", "body {}\n")
 	b = build(t, r, brief.Options{})
-	want = []string{"Behaviour", "Diagram", "Where to look", "Visual proof", "Departures from the spec", "Proven", "Needs you", "Not done"}
+	want = []string{"Behaviour", "Diagram", "Review this", "Visual proof", "Judgment calls", "Needs you", "Not done"}
 	if got := headings(b); !reflect.DeepEqual(got, want) {
 		t.Errorf("headings = %v\nwant       %v", got, want)
 	}
-
-	// Every part the agent writes is a <!-- furrow: comment.
-	for _, h := range []string{"Behaviour", "Diagram", "Where to look", "Visual proof", "Proven", "Not done"} {
+	for _, h := range []string{"Behaviour", "Diagram", "Review this", "Visual proof", "Needs you", "Not done"} {
 		if !strings.Contains(section(t, b, h), "<!-- furrow:") {
 			t.Errorf("## %s has no <!-- furrow: placeholder:\n%s", h, section(t, b, h))
 		}
 	}
-	for _, h := range []string{"Departures from the spec", "Needs you"} {
-		if strings.Contains(section(t, b, h), "<!--") {
-			t.Errorf("## %s is facts, but has a placeholder:\n%s", h, section(t, b, h))
-		}
-	}
-	if !strings.Contains(section(t, b, "Behaviour"), "80 words") {
-		t.Error("Behaviour's placeholder should give the 80-word limit")
+	if strings.Contains(section(t, b, "Judgment calls"), "<!--") {
+		t.Errorf("## Judgment calls is facts, but has a placeholder:\n%s", section(t, b, "Judgment calls"))
 	}
 
-	// The Markdown is the sections, as "## " headings, in the same order.
+	// The Markdown is the sections, as "## " headings, in the same order, then Proof, folded: one
+	// line per covered criterion that isn't human, and no placeholder.
 	md := b.Markdown()
 	last := -1
 	for _, h := range want {
@@ -131,8 +181,54 @@ func TestBriefSections(t *testing.T) {
 		}
 		last = i
 	}
-	if !strings.HasPrefix(md, "## Behaviour\n") || !strings.HasSuffix(md, "-->\n") {
-		t.Errorf("markdown should start with ## Behaviour and end with Not done's placeholder:\n%s", md)
+	proof := "<details><summary>Proof: AC-1 ✗ AC-2 ✓</summary>\n\n" +
+		"- AC-1 (test: TestWorks) not ticked\n" +
+		"- AC-2 (check: true)\n\n" +
+		"</details>\n"
+	notDone := "## Not done\n\n<!-- furrow: what this step leaves out, and its risks. \"Nothing.\" is an answer. -->\n\n"
+	if !strings.HasSuffix(md, notDone+proof) {
+		t.Errorf("markdown should end with Not done, then Proof:\n%s", md)
+	}
+	if strings.Contains(md, "## Proof") || strings.Contains(md, "## Proven") || strings.Contains(md, "AC-3 (") {
+		t.Errorf("Proof is folded, not a section, and leaves out human criteria:\n%s", md)
+	}
+
+	// --json: judgment_calls and proof, in criterion order.
+	data, err := json.Marshal(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		JudgmentCalls []string `json:"judgment_calls"`
+		Proof         []struct {
+			ID     string `json:"id"`
+			Proof  string `json:"proof"`
+			Ticked bool   `json:"ticked"`
+		} `json:"proof"`
+		DecisionsAdded any `json:"decisions_added"`
+	}
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.JudgmentCalls == nil || len(got.JudgmentCalls) != 0 || got.DecisionsAdded != nil {
+		t.Errorf("judgment_calls should be [] and decisions_added gone: %s", data)
+	}
+	if len(got.Proof) != 2 || got.Proof[0].ID != "AC-1" || got.Proof[0].Proof != "test: TestWorks" || got.Proof[0].Ticked ||
+		got.Proof[1].ID != "AC-2" || got.Proof[1].Proof != "check: true" || !got.Proof[1].Ticked {
+		t.Errorf("proof = %+v", got.Proof)
+	}
+
+	// A step whose criteria all need a person still closes with Proof, saying so.
+	s := spec7("This.", "", criteria)
+	s.Steps[1].Covers = []string{"AC-3"}
+	s.Steps[0].Covers = []string{"AC-1", "AC-2", "AC-4"}
+	r = setup(t, s)
+	b = build(t, r, brief.Options{Step: "FUR-0007.2"})
+	if md := b.Markdown(); !strings.HasSuffix(md, "<details><summary>Proof: none</summary>\n\nEvery criterion this step covers needs a person.\n\n</details>\n") {
+		t.Errorf("all-human step's Proof:\n%s", md)
+	}
+	if len(b.Proof) != 0 || b.Proof == nil {
+		t.Errorf("proof = %#v, want []", b.Proof)
 	}
 }
 
@@ -166,7 +262,7 @@ func TestBriefGroupsFiles(t *testing.T) {
 		t.Errorf("files = %+v\nwant    %+v", b.Files, want)
 	}
 
-	where := section(t, b, "Where to look")
+	where := section(t, b, "Review this")
 	order := []string{"**Code**", "`internal/thing/a.go`", "`internal/thing/b.go`", "`web/js/app.js`",
 		"**Visual**", "`web/css/site.css`", "**Tests**", "`foo.spec.ts`", "**Specs**", "`specs/areas/core.md`"}
 	last := -1
@@ -181,7 +277,7 @@ func TestBriefGroupsFiles(t *testing.T) {
 	// Empty groups are left out.
 	r = setup(t, spec7("This.", "", criteria))
 	r.Write("internal/thing/a.go", "package thing\n")
-	where = section(t, build(t, r, brief.Options{}), "Where to look")
+	where = section(t, build(t, r, brief.Options{}), "Review this")
 	for _, g := range []string{"**Visual**", "**Tests**", "**Specs**"} {
 		if strings.Contains(where, g) {
 			t.Errorf("empty group %s shown:\n%s", g, where)
@@ -264,30 +360,29 @@ func TestBriefVisualProof(t *testing.T) {
 	}
 }
 
-func TestBriefDepartures(t *testing.T) {
-	// Nothing departs: None.
+func TestBriefJudgmentCalls(t *testing.T) {
+	// Nothing to judge: None.
 	r := setup(t, spec7("This.", "- 2026-01-01: Chose A because B.\n", criteria))
 	r.Write("internal/thing/a.go", "x\n")
 	b := build(t, r, brief.Options{})
-	if d := section(t, b, "Departures from the spec"); d != "None." {
-		t.Errorf("Departures = %q, want None.", d)
+	if d := section(t, b, "Judgment calls"); d != "None." {
+		t.Errorf("Judgment calls = %q, want None.", d)
 	}
 
-	// Two new decisions (one wrapped over two lines), a ticked box (not a departure), a reworded
-	// criterion, and two files outside the territory.
+	// Three new decisions (one wrapped over two lines, one without a date), a ticked box (not a
+	// judgment call), a reworded criterion, and two files outside the territory.
 	crit := append([]string{}, criteria...)
 	crit[0] = "- [x] AC-1: It works (test: TestWorks)"
 	crit[1] = "- [ ] AC-2: It is checked well (check: true)"
-	r.Spec(spec7("This.", "- 2026-01-01: Chose A because B.\n- 2026-02-02: Chose C\n  because D.\n- 2026-01-15: Chose E because F.\n", crit))
+	r.Spec(spec7("This.", "- 2026-01-01: Chose A because B.\n- 2026-02-02: Chose C\n  because D.\n- 2026-01-15: Chose E because F.\n- Undated: chose G.\n", crit))
 	r.Write("go.mod", "module x\n")
 	r.Write("docs/notes.md", "x\n")
 	gittest.Commit(t, r.Root, "work")
 	b = build(t, r, brief.Options{})
 	want := strings.Join([]string{
-		"Added to `## Decisions`:",
-		"",
-		"- 2026-01-15: Chose E because F.",
-		"- 2026-02-02: Chose C because D.",
+		"- Chose E because F.",
+		"- Chose C because D.",
+		"- Undated: chose G.",
 		"",
 		"AC-2's text changed. Only a person changes a criterion (INV-4).",
 		"",
@@ -296,11 +391,11 @@ func TestBriefDepartures(t *testing.T) {
 		"- `docs/notes.md`",
 		"- `go.mod`",
 	}, "\n")
-	if d := section(t, b, "Departures from the spec"); d != want {
-		t.Errorf("Departures =\n%s\nwant\n%s", d, want)
+	if d := section(t, b, "Judgment calls"); d != want {
+		t.Errorf("Judgment calls =\n%s\nwant\n%s", d, want)
 	}
-	if !reflect.DeepEqual(b.DecisionsAdded, []string{"2026-01-15: Chose E because F.", "2026-02-02: Chose C because D."}) {
-		t.Errorf("decisions_added = %q", b.DecisionsAdded)
+	if !reflect.DeepEqual(b.JudgmentCalls, []string{"Chose E because F.", "Chose C because D.", "Undated: chose G."}) {
+		t.Errorf("judgment_calls = %q", b.JudgmentCalls)
 	}
 	if !reflect.DeepEqual(b.CriteriaChanged, []string{"AC-2"}) {
 		t.Errorf("criteria_changed = %q", b.CriteriaChanged)
@@ -314,8 +409,11 @@ func TestBriefDepartures(t *testing.T) {
 	r = setup(t, spec7("This.", "", criteria))
 	r.Spec(spectest.Spec{Num: 9, Slug: "fresh", Decisions: "- 2026-03-03: Chose G because H.\n"})
 	b = build(t, r, brief.Options{Step: "FUR-0009.1"})
-	if !reflect.DeepEqual(b.DecisionsAdded, []string{"2026-03-03: Chose G because H."}) || len(b.CriteriaChanged) != 0 {
-		t.Errorf("new spec: decisions %q, criteria %q", b.DecisionsAdded, b.CriteriaChanged)
+	if !reflect.DeepEqual(b.JudgmentCalls, []string{"Chose G because H."}) || len(b.CriteriaChanged) != 0 {
+		t.Errorf("new spec: judgment calls %q, criteria %q", b.JudgmentCalls, b.CriteriaChanged)
+	}
+	if d := section(t, b, "Judgment calls"); d != "- Chose G because H." {
+		t.Errorf("new spec: Judgment calls = %q", d)
 	}
 }
 
@@ -341,43 +439,39 @@ func TestBriefDoesNotExplainTerritory(t *testing.T) {
 	}
 }
 
-func TestBriefProvenAndNeedsYou(t *testing.T) {
-	crit := append([]string{}, criteria...)
-	crit[1] = "- [x] AC-2: It is checked (check: true)"
-	r := setup(t, spec7("This.", "", crit))
+func TestBriefNeedsYouInvariants(t *testing.T) {
+	s := spec7("This.", "", criteria)
+	s.Invariants = []string{"INV-2", "INV-1"}
+	r := setup(t, s)
 	r.Write("docs/product.md", spectest.Product)
 	b := build(t, r, brief.Options{})
-	ev := "  Evidence: <!-- furrow: test name, command and output, or screenshot -->"
 	want := strings.Join([]string{
-		"- [ ] AC-1: It works (test: TestWorks)", ev,
-		"- [x] AC-2: It is checked (check: true)", ev,
-	}, "\n")
-	if p := section(t, b, "Proven"); p != want {
-		t.Errorf("Proven =\n%s\nwant\n%s", p, want)
-	}
-	want = strings.Join([]string{
 		"- AC-3: It reads well",
 		"  Look at: read the output",
-		"- INV-2: Git is enough",
-		"- `human_review: required`",
+		"- INV-1: Files are the truth." + invRaw,
+		"- INV-2: Git is enough." + invRaw,
 	}, "\n")
 	if n := section(t, b, "Needs you"); n != want {
 		t.Errorf("Needs you =\n%s\nwant\n%s", n, want)
 	}
-	if !reflect.DeepEqual(b.NeedsYou, []string{"AC-3: It reads well. Look at: read the output", "INV-2: Git is enough", "human_review: required"}) {
+	if strings.Contains(b.Markdown(), "human_review") {
+		t.Errorf("human_review is no longer listed:\n%s", b.Markdown())
+	}
+	if !reflect.DeepEqual(b.NeedsYou, []string{"AC-3: It reads well. Look at: read the output", "INV-1: Files are the truth", "INV-2: Git is enough"}) {
 		t.Errorf("needs_you = %q", b.NeedsYou)
 	}
 
-	// Step 2 covers one test criterion; without the spec's invariants and review, nothing needs you.
-	s := spec7("This.", "", criteria)
-	s.Invariants, s.HumanReview = nil, "optional"
+	// Step 2 covers one test criterion; with no invariants, nothing needs you, even with
+	// human_review: required.
+	s = spec7("This.", "", criteria)
+	s.Invariants, s.HumanReview = nil, "required"
 	r = setup(t, s)
 	b = build(t, r, brief.Options{Step: "FUR-0007.2"})
-	if p := section(t, b, "Proven"); !strings.HasPrefix(p, "- [ ] AC-4: Step two works (test: TestTwo)\n") || strings.Contains(p, "AC-1") {
-		t.Errorf("step 2's Proven =\n%s", p)
+	if n := section(t, b, "Needs you"); n != "Nothing." {
+		t.Errorf("Needs you = %q, want Nothing.", n)
 	}
-	if n := section(t, b, "Needs you"); n != "Nothing. Every criterion has a test or a check." {
-		t.Errorf("Needs you = %q", n)
+	if len(b.NeedsYou) != 0 || b.NeedsYou == nil {
+		t.Errorf("needs_you = %#v, want []", b.NeedsYou)
 	}
 }
 
@@ -404,7 +498,7 @@ func TestBriefDeterministicAndJSON(t *testing.T) {
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatal(err)
 	}
-	keys := []string{"step", "base", "sections", "files", "decisions_added", "criteria_changed", "outside", "needs_you"}
+	keys := []string{"step", "base", "sections", "files", "judgment_calls", "criteria_changed", "outside", "needs_you", "proof"}
 	for _, k := range keys {
 		if _, ok := got[k]; !ok {
 			t.Errorf("JSON has no %q: %s", k, data)
