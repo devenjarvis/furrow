@@ -35,7 +35,7 @@ steps:
     merged: false
   - n: 3
     title: furrow-next and furrow-implement write the brief
-    after: [1]
+    after: [1, 2, 9]
     touches:
       - skills/furrow-next/**
       - skills/furrow-implement/**
@@ -71,7 +71,7 @@ steps:
     merged: false
   - n: 7
     title: Fold the brief into the areas
-    after: [2, 3, 4, 5, 6, 8]
+    after: [2, 3, 4, 5, 6, 8, 9]
     touches:
       - specs/areas/agents.md
       - specs/areas/specs.md
@@ -88,6 +88,17 @@ steps:
       - skills/furrow-write/SKILL.md
     covers: [AC-17, AC-18, AC-19, AC-20, AC-21, AC-22, AC-23]
     size: m
+    merged: false
+  - n: 9
+    title: Diagrams carry a caption and a legend
+    after: [1, 5]
+    touches:
+      - specs/README.md
+      - internal/scaffold/assets/README.md
+      - skills/furrow-write/SKILL.md
+      - internal/brief/brief*
+    covers: [AC-26, AC-27]
+    size: s
     merged: false
 ---
 
@@ -121,8 +132,10 @@ render if forgotten, and `--check` finds them.
 
 1. **`## Behaviour`**: `<!-- furrow: before → after, in at most 80 words. Behaviour, not code. -->`
 2. **`## Diagram`** *when the spec's `## What` holds a ```` ```mermaid ```` block*: each such
-   block, copied as is, under `<!-- furrow: mark what this step adds or changes with classDef
-   added, or say it matches the spec as drawn -->`.
+   block, copied as is, under `<!-- furrow: one sentence saying what this diagram answers. Mark
+   what this step adds or changes with classDef added, or say it matches the spec as drawn. End
+   with a "Legend:" line. -->`, and followed by a `Legend: <!-- furrow: what a box, an arrow and
+   each colour mean -->` line. See "Diagrams a person can read" below.
 3. **`## Where to look`**: changed files in four groups, each sorted, empty groups left out:
    - **Code**: everything not in another group, under `<!-- furrow: name the files or functions
      that carry the decision, most important first -->`.
@@ -190,7 +203,7 @@ per problem, in section order, each saying what to do:
   `furrow brief` and paste it."
 - A `<!-- furrow:` placeholder is left anywhere: "`## Behaviour` still has a placeholder. Write it."
 - `## Behaviour` is over 80 words: "`## Behaviour` is 112 words. Keep it to 80."
-- `## Diagram` is required and has no ```` ```mermaid ```` block.
+- `## Diagram` is required and has no ```` ```mermaid ```` block, or no line starting `Legend:`.
 - `## Visual proof` has no table row, or a row whose After cell has no image (`![…](…)`) or link
   (`[…](…)`), or whose Before cell has neither nor the word `new`: "Row 2 of `## Visual proof`
   has no after image."
@@ -222,11 +235,14 @@ above. Sections, in this order:
    tree. No forge is asked anything (INV-2).
 3. **`## Answered`** *when the spec's `## Decisions` gained `Owner chose` lines since the merge
    base*: those lines, so the owner sees their answers landed in the spec.
-4. **`## Plan`**: a ```` ```mermaid ```` `flowchart LR` of the spec's unmerged steps, worked out
-   as if the spec were accepted. One `subgraph` per wave, in wave order (`Wave 1`, `Wave 2`, …).
-   Each step is a node `S<n>["<n>. <title> (<size>)"]`, with an edge from each `after` step of
-   this spec. An `after` on another spec is a node named by its ref, with an edge to the step.
-   Nodes and edges are sorted, so the block is the same for the same specs.
+4. **`## Plan`**: a ```` ```mermaid ```` `flowchart TD` of the spec's unmerged steps, worked out
+   as if the spec were accepted. One `subgraph` per wave, in wave order (`Wave 1`, `Wave 2`, …),
+   so waves stack down a phone's screen. Each step is a node `S<n>["<n>. <title> (<size>)"]`,
+   with an edge from each `after` step of this spec. An `after` on another spec is a node named
+   by its ref, with an edge to the step. Nodes and edges are sorted, so the block is the same for
+   the same specs. The block is followed by this line, word for word: `Legend: each box is a step,
+   with its size (s or m). An arrow points from a step to one that waits for it. Steps in the same
+   wave can run at the same time unless they share files.`
 5. **`## Collisions`**: each pair of this spec's unmerged step and another accepted spec's
    unmerged step whose `touches` overlap, as `FUR-0011.1 and FUR-0009.2 (claimed) both touch
    cmd/furrow/brief.go.` The overlapping path is the one `internal/paths` reports. Claims come
@@ -245,6 +261,20 @@ placeholder left, and Decision at most 80 words. `--spec` and `--step` together 
 isn't in `changes/` exits 1: "FUR-0005 is archived. Change it with a new spec." An unknown spec
 exits 1 and names it. `--json` prints `{"spec", "base", "sections": [{"heading", "markdown"}],
 "plan", "collisions", "changed_criteria"}`, lists never `null`.
+
+### Diagrams a person can read
+
+Every ```` ```mermaid ```` diagram Furrow asks for, in a spec's `## What`, an area or a PR, is
+drawn for a reviewer who didn't draw it, often on a phone:
+
+- **A caption.** One sentence above it says what question it answers: "How `furrow brief` turns
+  the spec and the diff into sections."
+- **A legend.** A line under it, starting `Legend:`, says what a box, an arrow and each colour
+  mean. Every arrow means one thing, or each carries a label (`-->|reads|`).
+- **Small and narrow.** At most 8 nodes, drawn `flowchart TD`. A bigger picture is split, or
+  left out.
+- **Behaviour, not a call graph.** It shows what flows where, or what changes, as the reviewer
+  needs it. Every node still names a real file, package, type or function.
 
 ### Skills
 
@@ -293,7 +323,7 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [x] AC-7: Proven and Needs you list the covered criteria by kind, the spec's invariants by name, and required human review (test: TestBriefProvenAndNeedsYou)
 - [x] AC-8: The same repo state gives byte-identical output, and `--json` has every documented key with lists never null (test: TestBriefDeterministicAndJSON)
 - [x] AC-9: Off a step branch, an unknown step, and a missing base each exit 1 with their message (test: TestBriefFailures)
-- [ ] AC-10: `--check` reports a missing section, a leftover placeholder, a Behaviour over 80 words, a missing mermaid block, and a visual row without images, each on its own line, and exits 1 (test: TestBriefCheckProblems)
+- [ ] AC-10: `--check` reports a missing section, a leftover placeholder, a Behaviour over 80 words, a missing mermaid block or `Legend:` line, and a visual row without images, each on its own line, and exits 1 (test: TestBriefCheckProblems)
 - [ ] AC-11: `--check` exits 0 on a complete brief, changes no file, and `--json` prints `ok` and `problems` (test: TestBriefCheckComplete)
 - [ ] AC-12: furrow-next opens the PR with the brief, and furrow-implement runs `furrow brief --check` before `furrow done` (check: grep -q "furrow brief" skills/furrow-next/SKILL.md && grep -q "furrow brief --check" skills/furrow-implement/SKILL.md)
 - [ ] AC-13: furrow-implement says a screenshot is evidence for the owner and never a reason to tick a `human:` criterion (check: grep -n -i "screenshot" skills/furrow-implement/SKILL.md | grep -q -i "human")
@@ -302,13 +332,15 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [ ] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
 - [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any; Answered lists `Owner chose` lines added since the merge base (test: TestSpecBriefSections)
 - [ ] AC-18: Your calls numbers questions Q1… in file order, and with `--pr N` and a GitHub remote in https or ssh form makes each question a link to its line in the PR's diff, else follows it with `(path:line)` (test: TestSpecBriefLineLinks)
-- [ ] AC-19: The Plan is a mermaid flowchart with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
+- [ ] AC-19: The Plan is a mermaid `flowchart TD` followed by its legend line, with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
 - [ ] AC-20: Collisions names each overlapping step of another accepted spec, marks claimed ones from the remote, and with `--offline` says claims weren't checked (test: TestSpecBriefCollisions)
 - [ ] AC-21: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
 - [ ] AC-22: `--check --spec` reports missing sections, placeholders and a long Decision; `--spec` with `--step` exits 2; an archived or unknown spec exits 1 with its message (test: TestSpecBriefCheckAndFailures)
 - [ ] AC-23: furrow-write opens the spec PR with `furrow brief --spec`, opens a review thread per open question, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q -i "thread" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
 - [ ] AC-24: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
 - [ ] AC-25: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
+- [ ] AC-26: The Diagram section's placeholder asks for a caption and is followed by a `Legend:` placeholder line (test: TestBriefDiagramAsksForLegend)
+- [ ] AC-27: The standard's two copies and furrow-write give the caption, `Legend:`, 8-node and `flowchart TD` rules (check: for f in specs/README.md internal/scaffold/assets/README.md skills/furrow-write/SKILL.md; do grep -q "Legend:" $f && grep -q "flowchart TD" $f || exit 1; done)
 
 ## Out of scope
 
