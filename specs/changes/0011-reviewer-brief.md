@@ -32,7 +32,7 @@ steps:
       - internal/brief/check*
     covers: [AC-10, AC-11]
     size: s
-    merged: false
+    merged: true
   - n: 3
     title: furrow-next and furrow-implement write the brief
     after: [1, 2, 9]
@@ -323,8 +323,8 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [x] AC-7: Proven and Needs you list the covered criteria by kind, the spec's invariants by name, and required human review (test: TestBriefProvenAndNeedsYou)
 - [x] AC-8: The same repo state gives byte-identical output, and `--json` has every documented key with lists never null (test: TestBriefDeterministicAndJSON)
 - [x] AC-9: Off a step branch, an unknown step, and a missing base each exit 1 with their message (test: TestBriefFailures)
-- [ ] AC-10: `--check` reports a missing section, a leftover placeholder, a Behaviour over 80 words, a missing mermaid block or `Legend:` line, and a visual row without images, each on its own line, and exits 1 (test: TestBriefCheckProblems)
-- [ ] AC-11: `--check` exits 0 on a complete brief, changes no file, and `--json` prints `ok` and `problems` (test: TestBriefCheckComplete)
+- [x] AC-10: `--check` reports a missing section, a leftover placeholder, a Behaviour over 80 words, a missing mermaid block or `Legend:` line, and a visual row without images, each on its own line, and exits 1 (test: TestBriefCheckProblems)
+- [x] AC-11: `--check` exits 0 on a complete brief, changes no file, and `--json` prints `ok` and `problems` (test: TestBriefCheckComplete)
 - [ ] AC-12: furrow-next opens the PR with the brief, and furrow-implement runs `furrow brief --check` before `furrow done` (check: grep -q "furrow brief" skills/furrow-next/SKILL.md && grep -q "furrow brief --check" skills/furrow-implement/SKILL.md)
 - [ ] AC-13: furrow-implement says a screenshot is evidence for the owner and never a reason to tick a `human:` criterion (check: grep -n -i "screenshot" skills/furrow-implement/SKILL.md | grep -q -i "human")
 - [ ] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
@@ -381,3 +381,8 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
   "Required sections", in both copies of the standard, because that is where a writer reads what
   goes in `## What` and in an area.
 - 2026-11-02: Chose to write the `visual` line as a comment after `aliases: {}`, worded `# visual: []   # globs or aliases; a diff touching these needs visual proof in the PR`, because the spec asks for `# visual: []`, the file's other inline comment (on `check:`) uses three spaces, and a commented key leaves the default empty until the owner opts in.
+- 2026-11-02: Chose to count `## Behaviour`'s words with HTML comments removed, so a leftover placeholder is reported once, as a placeholder, and not also as words.
+- 2026-11-02: Chose the texts the spec doesn't give: "`## Diagram` has no ```mermaid block. Copy the spec's diagram from `furrow brief`.", "`## Diagram` has no line starting `Legend:`. Say what a box, an arrow and each colour mean.", "`## Visual proof` has no table row. Add one per screen, with before and after images." and "Row N of `## Visual proof` has no before image, or \"new\"." because each should say what to do.
+- 2026-11-02: Chose to report a placeholder outside the brief's sections (before the first heading, or under an extra heading such as `## Territory`) after the sections' problems, in the file's order, because "anywhere" includes them and section order doesn't place them.
+- 2026-11-02: Chose to number Visual proof rows from 1 after the header, skipping separator rows, to ignore `## ` lines inside code fences, and to read only the first section with a heading, because the spec doesn't say.
+- 2026-11-02: Chose to print `--check`'s problems on stdout, as `furrow territory` prints its report, with errors (an unreadable file, a missing base) on stderr.
