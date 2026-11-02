@@ -107,6 +107,9 @@ func Lint(r *Repo) []Problem {
 			if tbd.MatchString(prose(s.Body)) {
 				add(f, "an %s spec can't contain TBD", s.Status)
 			}
+			for _, n := range unproposed(s.Body, bodyOffset(r, s)) {
+				add(f, "Open question on line %d has no proposed answer. Add \"Proposed: …\", or answer it in ## Decisions.", n)
+			}
 		}
 		// 7. After refs (every status) and merged-before-dependencies.
 		for _, st := range s.Steps {
@@ -228,6 +231,85 @@ func lintSteps(r *Repo, s *Spec, add func(string, string, ...any)) {
 			add(f, "%s isn't covered by any step", c.ID)
 		}
 	}
+}
+
+// bodyOffset is how many lines of the spec's file come before its body, so line numbers match the
+// file. It's 0 if the file can't be read again.
+func bodyOffset(r *Repo, s *Spec) int {
+	data, err := os.ReadFile(filepath.Join(r.Root, filepath.FromSlash(s.File)))
+	if err != nil {
+		return 0
+	}
+	text := strings.ReplaceAll(string(data), "\r\n", "\n")
+	if !strings.HasSuffix(text, s.Body) {
+		return 0
+	}
+	return strings.Count(text[:len(text)-len(s.Body)], "\n")
+}
+
+// fence returns the backtick run that opens or closes a fenced code block on this line, or "".
+func fence(line string) string {
+	t := strings.TrimLeft(line, " ")
+	if len(line)-len(t) > 3 {
+		return ""
+	}
+	n := 0
+	for n < len(t) && t[n] == '`' {
+		n++
+	}
+	if n < 3 {
+		return ""
+	}
+	return t[:n]
+}
+
+// unproposed returns the file line of each top-level item under "## Open questions" that doesn't
+// say "Proposed:" anywhere in it. Lines inside fenced code blocks are skipped, headings included.
+// offset is the number of file lines before body.
+func unproposed(body string, offset int) []int {
+	var out []int
+	open := ""  // the fence we're inside, or ""
+	in := false // inside ## Open questions
+	start := 0  // file line of the current item, or 0
+	proposed := false
+	finish := func() {
+		if start > 0 && !proposed {
+			out = append(out, start)
+		}
+		start, proposed = 0, false
+	}
+	for i, l := range strings.Split(body, "\n") {
+		if f := fence(l); f != "" {
+			switch {
+			case open == "":
+				open = f
+				continue
+			case strings.HasPrefix(f, open) && strings.TrimSpace(l) == f:
+				open = ""
+				continue
+			}
+		}
+		if open != "" {
+			continue
+		}
+		if strings.HasPrefix(l, "# ") || strings.HasPrefix(l, "## ") {
+			finish()
+			in = strings.HasPrefix(l, "## ") && strings.TrimSpace(l[3:]) == "Open questions"
+			continue
+		}
+		if !in {
+			continue
+		}
+		if strings.HasPrefix(l, "- ") {
+			finish()
+			start = offset + i + 1
+		}
+		if start > 0 && strings.Contains(l, "Proposed:") {
+			proposed = true
+		}
+	}
+	finish()
+	return out
 }
 
 func signedOff(decisions, id string) bool {
