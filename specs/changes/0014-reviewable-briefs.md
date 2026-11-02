@@ -33,7 +33,7 @@ steps:
     merged: true
   - n: 3
     title: The skills write and verify the new brief
-    after: [1, 2]
+    after: [1, 2, 4]
     touches:
       - internal/brief/check*
       - skills/furrow-implement/SKILL.md
@@ -42,6 +42,14 @@ steps:
       - specs/areas/agents.md
     covers: [AC-8, AC-9, AC-10, AC-11]
     size: m
+    merged: false
+  - n: 4
+    title: The spec brief has no Proof and asks only new questions
+    after: [1, 2]
+    touches:
+      - internal/brief/spec*
+    covers: [AC-12, AC-13]
+    size: s
     merged: false
 ---
 
@@ -131,6 +139,12 @@ block.
 
 `--check --spec` reports a missing line or one over 25 words, as for Before and After.
 
+The spec brief has no Proof block: that belongs to a step brief.
+
+On a PR that amends a spec already on the base branch, its questions there were decided when it
+merged. `## Your calls` lists only questions that aren't in the spec at the merge base, numbered
+from Q1. With none: `None. Ready to accept.`
+
 ### The skills
 
 - **furrow-implement** fills the brief this way: Before and After as a user or caller sees it;
@@ -157,6 +171,8 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 - [ ] AC-9: A step PR written with the new brief can be reviewed on a phone without wading through what doesn't need a person (human: open the first step PR made after this merges on your phone, and read it before the diff)
 - [ ] AC-10: `--check` ignores a placeholder inside a fence after Behaviour's After line, and still reports one inside a fence in any other section (test: TestBriefCheckFencedPlaceholders)
 - [ ] AC-11: furrow-implement keeps "show it" to an excerpt of at most 15 lines (check: grep -q "15 lines" skills/furrow-implement/SKILL.md)
+- [ ] AC-12: The spec brief ends without a Proof block (test: TestSpecBriefHasNoProof)
+- [ ] AC-13: On an amendment, Your calls lists only questions added since the merge base, and says `None. Ready to accept.` when there are none (test: TestSpecBriefAmendmentCalls)
 
 ## Out of scope
 
