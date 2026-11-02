@@ -32,6 +32,9 @@ description: Turn an idea into a draft Furrow spec, split into steps that can ru
    `human_review: required`, and so do UI changes and anything that acts as the user.
 7. `furrow lint` must pass. Then `furrow graph` shows how the steps fan out. Rework them if
    everything is serial.
-8. Leave `status: draft`, and list the questions the owner must answer under `## Open questions`,
-   each with a proposed answer. The owner accepts a spec by merging it with `status: accepted`. Never
-   accept your own.
+8. List the questions the owner must answer under `## Open questions`, each with `Proposed: …`.
+   A proposal stands unless the owner overrules it before merging.
+9. Before you open the spec's PR, set `status: accepted` and check that every open question has
+   `Proposed:`, then run `furrow lint` again. The PR is the proposal, and the owner merging it is the
+   decision. Never merge a spec PR, even your own. Leave `status: draft` only for an idea the owner
+   wants parked: written down but not built yet.

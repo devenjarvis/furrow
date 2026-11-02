@@ -58,15 +58,15 @@ steps:
 ## Status
 
 ```
-draft ──merge──► accepted ──every step merged──► (review) ──signed off──► done, archived
-                    │
-                    └──► paused (say why under "## Open questions")
+draft (parked) · PR opened as accepted ──merge──► accepted ──every step merged──► (review) ──signed off──► done, archived
+                                                  │
+                                                  └──► paused (say why under "## Open questions")
 ```
 
 | Status | Means | Who sets it |
 | --- | --- | --- |
-| `draft` | Being written, or has questions that change the work. Never offered. | `furrow new` |
-| `accepted` | Decided. Its open steps are offered. | The owner, by merging |
+| `draft` | Parked: being written, or kept but not built yet. Never offered. | `furrow new` |
+| `accepted` | Set in the spec's PR, and merging it is the decision. Its open steps are offered. | The writer, in the PR. The owner merges it, or closes it to say no. |
 | `paused` | Decided, but waiting on something outside the code. | The owner |
 | `done` | Every step merged and every box ticked. Moved to `archive/`. | `furrow archive` |
 
@@ -84,7 +84,7 @@ remote. `furrow next` reads the remote's branches, so no two agents get the same
 | `## What` | yes | The behaviour, precisely. Commands, flags, output, files, failure modes. |
 | `## Acceptance criteria` | yes | `- [ ] AC-1: … (test: …)`. Observable, each with its proof. |
 | `## Out of scope` | yes | What a reasonable agent might do and must not. |
-| `## Open questions` | if any | Undecided things. An accepted spec only has ones an agent may decide. |
+| `## Open questions` | if any | Questions for the owner. In a decided spec each one says `Proposed: …`, and that stands unless the owner overrules it before merging. |
 | `## Decisions` | grows | `- 2026-11-01: Chose X because Y.` Written while building. |
 | `## Notes for the agent` | optional | Gotchas, prior art, fixtures. |
 
