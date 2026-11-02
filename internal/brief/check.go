@@ -32,14 +32,27 @@ func (r *Report) ExitCode() int {
 	return 1
 }
 
-// MaxBehaviourWords is the most words ## Behaviour may have.
+// MaxBehaviourWords is the most words ## Behaviour may have, outside code blocks and images.
 const MaxBehaviourWords = 80
 
+// Limits for the parts of a step brief a reviewer reads first.
+const (
+	MaxBeforeAfterWords  = 20 // each of the **Before:** and **After:** lines
+	MaxReviewItems       = 3  // numbered items in ## Review this
+	MaxJudgmentCallWords = 30 // each line of ## Judgment calls
+)
+
+// NoVisibleEffect is the answer to "show it" for a change with nothing to show.
+const NoVisibleEffect = "No visible effect."
+
 var (
-	comment = regexp.MustCompile(`(?s)<!--.*?-->`)
-	link    = regexp.MustCompile(`\[[^\]]*\]\([^)]+\)`) // also matches an image, ![…](…)
-	newWord = regexp.MustCompile(`(?i)\bnew\b`)
-	sepCell = regexp.MustCompile(`^:?-+:?$`)
+	comment    = regexp.MustCompile(`(?s)<!--.*?-->`)
+	link       = regexp.MustCompile(`\[[^\]]*\]\([^)]+\)`) // also matches an image, ![…](…)
+	newWord    = regexp.MustCompile(`(?i)\bnew\b`)
+	sepCell    = regexp.MustCompile(`^:?-+:?$`)
+	image      = regexp.MustCompile(`(?s)!\[[^\]]*\]\([^)]*\)|<img\b[^>]*>`)
+	numbered   = regexp.MustCompile(`^\d+[.)]\s`)
+	listMarker = regexp.MustCompile(`^[-*+]\s+`)
 )
 
 // CheckFile builds the brief for the step, as furrow brief would, and checks the brief in file
@@ -81,21 +94,23 @@ func Check(b *Brief, text string) *Report {
 			rep.add("No `## %s` section. Run `furrow brief` and paste it.", s.Heading)
 			continue
 		}
-		if strings.Contains(body, Placeholder) {
+		if hasPlaceholder(body) {
 			rep.add("`## %s` still has a placeholder. Write it.", s.Heading)
 		}
 		switch s.Heading {
 		case Behaviour:
-			if n := len(strings.Fields(comment.ReplaceAllString(body, " "))); n > MaxBehaviourWords {
-				rep.add("`## %s` is %d words. Keep it to %d.", Behaviour, n, MaxBehaviourWords)
-			}
+			checkBehaviour(rep, body)
 		case Diagram:
 			checkDiagram(rep, body)
+		case ReviewThis:
+			checkReviewThis(rep, body)
 		case VisualProof:
 			checkVisual(rep, body)
+		case JudgmentCalls:
+			checkJudgmentCalls(rep, body)
 		}
 	}
-	if strings.Contains(parts[0].text, Placeholder) {
+	if hasPlaceholder(parts[0].text) {
 		first := Behaviour
 		if len(b.Sections) > 0 {
 			first = b.Sections[0].Heading
@@ -103,7 +118,7 @@ func Check(b *Brief, text string) *Report {
 		rep.add("The text before `## %s` still has a placeholder. Write it.", first)
 	}
 	for _, p := range parts[1:] {
-		if !expected[p.heading] && strings.Contains(p.text, Placeholder) {
+		if !expected[p.heading] && hasPlaceholder(p.text) {
 			rep.add("`## %s` still has a placeholder. Write it.", p.heading)
 		}
 	}
@@ -126,11 +141,11 @@ func split(text string) []part {
 		trimmed := strings.TrimSpace(line)
 		switch {
 		case fence != "":
-			if strings.HasPrefix(trimmed, fence) && strings.Trim(trimmed, fence[:1]) == "" {
+			if closesFence(fence, trimmed) {
 				fence = ""
 			}
-		case strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~"):
-			fence = trimmed[:3]
+		case openFence(trimmed) != "":
+			fence = openFence(trimmed)
 		case strings.HasPrefix(line, "## "):
 			flush()
 			parts = append(parts, part{heading: strings.TrimSpace(strings.TrimPrefix(line, "## "))})
@@ -141,6 +156,106 @@ func split(text string) []part {
 	}
 	flush()
 	return parts
+}
+
+// openFence returns the run of three or more ` or ~ that opens a fenced code block on the
+// trimmed line, or "".
+func openFence(trimmed string) string {
+	for _, c := range []string{"`", "~"} {
+		if strings.HasPrefix(trimmed, c+c+c) {
+			return trimmed[:len(trimmed)-len(strings.TrimLeft(trimmed, c))]
+		}
+	}
+	return ""
+}
+
+// closesFence says whether the trimmed line closes the block fence opened: a run of the same
+// character, at least as long, and nothing else.
+func closesFence(fence, trimmed string) bool {
+	return len(trimmed) >= len(fence) && strings.Trim(trimmed, fence[:1]) == ""
+}
+
+// outsideFences returns text's lines that aren't in a fenced code block, fences dropped, and
+// whether it had a fenced block at all.
+func outsideFences(text string) (string, bool) {
+	var out []string
+	fence, found := "", false
+	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case fence != "":
+			if closesFence(fence, trimmed) {
+				fence = ""
+			}
+		case openFence(trimmed) != "":
+			fence, found = openFence(trimmed), true
+		default:
+			out = append(out, line)
+		}
+	}
+	return strings.Join(out, "\n"), found
+}
+
+// hasPlaceholder says whether text has a <!-- furrow: placeholder outside fenced code blocks. One
+// inside a fence is shown output, such as a pasted brief; one inside <details> still counts.
+func hasPlaceholder(text string) bool {
+	prose, _ := outsideFences(text)
+	return strings.Contains(prose, Placeholder)
+}
+
+// checkBehaviour wants a **Before:** and an **After:** line of at most 20 words each, something
+// that shows the change, and at most 80 words outside code blocks, images and comments.
+func checkBehaviour(rep *Report, body string) {
+	prose, fenced := outsideFences(body)
+	prose = comment.ReplaceAllString(prose, " ")
+	if n := len(strings.Fields(image.ReplaceAllString(prose, " "))); n > MaxBehaviourWords {
+		rep.add("`## %s` is %d words. Keep it to %d.", Behaviour, n, MaxBehaviourWords)
+	}
+	count := map[string]int{}
+	for _, line := range strings.Split(prose, "\n") {
+		line = strings.TrimSpace(line)
+		for _, label := range []string{BeforeLabel, AfterLabel} {
+			if _, seen := count[label]; !seen && strings.HasPrefix(line, label) {
+				count[label] = len(strings.Fields(strings.TrimPrefix(line, label)))
+			}
+		}
+	}
+	if len(count) < 2 {
+		rep.add("`## %s` needs a `%s` and an `%s` line.", Behaviour, BeforeLabel, AfterLabel)
+	}
+	for _, label := range []string{BeforeLabel, AfterLabel} {
+		if n := count[label]; n > MaxBeforeAfterWords {
+			rep.add("`%s` is %d words. Keep it to %d.", label, n, MaxBeforeAfterWords)
+		}
+	}
+	if !fenced && !image.MatchString(prose) && !strings.Contains(prose, NoVisibleEffect) {
+		rep.add("`## %s` doesn't show the change. Add output, a screenshot, or a usage example.", Behaviour)
+	}
+}
+
+// checkReviewThis counts the numbered items outside code blocks.
+func checkReviewThis(rep *Report, body string) {
+	prose, _ := outsideFences(body)
+	n := 0
+	for _, line := range strings.Split(comment.ReplaceAllString(prose, " "), "\n") {
+		if numbered.MatchString(line) {
+			n++
+		}
+	}
+	if n > MaxReviewItems {
+		rep.add("`## %s` has %d items. Keep the %d that need a person.", ReviewThis, n, MaxReviewItems)
+	}
+}
+
+// checkJudgmentCalls reports each line over 30 words, comments and list markers not counted.
+func checkJudgmentCalls(rep *Report, body string) {
+	prose, _ := outsideFences(body)
+	for _, line := range strings.Split(comment.ReplaceAllString(prose, " "), "\n") {
+		line = listMarker.ReplaceAllString(strings.TrimSpace(line), "")
+		if n := len(strings.Fields(line)); n > MaxJudgmentCallWords {
+			rep.add("A judgment call is %d words. Shorten it in the spec's `## Decisions` and run `furrow brief` again.", n)
+		}
+	}
 }
 
 func checkDiagram(rep *Report, body string) {

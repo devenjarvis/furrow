@@ -15,19 +15,26 @@ import (
 // filled is a complete brief for spec 7's step 1, with a diagram and visual proof. Each test
 // breaks it in one place.
 var filled = map[string]string{
-	"Behaviour":     "Before, the thing did nothing. After, it does the thing.",
-	"Diagram":       "How the thing flows.\n\n" + mermaid + "\n\nLegend: a box is a package, an arrow is a call.",
-	"Where to look": "**Code**\n\n`internal/thing/a.go` carries it.\n\n- `internal/thing/a.go`",
+	"Behaviour": "**Before:** The thing did nothing.\n**After:** It does the thing.\n\n```\n$ thing\ndone\n```",
+	"Diagram":   "How the thing flows.\n\n" + mermaid + "\n\nLegend: a box is a package, an arrow is a call.",
+	"Review this": "1. `internal/thing/a.go` `Do`: is the loop bounded?\n\n" +
+		"<details><summary>2 changed files</summary>\n\n**Code**\n\n- `internal/thing/a.go`\n\n</details>",
 	"Visual proof": "- `web/css/site.css`\n\n| Screen | Before | After |\n| --- | --- | --- |\n" +
 		"| Home | ![before](https://example.com/b.png) | ![after](https://example.com/a.png) |\n" +
 		"| Settings | new | [after](https://example.com/s.png) |",
-	"Departures from the spec": "None.",
-	"Proven":                   "- [x] AC-1: It works (test: TestWorks)\n  Evidence: TestWorks passes.",
-	"Needs you":                "- AC-3: It reads well\n  Look at: read the output",
-	"Not done":                 "Nothing.",
+	"Judgment calls": "None.",
+	"Needs you":      "- AC-3: It reads well\n  Look at: read the output\n- INV-2: Git is enough. Not touched.",
+	"Not done": "Nothing.\n\n<details><summary>Proof: AC-1 ✓ AC-2 ✓</summary>\n\n" +
+		"- AC-1 (test: TestWorks)\n- AC-2 (check: true)\n\n</details>",
 }
 
-var order = []string{"Behaviour", "Diagram", "Where to look", "Visual proof", "Departures from the spec", "Proven", "Needs you", "Not done"}
+var order = []string{"Behaviour", "Diagram", "Review this", "Visual proof", "Judgment calls", "Needs you", "Not done"}
+
+// words is n words, for testing word limits.
+func words(n int) string { return strings.TrimSpace(strings.Repeat("word ", n)) }
+
+// longBehaviour is filled's Behaviour (10 words outside its code block) plus 102 more: 112.
+var longBehaviour = filled["Behaviour"] + "\n\n" + words(102)
 
 // body writes the brief with sections in order, replacing any in change, and leaving out any
 // whose replacement is "-".
@@ -58,7 +65,6 @@ func checkSetup(t *testing.T) (*brief.Brief, func(string) *brief.Report) {
 
 func TestBriefCheckProblems(t *testing.T) {
 	_, check := checkSetup(t)
-	long := strings.TrimSpace(strings.Repeat("word ", 112))
 
 	cases := []struct {
 		name   string
@@ -69,11 +75,11 @@ func TestBriefCheckProblems(t *testing.T) {
 			[]string{"No `## Visual proof` section. Run `furrow brief` and paste it."}},
 		{"missing sections, in section order", map[string]string{"Not done": "-", "Behaviour": "-"},
 			[]string{"No `## Behaviour` section. Run `furrow brief` and paste it.", "No `## Not done` section. Run `furrow brief` and paste it."}},
-		{"placeholder", map[string]string{"Behaviour": "<!-- furrow: before → after, in at most 80 words. Behaviour, not code. -->"},
+		{"placeholder", map[string]string{"Behaviour": "**Before:** a.\n**After:** b.\n\nNo visible effect. <!-- furrow: show it -->"},
 			[]string{"`## Behaviour` still has a placeholder. Write it."}},
-		{"placeholder in a fact section", map[string]string{"Proven": "- [x] AC-1: It works\n  Evidence: <!-- furrow: test name -->"},
-			[]string{"`## Proven` still has a placeholder. Write it."}},
-		{"long Behaviour", map[string]string{"Behaviour": long},
+		{"placeholder in a fact section", map[string]string{"Judgment calls": "- Chose A. <!-- furrow: why -->"},
+			[]string{"`## Judgment calls` still has a placeholder. Write it."}},
+		{"long Behaviour", map[string]string{"Behaviour": longBehaviour},
 			[]string{"`## Behaviour` is 112 words. Keep it to 80."}},
 		{"no mermaid block", map[string]string{"Diagram": "How it flows.\n\nLegend: a box is a package."},
 			[]string{"`## Diagram` has no ```mermaid block. Copy the spec's diagram from `furrow brief`."}},
@@ -100,7 +106,7 @@ func TestBriefCheckProblems(t *testing.T) {
 
 	// Several problems: one line each, in section order, whatever order the body has them in.
 	rep := check(body(map[string]string{
-		"Behaviour":    long + " <!-- furrow: x -->",
+		"Behaviour":    longBehaviour + " <!-- furrow: x -->",
 		"Diagram":      "nothing",
 		"Visual proof": "-",
 		"Not done":     "<!-- furrow: what this step leaves out -->",
@@ -154,7 +160,7 @@ func TestBriefCheckComplete(t *testing.T) {
 	// Exactly 80 words is fine; headings inside a code fence don't start a section; a comment
 	// that isn't a furrow placeholder is fine.
 	rep = check(body(map[string]string{
-		"Behaviour": strings.TrimSpace(strings.Repeat("word ", 80)) + " <!-- a note -->",
+		"Behaviour": filled["Behaviour"] + "\n\n" + words(70) + " <!-- a note -->",
 		"Not done":  "Nothing.\n\n```\n## Behaviour\n```",
 	}))
 	if !rep.OK {
@@ -208,5 +214,98 @@ func TestBriefCheckComplete(t *testing.T) {
 	}
 	if data, _ := json.Marshal(check(body(nil))); string(data) != `{"ok":true,"problems":[]}` {
 		t.Errorf("complete JSON = %s", data)
+	}
+}
+
+func TestBriefCheckReviewable(t *testing.T) {
+	_, check := checkSetup(t)
+	shows := "\n\nNo visible effect."
+	bad := []struct {
+		name   string
+		change map[string]string
+		want   []string
+	}{
+		{"no After line", map[string]string{"Behaviour": "**Before:** It did nothing." + shows},
+			[]string{"`## Behaviour` needs a `**Before:**` and an `**After:**` line."}},
+		{"no Before line", map[string]string{"Behaviour": "**After:** It does it." + shows},
+			[]string{"`## Behaviour` needs a `**Before:**` and an `**After:**` line."}},
+		{"Before and After only in a code block", map[string]string{"Behaviour": "```\n**Before:** a\n**After:** b\n```"},
+			[]string{"`## Behaviour` needs a `**Before:**` and an `**After:**` line."}},
+		{"After over 20 words", map[string]string{"Behaviour": "**Before:** It did nothing.\n**After:** " + words(27) + shows},
+			[]string{"`**After:**` is 27 words. Keep it to 20."}},
+		{"both over 20 words", map[string]string{"Behaviour": "**Before:** " + words(21) + "\n**After:** " + words(22) + " <!-- a note -->" + shows},
+			[]string{"`**Before:**` is 21 words. Keep it to 20.", "`**After:**` is 22 words. Keep it to 20."}},
+		{"shows nothing", map[string]string{"Behaviour": "**Before:** a.\n**After:** b.\n\nIt is better now."},
+			[]string{"`## Behaviour` doesn't show the change. Add output, a screenshot, or a usage example."}},
+		{"\"No visible effect.\" only in a comment", map[string]string{"Behaviour": "**Before:** a.\n**After:** b.\n\n<!-- \"No visible effect.\" is an answer -->"},
+			[]string{"`## Behaviour` doesn't show the change. Add output, a screenshot, or a usage example."}},
+		{"5 Review items", map[string]string{"Review this": "1. a\n2. b\n3. c\n4. d\n5. e\n\n<details><summary>2 changed files</summary>\n\n- `x`\n\n</details>"},
+			[]string{"`## Review this` has 5 items. Keep the 3 that need a person."}},
+		{"placeholder inside <details>", map[string]string{"Review this": "1. a\n\n<details><summary>2 changed files</summary>\n\n<!-- furrow: x -->\n\n</details>"},
+			[]string{"`## Review this` still has a placeholder. Write it."}},
+		{"a long judgment call", map[string]string{"Judgment calls": "- Chose A.\n- " + words(41)},
+			[]string{"A judgment call is 41 words. Shorten it in the spec's `## Decisions` and run `furrow brief` again."}},
+	}
+	for _, c := range bad {
+		rep := check(body(c.change))
+		if rep.OK || !reflect.DeepEqual(rep.Problems, c.want) {
+			t.Errorf("%s: ok=%v problems =\n%q\nwant\n%q", c.name, rep.OK, rep.Problems, c.want)
+		}
+	}
+
+	// In section order: Behaviour's, then Review this's, then Judgment calls'.
+	rep := check(body(map[string]string{
+		"Judgment calls": "- " + words(31),
+		"Review this":    "1. a\n2. b\n3. c\n4. d",
+		"Behaviour":      "**After:** " + words(21),
+	}))
+	want := []string{
+		"`## Behaviour` needs a `**Before:**` and an `**After:**` line.",
+		"`**After:**` is 21 words. Keep it to 20.",
+		"`## Behaviour` doesn't show the change. Add output, a screenshot, or a usage example.",
+		"`## Review this` has 4 items. Keep the 3 that need a person.",
+		"A judgment call is 31 words. Shorten it in the spec's `## Decisions` and run `furrow brief` again.",
+	}
+	if !reflect.DeepEqual(rep.Problems, want) {
+		t.Errorf("problems =\n%q\nwant\n%q", rep.Problems, want)
+	}
+
+	// The raw brief: Behaviour's placeholders don't count as showing the change.
+	b, _ := checkSetup(t)
+	var problems []string
+	for _, p := range brief.Check(b, b.Markdown()).Problems {
+		if strings.Contains(p, "Behaviour") {
+			problems = append(problems, p)
+		}
+	}
+	want = []string{
+		"`## Behaviour` still has a placeholder. Write it.",
+		"`## Behaviour` doesn't show the change. Add output, a screenshot, or a usage example.",
+	}
+	if !reflect.DeepEqual(problems, want) {
+		t.Errorf("raw Behaviour problems =\n%q\nwant\n%q", problems, want)
+	}
+
+	good := map[string]map[string]string{
+		"20-word lines and an image": {"Behaviour": "**Before:** " + words(20) + "\n**After:** " + words(20) + "\n\n![after](https://example.com/a.png)"},
+		"an <img> tag":               {"Behaviour": "**Before:** a.\n**After:** b.\n\n<img src=\"a.png\" alt=\"after\">"},
+		"No visible effect.":         {"Behaviour": "**Before:** a.\n**After:** b." + shows},
+		"a ~~~ fence":                {"Behaviour": "**Before:** a.\n**After:** b.\n\n~~~\n$ x\n~~~"},
+		// The 80-word cap counts only text outside code blocks and images.
+		"long code and image text": {"Behaviour": filled["Behaviour"] + "\n\n```\n" + words(200) + "\n```\n\n![" + words(100) + "](a.png)\n\n" + words(70)},
+		// A placeholder inside a fenced code block is shown output, not a placeholder: the raw brief
+		// pasted as "show it", with its inner fences, closed only by a run at least as long.
+		"pasted raw brief": {"Behaviour": filled["Behaviour"] + "\n\n````markdown\n" + b.Markdown() + "\n```\n## Not a heading\n````"},
+		"3 Review items":   {"Review this": "1. a\n2. b\n3. c\n\n<details><summary>2 changed files</summary>\n\n- `x`\n\n</details>"},
+		"30-word judgment": {"Judgment calls": "- " + words(30) + "\n- Chose B."},
+	}
+	for name, change := range good {
+		if rep := check(body(change)); !rep.OK {
+			t.Errorf("%s: %q", name, rep.Problems)
+		}
+	}
+	// ~~~ fences hide placeholders too.
+	if rep := check(body(map[string]string{"Not done": "Nothing.\n\n~~~~\n<!-- furrow: x -->\n~~~\n~~~~"})); !rep.OK {
+		t.Errorf("placeholder in a ~~~~ fence: %q", rep.Problems)
 	}
 }
