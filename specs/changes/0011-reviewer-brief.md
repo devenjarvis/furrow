@@ -72,13 +72,24 @@ steps:
     merged: false
   - n: 7
     title: Fold the brief into the areas
-    after: [2, 3, 4, 5, 6]
+    after: [2, 3, 4, 5, 6, 8]
     touches:
       - specs/areas/agents.md
       - specs/areas/specs.md
       - specs/areas/scaffolding.md
-    covers: [AC-17, AC-18]
+    covers: [AC-23, AC-24]
     size: s
+    merged: false
+  - n: 8
+    title: furrow brief --spec writes the brief for a spec PR
+    after: [1]
+    touches:
+      - cmd/furrow/brief.go
+      - internal/brief/spec.go
+      - internal/brief/spec_test.go
+      - skills/furrow-write/SKILL.md
+    covers: [AC-17, AC-18, AC-19, AC-20, AC-21, AC-22]
+    size: m
     merged: false
 ---
 
@@ -91,6 +102,11 @@ reviewer. A person reviewing a step needs to know what behaviour changed, where 
 what the step did that the spec didn't say, what it looks like, and what only they can judge.
 Furrow already knows most of that from the spec and git. `furrow brief` writes it down, and leaves
 the agent only the parts that need judgment.
+
+A PR that adds or amends a spec asks a different question: should we build this, this way? The spec
+is already the long-form description, so its brief doesn't repeat it. It shows what the file
+doesn't show at a glance: the owner's open calls, how the steps fan out, what they collide with, and
+what accepting the spec commits the owner to.
 
 ## What
 
@@ -183,6 +199,39 @@ per problem, in section order, each saying what to do:
 
 It only reads. It never ticks a box or edits the spec. `--json` prints `{"ok", "problems"}`.
 
+### `furrow brief --spec ID [--base REF] [--offline] [--json]`
+
+Prints the brief for a PR that adds or amends spec `ID` in `changes/`. The base is found as
+above. Sections, in this order:
+
+1. **`## Decision`**: `<!-- furrow: what accepting this commits us to, and the main alternative
+   it rejects, in at most 80 words. Don't restate the spec. -->`
+2. **`## Your calls`**: the spec's `## Open questions`, copied as is. With none: `None. Ready to
+   accept.`
+3. **`## Plan`**: a ```` ```mermaid ```` `flowchart LR` of the spec's unmerged steps, worked out
+   as if the spec were accepted. One `subgraph` per wave, in wave order (`Wave 1`, `Wave 2`, …).
+   Each step is a node `S<n>["<n>. <title> (<size>)"]`, with an edge from each `after` step of
+   this spec. An `after` on another spec is a node named by its ref, with an edge to the step.
+   Nodes and edges are sorted, so the block is the same for the same specs.
+4. **`## Collisions`**: each pair of this spec's unmerged step and another accepted spec's
+   unmerged step whose `touches` overlap, as `FUR-0011.1 and FUR-0009.2 (claimed) both touch
+   cmd/furrow/brief.go.` The overlapping path is the one `internal/paths` reports. Claims come
+   from the remote's branches, unless `--offline` is given, and then the line says `(claims not
+   checked)` once at the top. With none: `None.`
+5. **`## What it costs later`**: each invariant in `invariants:` as `INV-n: <name>`;
+   `human_review: required` when set; each `human:` criterion with its proof text, as the
+   sign-offs accepting this signs the owner up for; and the step count by size, as `8 steps: 2 m,
+   6 s.`
+6. **`## Changed criteria`** *when the spec file exists at the merge base*: each criterion added,
+   removed, or whose text changed, with the old and new text. Its header line says `Only a person
+   changes a criterion (INV-4).`
+
+`--check FILE --spec ID` checks a spec brief as it checks a step brief: every section present, no
+placeholder left, and Decision at most 80 words. `--spec` and `--step` together exit 2. A spec that
+isn't in `changes/` exits 1: "FUR-0005 is archived. Change it with a new spec." An unknown spec
+exits 1 and names it. `--json` prints `{"spec", "base", "sections": [{"heading", "markdown"}],
+"plan", "collisions", "changed_criteria"}`, lists never `null`.
+
 ### Skills
 
 - **furrow-next** opens the draft PR with `furrow brief`'s output as its body.
@@ -199,7 +248,8 @@ It only reads. It never ticks a box or edits the spec. `--json` prints `{"ok", "
 - **furrow-write** draws a ```` ```mermaid ```` diagram in `## What` for a spec that changes how
   parts connect or how something flows (a new component, a changed call path, a state machine),
   showing only the parts that change, with new ones marked by `classDef added`. A spec that
-  doesn't change structure has none.
+  doesn't change structure has none. It opens the spec's PR with `furrow brief --spec`'s output
+  as the body, and fills in the Decision.
 
 ### The standard
 
@@ -226,8 +276,14 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [ ] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
 - [ ] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
 - [ ] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
-- [ ] AC-17: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
-- [ ] AC-18: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
+- [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order, copies Open questions as is, and says `None. Ready to accept.` without any (test: TestSpecBriefSections)
+- [ ] AC-18: The Plan is a mermaid flowchart with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
+- [ ] AC-19: Collisions names each overlapping step of another accepted spec, marks claimed ones from the remote, and with `--offline` says claims weren't checked (test: TestSpecBriefCollisions)
+- [ ] AC-20: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
+- [ ] AC-21: `--check --spec` reports missing sections, placeholders and a long Decision; `--spec` with `--step` exits 2; an archived or unknown spec exits 1 with its message (test: TestSpecBriefCheckAndFailures)
+- [ ] AC-22: furrow-write opens the spec PR with `furrow brief --spec` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md)
+- [ ] AC-23: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
+- [ ] AC-24: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
 
 ## Out of scope
 
@@ -247,6 +303,8 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
   a forge.
 - Should `furrow done` refuse when `--check` fails? Proposed: not yet. See how agents do with
   the skills first, then decide in its own spec.
+- Should the spec brief's Plan show steps of other specs that wait on this one? Proposed: no. A
+  draft has none, and an amendment's are visible in `furrow graph` once it's accepted.
 - Is 80 words the right cap for Behaviour? Proposed: yes, about three sentences.
 - Does required visual proof belong in config globs, or should a spec opt in per step? Proposed:
   globs. The diff decides, so an agent can't skip it by leaving a flag off.
