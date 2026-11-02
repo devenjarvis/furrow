@@ -2,6 +2,7 @@ package spec_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -200,5 +201,91 @@ func TestListStatus(t *testing.T) {
 	want := `{"id":"FUR-0003","title":"Spec 3","status":"building","area":"core","file":"specs/changes/0003-spec-3.md","steps_merged":1,"steps_total":2}`
 	if string(data) != want {
 		t.Errorf("json = %s", data)
+	}
+}
+
+// questionsBody is a fixture body with an open-questions section after the given text.
+func questionsBody(questions string) string {
+	return "# FUR-0001: Spec 1\n\n## Why\n\nBecause.\n\n## What\n\nThis.\n\n## Acceptance criteria\n\n- [ ] AC-1: It works (test: TestWorks)\n\n## Out of scope\n\n- That.\n\n## Open questions\n\n" + questions + "\n## Decisions\n"
+}
+
+// lineOf is the 1-based line of the first line in text that starts with prefix.
+func lineOf(t *testing.T, text, prefix string) int {
+	t.Helper()
+	for i, l := range strings.Split(text, "\n") {
+		if strings.HasPrefix(l, prefix) {
+			return i + 1
+		}
+	}
+	t.Fatalf("no line starts with %q", prefix)
+	return 0
+}
+
+func openQuestionProblems(repo *spec.Repo) []string {
+	var out []string
+	for _, m := range lintMessages(repo) {
+		if strings.Contains(m, "Open question") {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+func TestLintOpenQuestionsNeedProposals(t *testing.T) {
+	questions := "- Is it fast? Proposed: yes.\n" +
+		"- Should it wrap? It might\n  read better. Proposed: no, it\n  stays on one line.\n" +
+		"- Is the name right?\n  Nobody has said.\n" +
+		"- Does a nested item count? Proposed: no.\n" +
+		"  - Nested items don't count on their own.\n" +
+		"- What about this one?\n"
+	for _, status := range []string{"accepted", "paused"} {
+		t.Run(status, func(t *testing.T) {
+			r := spectest.New(t)
+			path := r.Spec(spectest.Spec{Num: 1, Status: status, Body: questionsBody(questions)})
+			text := r.Read(path)
+			got := openQuestionProblems(r.Load())
+			want := []string{
+				fmt.Sprintf(`error: %s: Open question on line %d has no proposed answer. Add "Proposed: …", or answer it in ## Decisions.`, path, lineOf(t, text, "- Is the name right?")),
+				fmt.Sprintf(`error: %s: Open question on line %d has no proposed answer. Add "Proposed: …", or answer it in ## Decisions.`, path, lineOf(t, text, "- What about this one?")),
+			}
+			if strings.Join(got, "\n") != strings.Join(want, "\n") {
+				t.Errorf("got:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+			}
+		})
+	}
+	t.Run("draft", func(t *testing.T) {
+		r := spectest.New(t)
+		r.Spec(spectest.Spec{Num: 1, Status: "draft", Body: questionsBody(questions)})
+		if got := lintMessages(r.Load()); len(got) != 0 {
+			t.Errorf("a draft spec may have questions without proposals: %v", got)
+		}
+	})
+	t.Run("all proposed", func(t *testing.T) {
+		r := spectest.New(t)
+		r.Spec(spectest.Spec{Num: 1, Body: questionsBody("- One? Proposed: yes.\n- Two?\n  Proposed: no.\n")})
+		if got := lintMessages(r.Load()); len(got) != 0 {
+			t.Errorf("every question has a proposal: %v", got)
+		}
+	})
+}
+
+func TestLintOpenQuestionsIgnoreFences(t *testing.T) {
+	r := spectest.New(t)
+	fencedHeading := "Write it like this:\n\n```md\n## Open questions\n\n- Fenced, with no proposal?\n```\n"
+	body := questionsBody("- Real one? Proposed: yes.\n\n````md\n```\n- Inside a four-backtick fence?\n```\n- Still inside?\n````\n\n- Real, unanswered?\n")
+	body = strings.Replace(body, "This.\n", "This.\n\n"+fencedHeading, 1)
+	path := r.Spec(spectest.Spec{Num: 1, Body: body})
+	text := r.Read(path)
+	got := openQuestionProblems(r.Load())
+	want := fmt.Sprintf(`error: %s: Open question on line %d has no proposed answer. Add "Proposed: …", or answer it in ## Decisions.`, path, lineOf(t, text, "- Real, unanswered?"))
+	if len(got) != 1 || got[0] != want {
+		t.Errorf("got:\n%s\nwant only:\n%s", strings.Join(got, "\n"), want)
+	}
+
+	// A fenced heading alone doesn't open the section.
+	r2 := spectest.New(t)
+	r2.Spec(spectest.Spec{Num: 1, Body: strings.Replace(questionsBody("- Real? Proposed: yes.\n"), "This.\n", "This.\n\n"+fencedHeading, 1)})
+	if got := lintMessages(r2.Load()); len(got) != 0 {
+		t.Errorf("fenced questions count: %v", got)
 	}
 }
