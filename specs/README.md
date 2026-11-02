@@ -91,6 +91,11 @@ remote. `furrow next` reads the remote's branches, so no two agents get the same
 A ticked `human:` criterion needs a line in `## Decisions` that `furrow signoff` writes:
 `- 2026-11-01: AC-4 signed off by Deven.`
 
+A spec that changes how parts connect or how something flows (a new component, a changed call
+path, a state machine) draws it in `## What` as a ```` ```mermaid ```` diagram. It shows only what
+changes, with new parts marked by `classDef added`, and every node names a real file, package, type
+or function. A spec that doesn't change structure has no diagram.
+
 ## Areas: living specs
 
 An area says how one part of the product works **now**, in present tense, with no history of how
@@ -105,7 +110,8 @@ title: Scheduling
 ---
 ```
 
-Required sections: `## Behaviour` and `## History`.
+Required sections: `## Behaviour` and `## History`. An area may keep a ```` ```mermaid ````
+diagram in `## Behaviour`, and the fold on a spec's last step keeps it current.
 
 ## How an agent works a step
 

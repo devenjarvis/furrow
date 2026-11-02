@@ -14,7 +14,10 @@ description: Turn an idea into a draft Furrow spec, split into steps that can ru
 4. Fill it in for a smart stranger:
    - **Why**: two to four sentences, for a user.
    - **What**: behaviour at the boundaries: commands, types, files, output, and every failure mode.
-     Examples beat adjectives.
+     Examples beat adjectives. If the change alters how parts connect or how something flows (a new
+     component, a changed call path, a state machine), draw it here as a ```` ```mermaid ````
+     diagram: only the parts that change, new ones marked with `classDef added`, and every node a
+     real file, package, type or function. A spec that doesn't change structure has no diagram.
    - **Acceptance criteria**: `- [ ] AC-n: … (test: Name)`, `(check: command)` or
      `(human: what to look at)`. Observable, one behaviour each.
    - **Out of scope**: what a reasonable agent might do and mustn't.
