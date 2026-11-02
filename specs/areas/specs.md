@@ -11,8 +11,8 @@ How Furrow reads the repo: `.furrow.yml`, spec and area files, invariants, and t
 
 **Config.** Furrow finds `.furrow.yml` by walking up from the working directory. Keys it leaves out
 take defaults: `prefix: SPEC`, `specs: specs`, `product: docs/product.md`, `remote: origin`,
-`base: main`, `branch: step/{num}-{step}`, no `check`, no `aliases`. With no file it says to run
-`furrow init`.
+`base: main`, `branch: step/{num}-{step}`, no `check`, no `aliases`, no `visual`. With no
+file it says to run `furrow init`.
 
 **Files.** Specs are `specs/changes/NNNN-slug.md` and `specs/archive/NNNN-slug.md`: YAML front
 matter, then Markdown. Acceptance criteria are `- [ ] AC-n: text (proof: detail)` lines under
@@ -44,6 +44,13 @@ offered. `furrow new` starts specs as `draft`, so lint stays relaxed while one i
 and that proposal is the answer unless the owner overrules it before merging. Lint reports an item
 without one by its line in the file, and ignores headings and items inside fenced code. Agents
 never merge a spec PR.
+
+**Diagrams.** A spec that changes how parts connect or how something flows draws it in
+`## What` as a ```` ```mermaid ```` diagram of only what changes, new parts marked with
+`classDef added`. An area may keep one in `## Behaviour`, kept current by the fold. Each has a
+one-sentence caption above, a `Legend:` line below, at most 8 nodes drawn `flowchart TD`, and
+shows behaviour, not a call graph, with every node a real file, package, type or function. Lint
+doesn't check them; `furrow brief` copies a spec's into the step's brief.
 
 **`furrow list [--json]`** shows each spec's worked-out status: draft, accepted, building, review,
 paused or done.

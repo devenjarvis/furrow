@@ -10,8 +10,9 @@ Starting Furrow in a repo and starting new specs: `furrow init`, `furrow new`, `
 ## Behaviour
 
 **`furrow init [--prefix P]`** starts Furrow in the current folder. It writes `.furrow.yml` (every
-key with its default, and the prefix), `specs/README.md` (the spec standard with the prefix filled
-in), `specs/_template.md`, a `.gitkeep` in `specs/changes/`, `specs/areas/` and `specs/archive/`,
+key with its default, the prefix, and a commented `# visual: []` line saying what it does),
+`specs/README.md` (the spec standard, with its diagram rules, and the prefix filled in),
+`specs/_template.md`, a `.gitkeep` in `specs/changes/`, `specs/areas/` and `specs/archive/`,
 and `docs/product.md` (`# <folder>`, a placeholder and an `## Invariants` section with one example
 `**INV-1: …**` line). It never overwrites anything: each path prints as `created <path>` or
 `kept <path>`, always in that order. The default prefix is the folder's name upper-cased, letters
