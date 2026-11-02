@@ -15,11 +15,22 @@ You're the reviewer, not the author. Assume nothing is done until you've seen th
      them what they need: steps, screenshots, output.
 3. **Territory.** `furrow territory --base origin/<base> --body-file <PR body>` must exit 0. Read each
    explained path's reason.
-4. **Invariants.** Read the spec's `invariants:` in `docs/product.md` and check the diff keeps every
+4. **The brief.** The PR description is the reviewer's brief. Save it to a file;
+   `furrow brief --check <file> --base origin/<base>` must exit 0. Then read it against the diff:
+   - **Behaviour** says what the code does, not what the author meant it to do.
+   - **Diagram**: every node and edge exists in the code. It has a caption and a `Legend:` line,
+     at most 8 nodes, is a mermaid `flowchart TD`, and shows behaviour, not a call graph.
+   - **Visual proof**: each image shows the screen its row names.
+   - **Departures** lists every line the diff adds to the spec's `## Decisions`.
+   - A screenshot is evidence for the owner, never a reason a `human:` criterion is ticked.
+
+   A claim the diff doesn't bear out is a finding, as a failed test would be.
+5. **Invariants.** Read the spec's `invariants:` in `docs/product.md` and check the diff keeps every
    one.
-5. **Spec hygiene.** `furrow lint` passes. The step is `merged: true`, its covered non-human boxes are
+6. **Spec hygiene.** `furrow lint` passes. The step is `merged: true`, its covered non-human boxes are
    ticked, and no criterion's text changed (`git diff` the spec). On a spec's last step, the area's
    `## Behaviour` says what changed.
-6. Run the repo's check.
-7. Report a table: criterion, verdict (met, not met, can't tell), evidence. Then territory,
-   invariant and hygiene findings with file and line. Say plainly whether it's ready to merge.
+7. Run the repo's check.
+8. Report a table: criterion, verdict (met, not met, can't tell), evidence, with each brief
+   claim the diff doesn't bear out as a row of its own. Then territory, brief, invariant and
+   hygiene findings with file and line. Say plainly whether it's ready to merge.

@@ -49,7 +49,7 @@ steps:
       - skills/furrow-verify/**
     covers: [AC-14]
     size: s
-    merged: false
+    merged: true
   - n: 5
     title: Specs that change structure draw a diagram
     after: []
@@ -327,7 +327,7 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [x] AC-11: `--check` exits 0 on a complete brief, changes no file, and `--json` prints `ok` and `problems` (test: TestBriefCheckComplete)
 - [ ] AC-12: furrow-next opens the PR with the brief, and furrow-implement runs `furrow brief --check` before `furrow done` (check: grep -q "furrow brief" skills/furrow-next/SKILL.md && grep -q "furrow brief --check" skills/furrow-implement/SKILL.md)
 - [ ] AC-13: furrow-implement says a screenshot is evidence for the owner and never a reason to tick a `human:` criterion (check: grep -n -i "screenshot" skills/furrow-implement/SKILL.md | grep -q -i "human")
-- [ ] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
+- [x] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
 - [x] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
 - [x] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
 - [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any; Answered lists `Owner chose` lines added since the merge base (test: TestSpecBriefSections)
@@ -386,5 +386,6 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - 2026-11-02: Chose to report a placeholder outside the brief's sections (before the first heading, or under an extra heading such as `## Territory`) after the sections' problems, in the file's order, because "anywhere" includes them and section order doesn't place them.
 - 2026-11-02: Chose to number Visual proof rows from 1 after the header, skipping separator rows, to ignore `## ` lines inside code fences, and to read only the first section with a heading, because the spec doesn't say.
 - 2026-11-02: Chose to print `--check`'s problems on stdout, as `furrow territory` prints its report, with errors (an unreadable file, a missing base) on stderr.
+- 2026-11-02: Chose to put furrow-verify's brief check as its own step right after territory, because both read the PR description, and the report step then lists brief findings with territory's.
 - 2026-11-02: Chose to put the four diagram rules as a list right after the diagram paragraph in both copies of the standard, and as one sentence in furrow-write's `## What` item, because that is where each already says when to draw one.
 - 2026-11-02: Chose to leave `--check`'s Diagram rules as they are, because the raw brief's `Legend:` line satisfies the `Legend:` rule and its placeholder is reported as a placeholder, so an unfilled Diagram fails once, for the placeholder (TestBriefDiagramAsksForLegend).
