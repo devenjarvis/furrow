@@ -20,7 +20,7 @@ steps:
       - internal/paths/paths_test.go
     covers: [AC-1, AC-2]
     size: s
-    merged: false
+    merged: true
   - n: 2
     title: furrow next --agents lists held steps and why
     after: []
@@ -103,8 +103,8 @@ Claimed:
 
 ## Acceptance criteria
 
-- [ ] AC-1: Each row of the table in `## What` gives the overlap it says, and a `**` in either pattern before the first disagreement still overlaps (test: TestOverlapSegments)
-- [ ] AC-2: Every existing overlap case gives the same answer as before (check: go test ./internal/paths -run 'TestOverlap$')
+- [x] AC-1: Each row of the table in `## What` gives the overlap it says, and a `**` in either pattern before the first disagreement still overlaps (test: TestOverlapSegments)
+- [x] AC-2: Every existing overlap case gives the same answer as before (check: go test ./internal/paths -run 'TestOverlap$')
 - [x] AC-3: With `--agents N`, the text lists each held step with its clash after the assignments (test: TestNextAgentsShowsHeld)
 - [x] AC-4: With ready steps but none assignable, the text says `Assignments: none.` and why, not an empty heading (test: TestNextAgentsNoneAssignable)
 - [ ] AC-5: The scheduling area describes overlap segment by segment and the held lines under `--agents` (check: grep -q "segment by segment" specs/areas/scheduling.md && grep -q "Assignments: none" specs/areas/scheduling.md)
@@ -128,3 +128,5 @@ Claimed:
 ## Decisions
 - 2026-11-02: Chose to print the held lines under `--agents` with the same helper plain `furrow next` uses because the spec asks for the same form, and one function keeps the two in step.
 - 2026-11-02: Chose to print `Assignments: none.` only when the together set is empty because then no step was picked, so every hold is against a claimed step and the message is true; when some steps are picked, the heading stays `Assignments:` and the held lines may name a picked step.
+- 2026-11-02: Chose to count a `\` escape (with the character after it) as a glob token, and a whole `[...]` class as one token ending at its closing `]`, because a prefix or suffix cut too short only makes Overlap more cautious, while a suffix taken from inside a class could miss a shared file.
+- 2026-11-02: Chose to leave an exact file shallower than a glob's literal folders on the old rule, because the spec keeps the exact-against-glob rules as they are; only two globs are walked segment by segment.
