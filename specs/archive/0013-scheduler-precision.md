@@ -1,7 +1,7 @@
 ---
 id: FUR-0013
 title: furrow next tells patterns apart and says why a step is held
-status: accepted
+status: done
 area: scheduling
 priority: p1
 human_review: required

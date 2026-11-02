@@ -51,3 +51,4 @@ open, and each later wave waits on the one before. Each step shows its state and
 ## History
 
 - FUR-0002: Say what can start now, and what can run together (archived 2026-11-01)
+- FUR-0013: furrow next tells patterns apart and says why a step is held (archived 2026-11-02)
