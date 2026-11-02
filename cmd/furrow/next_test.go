@@ -98,3 +98,69 @@ func TestNextRemoteDown(t *testing.T) {
 		t.Errorf("offline:\n%s", out.String())
 	}
 }
+
+func TestNextAgentsShowsHeld(t *testing.T) {
+	r := spectest.New(t)
+	r.Write("internal/.keep", "")
+	r.Spec(spectest.Spec{Num: 1, Steps: []spectest.Step{{Touches: []string{"internal/a/**"}}}})
+	r.Spec(spectest.Spec{Num: 2, Steps: []spectest.Step{{Touches: []string{"internal/a/x.go"}}}})
+	r.Spec(spectest.Spec{Num: 3, Steps: []spectest.Step{{Touches: []string{"internal/b/**"}}}})
+	r.Spec(spectest.Spec{Num: 4, Steps: []spectest.Step{{Touches: []string{"internal/b/y.go"}}}})
+	gittest.Init(t, r.Root)
+	gittest.Must(t, r.Root, "push", "-q", "origin", "main:refs/heads/step/0001-1")
+
+	env, out, _ := testEnv(r.Root)
+	if code := run(env, []string{"next", "--agents", "2"}); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	want := "Assignments:\n" +
+		"  FUR-0003.1  p1  s  Step 1\n" +
+		"              specs/changes/0003-spec-3.md · touches internal/b/**\n" +
+		"  not FUR-0002.1: shares internal/a/x.go and internal/a/** with FUR-0001.1\n" +
+		"  not FUR-0004.1: shares internal/b/y.go and internal/b/** with FUR-0003.1\n" +
+		"Claimed:\n" +
+		"  FUR-0001.1  step/0001-1\n"
+	if out.String() != want {
+		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
+	}
+}
+
+func TestNextAgentsNoneAssignable(t *testing.T) {
+	r := spectest.New(t)
+	r.Write("internal/.keep", "")
+	r.Spec(spectest.Spec{Num: 1, Steps: []spectest.Step{{Touches: []string{"internal/a/**"}}}})
+	r.Spec(spectest.Spec{Num: 2, Steps: []spectest.Step{{Touches: []string{"internal/a/x.go"}}}})
+	r.Spec(spectest.Spec{Num: 3, Steps: []spectest.Step{{Touches: []string{"internal/a/y.go"}}}})
+	gittest.Init(t, r.Root)
+	gittest.Must(t, r.Root, "push", "-q", "origin", "main:refs/heads/step/0001-1")
+
+	env, out, _ := testEnv(r.Root)
+	if code := run(env, []string{"next", "--agents", "4"}); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	want := "Assignments: none. Every ready step shares files with a claimed step.\n" +
+		"  not FUR-0002.1: shares internal/a/x.go and internal/a/** with FUR-0001.1\n" +
+		"  not FUR-0003.1: shares internal/a/y.go and internal/a/** with FUR-0001.1\n" +
+		"Claimed:\n" +
+		"  FUR-0001.1  step/0001-1\n"
+	if out.String() != want {
+		t.Errorf("got:\n%s\nwant:\n%s", out.String(), want)
+	}
+
+	// --json doesn't change: the holds are already there.
+	env, out, _ = testEnv(r.Root)
+	run(env, []string{"next", "--agents", "4", "--json"})
+	var plan struct {
+		Together []json.RawMessage `json:"together"`
+		Held     []struct {
+			Step      string `json:"step"`
+			ClashWith string `json:"clash_with"`
+		} `json:"held"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &plan); err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Together) != 0 || len(plan.Held) != 2 || plan.Held[0].ClashWith != "FUR-0001.1" {
+		t.Errorf("json = %s", out.String())
+	}
+}
