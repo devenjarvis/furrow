@@ -122,6 +122,43 @@ func TestInit(t *testing.T) {
 	}
 }
 
+// AC-16 (FUR-0011)
+func TestInitWritesVisualKey(t *testing.T) {
+	root := t.TempDir()
+	if _, err := Init(root, "APP"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, ".furrow.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var line string
+	for _, l := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(l, "# visual:") {
+			if line != "" {
+				t.Fatalf(".furrow.yml has more than one visual line:\n%s", data)
+			}
+			line = l
+		}
+	}
+	if line == "" {
+		t.Fatalf(".furrow.yml has no commented visual line:\n%s", data)
+	}
+	if !strings.HasPrefix(line, "# visual: []   # ") || !strings.Contains(line, "visual proof") {
+		t.Errorf("visual line = %q, want `# visual: []   # <what it does>` mentioning visual proof", line)
+	}
+	cfg, err := config.Parse(data)
+	if err != nil {
+		t.Fatalf(".furrow.yml doesn't parse: %v", err)
+	}
+	if cfg.Visual == nil || len(cfg.Visual) != 0 {
+		t.Errorf("visual = %#v, want an empty list", cfg.Visual)
+	}
+	if cfg.Prefix != "APP" {
+		t.Errorf("prefix = %q, want APP", cfg.Prefix)
+	}
+}
+
 func TestInitPrefix(t *testing.T) {
 	cases := map[string]string{"furrow": "FURROW", "my-app2": "MYAPP", "edition": "EDITIO", "123": "SPEC", "a_b": "AB"}
 	for dir, want := range cases {

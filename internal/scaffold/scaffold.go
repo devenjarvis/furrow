@@ -153,6 +153,7 @@ remote: %s
 base: %s
 branch: %s
 aliases: {}
+# visual: []   # globs or aliases; a diff touching these needs visual proof in the PR
 `, cfg.Prefix, yamlString(cfg.Specs), yamlString(cfg.Product), yamlString(cfg.Check),
 		yamlString(cfg.Remote), yamlString(cfg.Base), yamlString(cfg.Branch))
 }
