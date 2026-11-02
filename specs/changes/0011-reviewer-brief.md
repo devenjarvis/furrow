@@ -88,7 +88,7 @@ steps:
       - skills/furrow-write/SKILL.md
     covers: [AC-17, AC-18, AC-19, AC-20, AC-21, AC-22, AC-23]
     size: m
-    merged: false
+    merged: true
   - n: 9
     title: Diagrams carry a caption and a legend
     after: [1, 5]
@@ -330,13 +330,13 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [x] AC-14: furrow-verify runs `furrow brief --check` and reads the Behaviour, diagram and images against the diff (check: grep -q "furrow brief --check" skills/furrow-verify/SKILL.md && grep -q -i "mermaid\|diagram" skills/furrow-verify/SKILL.md)
 - [x] AC-15: The standard and furrow-write say when a spec draws a mermaid diagram, and the standard's two copies agree (check: grep -q -i mermaid specs/README.md && grep -q -i mermaid skills/furrow-write/SKILL.md && grep -q -i mermaid internal/scaffold/assets/README.md)
 - [x] AC-16: `furrow init` writes a commented `visual` line into `.furrow.yml`, and the file still parses (test: TestInitWritesVisualKey)
-- [ ] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any; Answered lists `Owner chose` lines added since the merge base (test: TestSpecBriefSections)
-- [ ] AC-18: Your calls numbers questions Q1… in file order, and with `--pr N` and a GitHub remote in https or ssh form makes each question a link to its line in the PR's diff, else follows it with `(path:line)` (test: TestSpecBriefLineLinks)
-- [ ] AC-19: The Plan is a mermaid `flowchart TD` followed by its legend line, with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
-- [ ] AC-20: Collisions names each overlapping step of another accepted spec, marks claimed ones from the remote, and with `--offline` says claims weren't checked (test: TestSpecBriefCollisions)
-- [ ] AC-21: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
-- [ ] AC-22: `--check --spec` reports missing sections, placeholders and a long Decision; `--spec` with `--step` exits 2; an archived or unknown spec exits 1 with its message (test: TestSpecBriefCheckAndFailures)
-- [ ] AC-23: furrow-write opens the spec PR with `furrow brief --spec`, opens a review thread per open question, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q -i "thread" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
+- [x] AC-17: `--spec` prints Decision, Your calls, Plan, Collisions and What it costs later in order; Your calls says merging accepts the proposed answers, gives each question's spec line and proposal, lists questions without a proposal first under `Needs an answer before merging:`, and says `None. Ready to accept.` without any; Answered lists `Owner chose` lines added since the merge base (test: TestSpecBriefSections)
+- [x] AC-18: Your calls numbers questions Q1… in file order, and with `--pr N` and a GitHub remote in https or ssh form makes each question a link to its line in the PR's diff, else follows it with `(path:line)` (test: TestSpecBriefLineLinks)
+- [x] AC-19: The Plan is a mermaid `flowchart TD` followed by its legend line, with one subgraph per wave, a node per unmerged step, edges for `after` including other specs' steps, and byte-identical output for the same specs (test: TestSpecBriefPlan)
+- [x] AC-20: Collisions names each overlapping step of another accepted spec, marks claimed ones from the remote, and with `--offline` says claims weren't checked (test: TestSpecBriefCollisions)
+- [x] AC-21: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
+- [x] AC-22: `--check --spec` reports missing sections, placeholders and a long Decision; `--spec` with `--step` exits 2; an archived or unknown spec exits 1 with its message (test: TestSpecBriefCheckAndFailures)
+- [x] AC-23: furrow-write opens the spec PR with `furrow brief --spec`, opens a review thread per open question, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q -i "thread" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
 - [ ] AC-24: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
 - [ ] AC-25: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
 - [x] AC-26: The Diagram section's placeholder asks for a caption and is followed by a `Legend:` placeholder line (test: TestBriefDiagramAsksForLegend)
@@ -389,3 +389,11 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - 2026-11-02: Chose to put furrow-verify's brief check as its own step right after territory, because both read the PR description, and the report step then lists brief findings with territory's.
 - 2026-11-02: Chose to put the four diagram rules as a list right after the diagram paragraph in both copies of the standard, and as one sentence in furrow-write's `## What` item, because that is where each already says when to draw one.
 - 2026-11-02: Chose to leave `--check`'s Diagram rules as they are, because the raw brief's `Legend:` line satisfies the `Legend:` rule and its placeholder is reported as a placeholder, so an unfilled Diagram fails once, for the placeholder (TestBriefDiagramAsksForLegend).
+- 2026-11-02: Chose to number the Plan's waves as `furrow graph` does, counting other specs' open steps, and to leave out a wave with none of this spec's steps, because a wave then means the same thing in both places.
+- 2026-11-02: Chose to draw only unmerged `after` steps in the Plan, with another spec's ref as a node above the waves, and to write `Every step is merged.` with no diagram when none is left, because a merged step no longer holds anything up.
+- 2026-11-02: Chose to write `(claims not checked)` only above collisions to report, and also when the remote can't be reached, because with no collisions there's nothing a claim would change.
+- 2026-11-02: Chose to count only unmerged steps, and only unticked `human:` criteria, in What it costs later, with `0 steps to build.` when none is left, because merged steps and signed criteria cost nothing more.
+- 2026-11-02: Chose these texts the spec doesn't give: `- AC-n added: <text>`, `- AC-n removed. It was: <text>`, `- AC-n reworded.` with `Was:` and `Now:` lines, `None.` under Changed criteria's header when nothing changed, `Sign off by: <proof>` under each `human:` criterion, and `no spec FUR-0099` for an unknown spec, as `no step` reads elsewhere.
+- 2026-11-02: Chose to make `--spec` with `--step` a `brief.ErrSpecAndStep` error that `furrow brief` exits 2 on, checked before the repo loads, so the step's tests can prove it without a test file in `cmd/furrow/`. `--pr` or `--offline` without `--spec` also exits 2.
+- 2026-11-02: Chose to set the spec's status to accepted in memory while `schedule.Waves` runs, and back after, to work out waves as if it were accepted, because the scheduler reads only accepted specs.
+- 2026-11-02: Chose to accept `https://` remotes with a user (`https://token@github.com/o/r`) as GitHub too, and to escape `[`, `]` and `\` in a linked question, because both occur and neither changes the link.
