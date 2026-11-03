@@ -315,6 +315,7 @@ func TestSignoffRefusesAgents(t *testing.T) {
 }
 
 func TestSignoffRefusals(t *testing.T) {
+	isolateGit(t) // with no --by, signoff asks git, so the user's own name mustn't leak in
 	r := spectest.New(t)
 	path := r.Spec(S{Num: 1, Criteria: []string{
 		"- [x] AC-1: Works (test: TestWorks)",

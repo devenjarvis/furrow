@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devenjarvis/furrow/internal/gitx"
 	"github.com/devenjarvis/furrow/internal/spec"
 )
 
@@ -221,14 +222,25 @@ func CheckPerson(getenv func(string) string) error {
 	return nil
 }
 
-// SignoffRequest is one furrow signoff. By is the person's name: the --by flag, or the default
-// the caller worked out. Getenv is how signoff tells a person from an agent.
+// SignoffRequest is one furrow signoff. By is the person's name, from the --by flag. When it's
+// empty, Name supplies it; a nil Name reads `git config user.name` in the repo. Name is only
+// called once Getenv shows a person (INV-3). Getenv is how signoff tells a person from an agent.
 type SignoffRequest struct {
 	ID       string
 	Criteria []string
 	By       string
+	Name     func() string
 	Getenv   func(string) string
 	Now      time.Time
+}
+
+// GitUserName is `git config user.name` in dir, or "" when git has none or dir isn't a repo.
+func GitUserName(dir string) string {
+	name, err := gitx.Git{Dir: dir}.Run("config", "user.name")
+	if err != nil {
+		return ""
+	}
+	return name
 }
 
 // Signoff ticks human: criteria that review lists, logs each in ## Decisions, and archives the
@@ -239,6 +251,13 @@ func Signoff(repo *spec.Repo, req SignoffRequest) (string, error) {
 		return "", err
 	}
 	by := strings.TrimSpace(req.By)
+	if by == "" {
+		name := req.Name
+		if name == nil {
+			name = func() string { return GitUserName(repo.Root) }
+		}
+		by = strings.TrimSpace(name())
+	}
 	if by == "" {
 		return "", errors.New("Say who checked it: --by NAME.")
 	}

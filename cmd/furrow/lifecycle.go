@@ -63,9 +63,9 @@ func runSignoff(env *Env, args []string) int {
 	if err := lifecycle.CheckPerson(env.Getenv); err != nil {
 		return fail(env, "%v", err)
 	}
-	fs := newFlags(env, "signoff", "<id> <AC-n>... --by NAME")
-	// The default from `git config user.name` arrives with internal/gitx; until then --by is required.
-	by := fs.String("by", "", "who checked it")
+	fs := newFlags(env, "signoff", "<id> <AC-n>... [--by NAME]")
+	// With no --by, lifecycle.Signoff asks git for user.name, after the agent check.
+	by := fs.String("by", "", "who checked it (default: git config user.name)")
 	pos, err := parseFlags(fs, args)
 	if err != nil {
 		return 2
