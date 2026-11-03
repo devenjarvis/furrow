@@ -64,7 +64,8 @@ Each spec becomes a one-step spec:
 | `touches` | the step's `touches`, rewritten (below) |
 | every `AC-n` | the step's `covers` |
 | `title` | the spec's and the step's title |
-| `id`, `priority`, `human_review`, `context` | kept |
+| `id`, `priority`, `human_review` | kept |
+| `context` | kept, with each `specs/NNNN-slug.md` entry (and any `#anchor` after it) pointing to that spec's new path |
 | `kind` | kept as it is. Furrow ignores keys it doesn't know |
 | (none) | `area` from the areas file, `invariants: []` |
 
@@ -130,7 +131,7 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 - [ ] AC-2: A ready spec whose only open boxes are `human:` ones comes out accepted and merged, and its boxes are listed by `furrow review` (test: TestImportFetchSignoffQueue)
 - [ ] AC-3: Importing a copy of Edition's specs gives a lint-clean tree, and its step lines become steps (test: TestImportEdition)
 - [ ] AC-4: `furrow next` on the imported Edition tree offers the same steps as `scripts/next --offline` (check: compare the two outputs)
-- [ ] AC-5: An entry in touches naming the spec's own file is dropped, one naming another spec follows it, and links in bodies point to the new paths (test: TestImportFetchRewritesPaths)
+- [ ] AC-5: An entry in touches naming the spec's own file is dropped, one naming another spec follows it, and `context` entries and links in bodies point to the new paths (test: TestImportFetchRewritesPaths)
 - [ ] AC-6: Missing `--areas`, or a spec no area matches, is refused with the message naming the spec, and nothing is written. An existing area file keeps its text and gains only History lines (test: TestImportFetchAreas)
 - [ ] AC-7: Each ticked `human:` box gets one "signed off by NAME (imported)" line, and without `--by` the import refuses (test: TestImportFetchSignoffLines)
 - [ ] AC-8: The dry run writes nothing and prints the plan, and `--write` refuses while the planned tree has problems (test: TestImportFetchDryRun)
@@ -164,3 +165,6 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 
 - 2026-11-03: Fetch goes first and Edition's step waits, blocked, because the owner is moving
   Fetch now and hasn't planned Edition's move.
+- 2026-11-03: `context` entries that name a spec are rewritten too: Fetch's specs list other specs
+  there (FETCH-0121 lists three), and lint doesn't check that context paths exist, so they'd
+  break silently.
