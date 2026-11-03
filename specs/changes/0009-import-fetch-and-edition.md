@@ -99,11 +99,11 @@ A spec's area is its entry under `specs:`, else the first area, in file order, w
 overlaps any of the spec's `touches` (the same overlap as `furrow next`). The importer refuses to
 guess: with no `--areas` it says "Name the areas: --areas FILE (see `furrow import --help`)", and
 each spec that matches no area is a problem, `FETCH-0033 matches no area. Add one of its touches
-to an area's paths, or list it under specs:`. It writes `specs/areas/<area>.md` for each area,
-with its front matter and title, a `## Behaviour` that says
-`To write: how <title> works now.`, and a `## History` with
-`- FETCH-NNNN: <title> (archived YYYY-MM-DD, imported)` for each archived spec in that area, in
-number order.
+to an area's paths, or list it under specs:`. For each area it appends
+`- FETCH-NNNN: <title> (archived YYYY-MM-DD, imported)` to `specs/areas/<area>.md`'s `## History`
+for each archived spec in that area, in number order. An area file that exists is kept, and only
+those lines are added. A missing one is written with its front matter and title, a `## Behaviour`
+that says `To write: how <title> works now.`, and the `## History`.
 
 **The rest of the tree.** It writes `specs/README.md` and `specs/_template.md` from Furrow's own
 (as `furrow init` does, with the prefix filled in), replacing Fetch's, and a `.gitkeep` in
@@ -128,7 +128,7 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 - [ ] AC-3: Importing a copy of Edition's specs gives a lint-clean tree, and its step lines become steps (test: TestImportEdition)
 - [ ] AC-4: `furrow next` on the imported Edition tree offers the same steps as `scripts/next --offline` (check: compare the two outputs)
 - [ ] AC-5: An entry in touches naming the spec's own file is dropped, one naming another spec follows it, and links in bodies point to the new paths (test: TestImportFetchRewritesPaths)
-- [ ] AC-6: Missing `--areas`, or a spec no area matches, is refused with the message naming the spec, and nothing is written (test: TestImportFetchAreas)
+- [ ] AC-6: Missing `--areas`, or a spec no area matches, is refused with the message naming the spec, and nothing is written. An existing area file keeps its text and gains only History lines (test: TestImportFetchAreas)
 - [ ] AC-7: Each ticked `human:` box gets one "signed off by NAME (imported)" line, and without `--by` the import refuses (test: TestImportFetchSignoffLines)
 - [ ] AC-8: The dry run writes nothing and prints the plan, and `--write` refuses while the planned tree has problems (test: TestImportFetchDryRun)
 - [ ] AC-9: A dry run on devenjarvis/fetch reads right to the owner (human: run `furrow import fetch --areas … --by …` in a Fetch clone and skim the plan)
