@@ -95,8 +95,11 @@ specs:            # optional: spec ids whose area the paths don't decide
   FETCH-0089: line
 ```
 
-A spec's area is its entry under `specs:`, else the first area, in file order, with a path that
-overlaps any of the spec's `touches` (the same overlap as `furrow next`). The importer refuses to
+A spec's area is its entry under `specs:`, else the area that covers its first `touches` entry
+that any area covers, trying areas in file order. An area covers an entry when one of its paths'
+literal prefix (the segments before the first wildcard) is a prefix of the entry's:
+`Packages/FetchCore/Sources/FetchCore/Line/**` covers `…/Line/Queue/**`, and no area covers a
+broad `Packages/FetchCore/**`, so a later, narrower entry decides. The importer refuses to
 guess: with no `--areas` it says "Name the areas: --areas FILE (see `furrow import --help`)", and
 each spec that matches no area is a problem, `FETCH-0033 matches no area. Add one of its touches
 to an area's paths, or list it under specs:`. For each area it appends
