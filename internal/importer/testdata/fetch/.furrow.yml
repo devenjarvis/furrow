@@ -1,0 +1,4 @@
+prefix: FETCH
+specs: specs
+product: docs/product.md
+check: make check
