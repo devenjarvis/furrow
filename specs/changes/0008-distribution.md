@@ -68,9 +68,9 @@ version, and the shim fetches exactly that binary and checks its checksum.
 
 ## Open questions
 
-- Is the Homebrew tap worth it, or is `go install` plus the shim enough? Proposed: shim first, tap
-  when someone asks.
+None.
 
 ## Decisions
 
 - 2026-11-03: The `devenjarvis/furrow` repo is on GitHub, so the open question about needing it is settled.
+- 2026-11-03: Is the Homebrew tap worth it, or is `go install` plus the shim enough? Owner chose the tap now, as step 2 and AC-3 say, over the proposed shim first, tap when someone asks.
