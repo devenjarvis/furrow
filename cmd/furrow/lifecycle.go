@@ -9,7 +9,7 @@ import (
 func init() {
 	register("done", "Hand a step back: mark it merged, in its own PR", runDone)
 	register("review", "List the human checks waiting for sign-off", runReview)
-	register("signoff", "Sign off human checks you made (people only, not agents)", runSignoff)
+	register("signoff", "Sign off human checks a person made, on one spec or several", runSignoff)
 	register("archive", "Move a finished spec to the archive and log it in its area", runArchive)
 }
 
@@ -59,18 +59,14 @@ func runReview(env *Env, args []string) int {
 }
 
 func runSignoff(env *Env, args []string) int {
-	// Refuse before anything else, so an agent learns nothing it could work around (INV-3).
-	if err := lifecycle.CheckPerson(env.Getenv); err != nil {
-		return fail(env, "%v", err)
-	}
-	fs := newFlags(env, "signoff", "<id> <AC-n>... [--by NAME]")
-	// With no --by, lifecycle.Signoff asks git for user.name, after the agent check.
-	by := fs.String("by", "", "who checked it (default: git config user.name)")
+	fs := newFlags(env, "signoff", "<id> <AC-n>... [<id> <AC-n>...]... [--by NAME]")
+	// With no --by, lifecycle.Signoff asks git for user.name, except in an agent session.
+	by := fs.String("by", "", "the person who checked it (default outside an agent session: git config user.name)")
 	pos, err := parseFlags(fs, args)
 	if err != nil {
 		return 2
 	}
-	if len(pos) < 2 {
+	if len(pos) == 0 {
 		fs.Usage()
 		return 2
 	}
@@ -79,7 +75,7 @@ func runSignoff(env *Env, args []string) int {
 		return 1
 	}
 	msg, err := lifecycle.Signoff(repo, lifecycle.SignoffRequest{
-		ID: pos[0], Criteria: pos[1:], By: *by, Getenv: env.Getenv, Now: env.Now(),
+		Args: pos, By: *by, Getenv: env.Getenv, Now: env.Now(),
 	})
 	if err != nil {
 		return fail(env, "%v", err)

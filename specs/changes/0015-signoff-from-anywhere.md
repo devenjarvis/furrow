@@ -26,7 +26,7 @@ steps:
       - cmd/furrow/lifecycle.go
     covers: [AC-1, AC-2, AC-3, AC-4]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: territory --signoff proves a sign-off PR changes only specs
     after: []
@@ -153,10 +153,10 @@ is rebased, and `furrow signoff` is run again if its criteria moved.
 
 ## Acceptance criteria
 
-- [ ] AC-1: With `CLAUDECODE` or `FURROW_AGENT` set and `--by` given, `signoff` ticks the box and writes the line `furrow lint` accepts (test: TestSignoffInAgentSession)
-- [ ] AC-2: In an agent session, `signoff` without `--by` refuses with "Say who checked it: --by NAME." without running git, and changes nothing (test: TestSignoffAgentNeedsBy)
-- [ ] AC-3: One `signoff` call ticks criteria on two specs and archives each one it completes (test: TestSignoffSeveralSpecs)
-- [ ] AC-4: If any criterion in any group is refused, or the arguments don't start with a spec id, no file changes (test: TestSignoffSeveralSpecsAllOrNothing)
+- [x] AC-1: With `CLAUDECODE` or `FURROW_AGENT` set and `--by` given, `signoff` ticks the box and writes the line `furrow lint` accepts (test: TestSignoffInAgentSession)
+- [x] AC-2: In an agent session, `signoff` without `--by` refuses with "Say who checked it: --by NAME." without running git, and changes nothing (test: TestSignoffAgentNeedsBy)
+- [x] AC-3: One `signoff` call ticks criteria on two specs and archives each one it completes (test: TestSignoffSeveralSpecs)
+- [x] AC-4: If any criterion in any group is refused, or the arguments don't start with a spec id, no file changes (test: TestSignoffSeveralSpecsAllOrNothing)
 - [ ] AC-5: `territory --signoff` passes a diff under `changes/`, `archive/` and `areas/`, and fails one that also changes a code file, naming it (test: TestTerritorySignoff)
 - [ ] AC-6: INV-3 says merging a sign-off PR is the sign-off, by the owner or on the owner's own words (check: grep -q "sign-off PR" docs/product.md && ! grep -q "refuses to run inside an agent session" docs/product.md)
 - [ ] AC-7: Both copies of the standard describe sign-off PRs (check: grep -q "sign-off PR" specs/README.md && grep -q "sign-off PR" internal/scaffold/assets/README.md)
@@ -187,3 +187,8 @@ is rebased, and `furrow signoff` is run again if its criteria moved.
   Proposed: no. A merge commit doesn't say who made it, and squash merges leave none.
 
 ## Decisions
+
+- 2026-11-03: Chose to let any ref, a step ref included, start a group, so `FUR-0005.1` gets "names a step" rather than "has no FUR-0005.1".
+- 2026-11-03: Chose to report every refusal at once, one per line, as `done` does, rather than stopping at the first.
+- 2026-11-03: Chose to treat a nil Getenv as an agent session, so a caller without an environment never falls back to git's name.
+- 2026-11-03: Chose to keep `SignoffRequest.ID` and `Criteria` as one group before `Args`, so one-spec callers and tests stay unchanged.

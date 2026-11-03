@@ -286,31 +286,144 @@ func TestReview(t *testing.T) {
 	}
 }
 
-func TestSignoffRefusesAgents(t *testing.T) {
-	r := spectest.New(t)
-	path := r.Spec(S{Num: 1, Criteria: []string{"- [ ] AC-1: Clear (human: look)"}, Steps: []St{{Merged: true}}})
-	before := r.Read(path)
+func TestSignoffInAgentSession(t *testing.T) {
 	for _, k := range []string{"CLAUDECODE", "FURROW_AGENT"} {
-		getenv := envOf(map[string]string{k: "1"})
-		if err := lifecycle.CheckPerson(getenv); err == nil {
-			t.Errorf("%s: CheckPerson let an agent through", k)
-		}
-		_, err := lifecycle.Signoff(r.Load(), lifecycle.SignoffRequest{
-			ID: "FUR-0001", Criteria: []string{"AC-1"}, By: "Ann", Getenv: getenv, Now: day,
+		r := spectest.New(t)
+		path := r.Spec(S{Num: 1, Criteria: []string{
+			"- [ ] AC-1: Clear (human: look)",
+			"- [ ] AC-2: Calm (human: use it)",
+		}, Steps: []St{{Merged: true}}})
+		before := r.Read(path)
+		msg, err := lifecycle.Signoff(r.Load(), lifecycle.SignoffRequest{
+			ID: "FUR-0001", Criteria: []string{"AC-1"}, By: "Ann", Getenv: envOf(map[string]string{k: "1"}), Now: day,
 		})
-		if err == nil || err.Error() != "Sign-off is for a person (INV-3). Ask the owner to run this." {
-			t.Errorf("%s set: got %v", k, err)
+		if err != nil {
+			t.Fatalf("%s set: %v", k, err)
 		}
-		if r.Read(path) != before {
-			t.Errorf("%s set: signoff changed the file", k)
+		if msg != "Signed off AC-1 on FUR-0001 by Ann." {
+			t.Errorf("%s set: message %q", k, msg)
+		}
+		want := strings.Replace(before, "- [ ] AC-1:", "- [x] AC-1:", 1)
+		want = strings.TrimRight(want, "\n") + "\n\n- 2026-11-01: AC-1 signed off by Ann.\n"
+		if got := r.Read(path); got != want {
+			t.Errorf("%s set: file changed wrongly: %q", k, diffLines(t, want, got))
+		}
+		if errs := lintErrors(t, r); len(errs) > 0 {
+			t.Errorf("%s set: lint after signoff: %v", k, errs)
 		}
 	}
-	// A nil Getenv is treated as an agent: no environment, no proof of a person.
-	if _, err := lifecycle.Signoff(r.Load(), lifecycle.SignoffRequest{ID: "FUR-0001", Criteria: []string{"AC-1"}, By: "Ann", Now: day}); err == nil {
-		t.Error("nil Getenv was allowed")
+}
+
+func TestSignoffSeveralSpecs(t *testing.T) {
+	r := spectest.New(t)
+	p1 := r.Spec(S{Num: 1, Slug: "one", Title: "One", Criteria: []string{
+		"- [x] AC-1: Works (test: TestWorks)",
+		"- [ ] AC-2: Clear (human: look)",
+	}, Steps: []St{{Merged: true}}})
+	p2 := r.Spec(S{Num: 2, Slug: "two", Title: "Two", Criteria: []string{
+		"- [ ] AC-1: A (human: a)",
+		"- [ ] AC-2: B (human: b)",
+		"- [ ] AC-3: C (human: c)",
+	}, Steps: []St{{Merged: true}}})
+	p3 := r.Spec(S{Num: 3, Slug: "three", Title: "Three", Criteria: []string{
+		"- [ ] AC-1: Pretty (human: look)",
+	}, Steps: []St{{Merged: true}}})
+	before2 := r.Read(p2)
+
+	// FUR-0002 is named twice: its groups merge. FUR-0001 and FUR-0003 complete and are archived.
+	msg, err := lifecycle.Signoff(r.Load(), lifecycle.SignoffRequest{
+		Args: []string{"FUR-0003", "AC-1", "FUR-0002", "AC-3", "FUR-0001", "AC-2", "FUR-0002", "AC-1"},
+		By:   "Deven", Getenv: person, Now: day,
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	if err := lifecycle.CheckPerson(person); err != nil {
-		t.Errorf("a person was refused: %v", err)
+	lines := strings.Split(msg, "\n")
+	want := []string{
+		"Signed off AC-1 on FUR-0003 by Deven.",
+		"Archived FUR-0003 to specs/archive/0003-three.md and added it to specs/areas/core.md's ## History.",
+		"Check that the area's ## Behaviour already says what FUR-0003 changed.",
+		"Signed off AC-1 and AC-3 on FUR-0002 by Deven.",
+		"Signed off AC-2 on FUR-0001 by Deven.",
+		"Archived FUR-0001 to specs/archive/0001-one.md and added it to specs/areas/core.md's ## History.",
+		"Check that the area's ## Behaviour already says what FUR-0001 changed.",
+	}
+	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
+		t.Errorf("message:\n%s\nwant:\n%s", msg, strings.Join(want, "\n"))
+	}
+
+	if exists(r, p1) || exists(r, p3) || !exists(r, "specs/archive/0001-one.md") || !exists(r, "specs/archive/0003-three.md") {
+		t.Fatal("completed specs weren't archived")
+	}
+	got2 := r.Read(p2)
+	want2 := strings.Replace(before2, "- [ ] AC-1:", "- [x] AC-1:", 1)
+	want2 = strings.Replace(want2, "- [ ] AC-3:", "- [x] AC-3:", 1)
+	want2 = strings.TrimRight(want2, "\n") + "\n\n- 2026-11-01: AC-1 signed off by Deven.\n- 2026-11-01: AC-3 signed off by Deven.\n"
+	if got2 != want2 {
+		t.Errorf("FUR-0002 changed wrongly: %q", diffLines(t, want2, got2))
+	}
+	if !strings.Contains(r.Read("specs/archive/0001-one.md"), "- 2026-11-01: AC-2 signed off by Deven.\n") {
+		t.Error("FUR-0001's sign-off line is missing from its archived file")
+	}
+	// Both archives land in the one area's History, in the order given.
+	if !strings.HasSuffix(r.Read("specs/areas/core.md"), "## History\n\n- FUR-0003: Three (archived 2026-11-01)\n- FUR-0001: One (archived 2026-11-01)\n") {
+		t.Errorf("area history:\n%s", r.Read("specs/areas/core.md"))
+	}
+	if errs := lintErrors(t, r); len(errs) > 0 {
+		t.Fatalf("lint after signoff: %v", errs)
+	}
+}
+
+func TestSignoffSeveralSpecsAllOrNothing(t *testing.T) {
+	r := spectest.New(t)
+	p1 := r.Spec(S{Num: 1, Criteria: []string{
+		"- [x] AC-1: Works (test: TestWorks)",
+		"- [ ] AC-2: Clear (human: look)",
+	}, Steps: []St{{Merged: true}}})
+	p2 := r.Spec(S{Num: 2, Criteria: []string{
+		"- [ ] AC-1: A (human: a)",
+		"- [ ] AC-2: B (test: TestB)",
+		"- [ ] AC-3: Later (human: later)",
+		"- [x] AC-4: Done (human: done)",
+	}, Steps: []St{{Merged: true, Covers: []string{"AC-1", "AC-2", "AC-4"}}, {Covers: []string{"AC-3"}}},
+		Decisions: "- 2026-10-01: AC-4 signed off by Ann."})
+	snapshot := func() map[string]string {
+		out := map[string]string{}
+		for _, p := range []string{p1, p2, "specs/areas/core.md"} {
+			out[p] = r.Read(p)
+		}
+		return out
+	}
+	before := snapshot()
+
+	cases := []struct {
+		args []string
+		want string
+	}{
+		{[]string{"FUR-0001", "AC-2", "FUR-0002", "AC-9"}, "FUR-0002 has no AC-9."},
+		{[]string{"FUR-0001", "AC-2", "FUR-0002", "AC-2"}, "AC-2 isn't a human: criterion."},
+		{[]string{"FUR-0001", "AC-2", "FUR-0002", "AC-4"}, "AC-4 is already ticked."},
+		{[]string{"FUR-0001", "AC-2", "FUR-0002", "AC-3"}, "AC-3 isn't waiting for sign-off: step 2 isn't merged."},
+		{[]string{"FUR-0001", "AC-2", "FUR-0002"}, "Name at least one criterion after FUR-0002."},
+		{[]string{"FUR-0001", "FUR-0002", "AC-1"}, "Name at least one criterion after FUR-0001."},
+		{[]string{"FUR-0001", "AC-2", "FUR-0009", "AC-1"}, "no spec FUR-0009"},
+		{[]string{"AC-2", "FUR-0001", "AC-2"}, "Start with a spec id, such as `furrow signoff FUR-0005 AC-8`."},
+		{nil, "Start with a spec id, such as `furrow signoff FUR-0005 AC-8`."},
+	}
+	for _, c := range cases {
+		_, err := lifecycle.Signoff(r.Load(), lifecycle.SignoffRequest{Args: c.args, By: "Ann", Getenv: person, Now: day})
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("signoff %v: want %q, got %v", c.args, c.want, err)
+		}
+		after := snapshot()
+		for p := range before {
+			if after[p] != before[p] {
+				t.Errorf("signoff %v changed %s after refusing", c.args, p)
+			}
+		}
+		if exists(r, "specs/archive/0001-spec-1.md") {
+			t.Errorf("signoff %v archived FUR-0001 after refusing", c.args)
+		}
 	}
 }
 
