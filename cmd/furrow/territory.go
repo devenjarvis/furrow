@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -13,10 +14,11 @@ func init() {
 }
 
 func runTerritory(env *Env, args []string) int {
-	fs := newFlags(env, "territory", "[--step REF] [--base REF] [--body-file FILE] [--json]")
+	fs := newFlags(env, "territory", "[--step REF | --signoff] [--base REF] [--body-file FILE] [--json]")
 	step := fs.String("step", "", "the step to check (default: read from the current branch)")
 	base := fs.String("base", "", "compare against this ref (default: <remote>/<base>)")
 	bodyFile := fs.String("body-file", "", "the PR description; paths under \"## Territory\" are explained")
+	signoff := fs.Bool("signoff", false, "check a sign-off PR: every change is under the specs folder's changes/, archive/ or areas/")
 	asJSON := fs.Bool("json", false, "print JSON")
 	pos, err := parseFlags(fs, args)
 	if err != nil {
@@ -26,11 +28,16 @@ func runTerritory(env *Env, args []string) int {
 		fs.Usage()
 		return 2
 	}
+	if *signoff && (*step != "" || *bodyFile != "") {
+		fmt.Fprintln(env.Stderr, "--signoff checks a sign-off PR, not a step: drop --step and --body-file.")
+		fs.Usage()
+		return 2
+	}
 	repo, ok := loadRepo(env)
 	if !ok {
 		return 1
 	}
-	opt := territory.Options{Step: *step, Base: *base}
+	opt := territory.Options{Step: *step, Base: *base, Signoff: *signoff}
 	if *bodyFile != "" {
 		file := *bodyFile
 		if !filepath.IsAbs(file) {

@@ -145,11 +145,29 @@ func clean(w string) string {
 	return w
 }
 
-// Options say what to check. Body is the PR description's text, if any.
+// ErrSignoffWithStep means Check was asked for a sign-off PR and a step at once.
+var ErrSignoffWithStep = errors.New("--signoff checks a sign-off PR, not a step: drop --step")
+
+// Options say what to check. Body is the PR description's text, if any. Signoff checks a
+// sign-off PR instead of a step: every changed file must be under the specs folder's changes/,
+// archive/ or areas/, and Body explains nothing.
 type Options struct {
-	Step string
-	Base string
-	Body string
+	Step    string
+	Base    string
+	Body    string
+	Signoff bool
+}
+
+// InSpecs reports whether file is somewhere a sign-off PR may change: under the specs folder's
+// changes/, archive/ or areas/.
+func InSpecs(repo *spec.Repo, file string) bool {
+	specs := strings.Trim(repo.Config.Specs, "/")
+	for _, dir := range []string{"changes", "archive", "areas"} {
+		if strings.HasPrefix(file, path.Join(specs, dir)+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // Report is the result of a check. Every changed file is in exactly one list.
@@ -159,18 +177,41 @@ type Report struct {
 	Inside    []string `json:"inside"`
 	Explained []string `json:"explained"`
 	Outside   []string `json:"outside"`
+
+	signoff bool
+	specs   string
 }
 
 // Check works out the step and base, lists the changed files, and sorts each one into inside,
-// explained or outside.
+// explained or outside. With opt.Signoff there's no step: a file is inside when it's under the
+// specs folder's changes/, archive/ or areas/, and outside otherwise.
 func Check(g gitx.Git, repo *spec.Repo, opt Options) (*Report, error) {
-	st, err := StepFromBranch(g, repo, opt.Step)
-	if err != nil {
-		return nil, err
-	}
 	base := opt.Base
 	if base == "" {
 		base = repo.Config.Remote + "/" + repo.Config.Base
+	}
+	if opt.Signoff {
+		if opt.Step != "" {
+			return nil, ErrSignoffWithStep
+		}
+		files, err := ChangedFiles(g, base)
+		if err != nil {
+			return nil, err
+		}
+		rep := &Report{Base: base, Inside: []string{}, Explained: []string{}, Outside: []string{},
+			signoff: true, specs: strings.Trim(repo.Config.Specs, "/")}
+		for _, f := range files {
+			if InSpecs(repo, f) {
+				rep.Inside = append(rep.Inside, f)
+			} else {
+				rep.Outside = append(rep.Outside, f)
+			}
+		}
+		return rep, nil
+	}
+	st, err := StepFromBranch(g, repo, opt.Step)
+	if err != nil {
+		return nil, err
 	}
 	files, err := ChangedFiles(g, base)
 	if err != nil {
@@ -204,6 +245,17 @@ func (r *Report) Text(w io.Writer) {
 	noun := "files"
 	if len(r.Inside) == 1 {
 		noun = "file"
+	}
+	if r.signoff {
+		if len(r.Outside) == 0 {
+			fmt.Fprintf(w, "Sign-off PR: %d %s, all under %s/.\n", len(r.Inside), noun, r.specs)
+			return
+		}
+		fmt.Fprintf(w, "Sign-off PR: %d %s under %s/.\n", len(r.Inside), noun, r.specs)
+		for _, f := range r.Outside {
+			fmt.Fprintf(w, "A sign-off PR changes only specs. Move %s to its own PR.\n", f)
+		}
+		return
 	}
 	fmt.Fprintf(w, "%s: %d %s inside its territory.\n", r.Step, len(r.Inside), noun)
 	if len(r.Explained) > 0 {
