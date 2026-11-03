@@ -1,7 +1,7 @@
 ---
 id: FUR-0014
 title: Briefs a person can review on a phone
-status: accepted
+status: done
 area: brief
 priority: p1
 human_review: required
@@ -168,7 +168,7 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 - [x] AC-6: `--check` reports a missing Before or After line, one over 20 words, a Behaviour that shows nothing, more than 3 Review items, and a judgment call over 30 words (test: TestBriefCheckReviewable)
 - [x] AC-7: The spec brief's Decision is Commits us to and Instead of lines, and `--check --spec` reports a missing one or one over 25 words (test: TestSpecBriefDecisionLines)
 - [x] AC-8: The three skills describe the new brief (check: grep -q "Before:" skills/furrow-implement/SKILL.md && grep -q "Review this" skills/furrow-implement/SKILL.md && grep -q -i "show it" skills/furrow-verify/SKILL.md && grep -q "Instead of" skills/furrow-write/SKILL.md)
-- [ ] AC-9: A step PR written with the new brief can be reviewed on a phone without wading through what doesn't need a person (human: open the first step PR made after this merges on your phone, and read it before the diff)
+- [x] AC-9: A step PR written with the new brief can be reviewed on a phone without wading through what doesn't need a person (human: open the first step PR made after this merges on your phone, and read it before the diff)
 - [x] AC-10: `--check` ignores a placeholder inside a fence after Behaviour's After line, and still reports one inside a fence in any other section (test: TestBriefCheckFencedPlaceholders)
 - [x] AC-11: furrow-implement keeps "show it" to an excerpt of at most 15 lines (check: grep -q "15 lines" skills/furrow-implement/SKILL.md)
 - [x] AC-12: The spec brief ends without a Proof block (test: TestSpecBriefHasNoProof)
@@ -206,3 +206,4 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 - 2026-11-03: Chose to exempt only fenced lines after an unfenced `**After:**` line, narrowing the 2026-11-02 fence rule as AC-10 requires; a placeholder on the After line still counts.
 - 2026-11-03: Chose to move step 1's "fenced placeholder in Not done passes" case into TestBriefCheckFencedPlaceholders as a reported problem, because AC-10 reverses it.
 - 2026-11-03: Chose to leave `CheckSpec` counting every placeholder, fenced or not, because a spec brief has no "show it" to paste output into.
+- 2026-11-03: AC-9 signed off by Deven Jarvis.

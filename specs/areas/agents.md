@@ -52,3 +52,5 @@ No skill tells an agent to sign off, tick a `human:` box, accept a spec, or chan
 text.
 
 ## History
+
+- FUR-0007: A Claude Code plugin that teaches agents, and swarms, to work with Furrow (archived 2026-11-03)

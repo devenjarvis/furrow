@@ -1,7 +1,7 @@
 ---
 id: FUR-0015
 title: 'Sign off from anywhere: merging a sign-off PR is the sign-off'
-status: accepted
+status: done
 area: lifecycle
 priority: p1
 human_review: required
@@ -161,7 +161,7 @@ is rebased, and `furrow signoff` is run again if its criteria moved.
 - [x] AC-6: INV-3 says merging a sign-off PR is the sign-off, by the owner or on the owner's own words (check: grep -q "sign-off PR" docs/product.md && ! grep -q "refuses to run inside an agent session" docs/product.md)
 - [x] AC-7: Both copies of the standard describe sign-off PRs (check: grep -q "sign-off PR" specs/README.md && grep -q "sign-off PR" internal/scaffold/assets/README.md)
 - [x] AC-8: `furrow-signoff` exists, and no skill or doc still says `signoff` refuses in an agent session (check: test -f skills/furrow-signoff/SKILL.md && ! grep -rqi "refuses to run in your session\|signoff refuses" skills README.md AGENTS.md CLAUDE.md)
-- [ ] AC-9: From a cloud session on a phone, the owner gets a criterion signed off end to end (human: ask Claude to sign off a waiting criterion, read its sign-off PR, and merge it or ask Claude to)
+- [x] AC-9: From a cloud session on a phone, the owner gets a criterion signed off end to end (human: ask Claude to sign off a waiting criterion, read its sign-off PR, and merge it or ask Claude to)
 
 ## Out of scope
 
@@ -197,3 +197,4 @@ is rebased, and `furrow signoff` is run again if its criteria moved.
 - 2026-11-03: Chose to put "Signing off" under "How an agent works a step" as its own numbered subsection, so both standards list the same five moves.
 - 2026-11-03: Chose to have furrow-signoff branch as `signoff/<date>-<slug>`, a name `furrow claims` ignores, since a sign-off PR has no step.
 - 2026-11-03: Chose to keep CLAUDE.md's `CLAUDECODE=1` line, now saying `--by` is required, because that's what the variable still changes.
+- 2026-11-03: AC-9 signed off by Deven Jarvis.

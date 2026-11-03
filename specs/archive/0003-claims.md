@@ -1,7 +1,7 @@
 ---
 id: FUR-0003
 title: Claim a step with a branch, atomically
-status: accepted
+status: done
 area: claims
 priority: p0
 human_review: required
@@ -79,7 +79,7 @@ Exit codes: 0 ok, 1 error, 3 already claimed.
 - [x] AC-4: A waiting, blocked or overlapping step is refused with the reason, and a dirty tree is refused before anything is pushed (test: TestClaimRefusals)
 - [x] AC-5: `release` deletes the branch, and releasing an unclaimed step exits 0 (test: TestRelease)
 - [x] AC-6: `claims` marks leftover, stale and active claims (test: TestClaimsAges)
-- [ ] AC-7: The claim flow reads well to the owner, including the already-claimed message (human: run `furrow claim` twice on a test repo)
+- [x] AC-7: The claim flow reads well to the owner, including the already-claimed message (human: run `furrow claim` twice on a test repo)
 
 ## Out of scope
 
@@ -99,3 +99,4 @@ Exit codes: 0 ok, 1 error, 3 already claimed.
 - 2026-11-01: `internal/gitx/gittest` makes real repos with bare remotes for tests, with a fixed
   identity and `GIT_CONFIG_GLOBAL=/dev/null` so a user's git config can't change results.
 - 2026-11-01: `TestClaimRace` passed 20 runs in a row under `-race`.
+- 2026-11-03: AC-7 signed off by Deven Jarvis.

@@ -1,7 +1,7 @@
 ---
 id: FUR-0007
 title: A Claude Code plugin that teaches agents, and swarms, to work with Furrow
-status: accepted
+status: done
 area: agents
 priority: p1
 human_review: required
@@ -73,8 +73,8 @@ No skill tells an agent to run `furrow signoff`, tick a `human:` box, or change 
 - [x] AC-2: Each of the five skills has `name` and `description` front matter (check: for s in next implement verify write swarm; do head -4 skills/furrow-$s/SKILL.md | grep -q "^name: furrow-$s"; done)
 - [x] AC-3: No skill tells an agent to sign off or tick a human box (check: ! grep -rn "furrow signoff" skills | grep -v -i "never\|don't\|not")
 - [x] AC-4: `.claude/skills` points at `skills` (check: test "$(readlink .claude/skills)" = ../skills)
-- [ ] AC-5: The skills read clearly and match how the owner wants agents to work (human: read the five SKILL.md files)
-- [ ] AC-6: A swarm run builds real steps of this repo in parallel without collisions (human: read the swarm's report in the PR)
+- [x] AC-5: The skills read clearly and match how the owner wants agents to work (human: read the five SKILL.md files)
+- [x] AC-6: A swarm run builds real steps of this repo in parallel without collisions (human: read the swarm's report in the PR)
 
 ## Out of scope
 
@@ -92,3 +92,6 @@ No skill tells an agent to run `furrow signoff`, tick a `human:` box, or change 
   with no overlaps. Two lessons from that run went into the skill. Hidden dependencies show up as
   "parallel" steps that both need a helper neither owns (FUR-0004 needed `internal/gitx`). And some
   remotes refuse branch deletion, so leftover claims are released by the owner.
+
+- 2026-11-03: AC-5 signed off by Deven Jarvis.
+- 2026-11-03: AC-6 signed off by Deven Jarvis.

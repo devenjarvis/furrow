@@ -33,3 +33,5 @@ When the remote can't be reached, the claim functions return `claim.ErrRemote` s
 so and carry on.
 
 ## History
+
+- FUR-0003: Claim a step with a branch, atomically (archived 2026-11-03)

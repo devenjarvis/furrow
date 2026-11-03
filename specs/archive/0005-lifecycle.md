@@ -1,7 +1,7 @@
 ---
 id: FUR-0005
 title: Hand back steps, sign off what a person must judge, archive finished specs
-status: accepted
+status: done
 area: lifecycle
 priority: p0
 human_review: required
@@ -74,7 +74,7 @@ Dates come from an injectable clock, so tests are deterministic.
 - [x] AC-5: `signoff` ticks the box, writes the Decisions line that `furrow lint` accepts, and archives a now-complete spec (test: TestSignoffArchives)
 - [x] AC-6: `archive` sets done, moves the file, and appends to the area's History (test: TestArchive)
 - [x] AC-7: No command changes a criterion's text (test: TestCriteriaTextUntouched)
-- [ ] AC-8: The review and sign-off flow is clear to the owner (human: run `furrow review` then `furrow signoff` on a test repo)
+- [x] AC-8: The review and sign-off flow is clear to the owner (human: run `furrow review` then `furrow signoff` on a test repo)
 
 ## Out of scope
 
@@ -102,3 +102,5 @@ Dates come from an injectable clock, so tests are deterministic.
   writes anything, and refuses if the destination exists or the area file is missing.
 - 2026-11-03: AC-4 changed in FUR-0015's spec PR. `signoff` no longer refuses agent sessions: merging
   a sign-off PR is the sign-off (INV-3 as FUR-0015 words it).
+
+- 2026-11-03: AC-8 signed off by Deven Jarvis.

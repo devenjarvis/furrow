@@ -1,7 +1,7 @@
 ---
 id: FUR-0012
 title: Merging a spec's PR accepts it
-status: accepted
+status: done
 area: specs
 priority: p1
 human_review: required
@@ -86,7 +86,7 @@ that pass review, never merges a spec PR.
 - [x] AC-2: An `## Open questions` heading and items inside a fenced code block are ignored by that rule (test: TestLintOpenQuestionsIgnoreFences)
 - [x] AC-3: The standard's two copies say a spec PR is opened as accepted, merging it is the decision, and draft means parked (check: grep -q -i "parked" specs/README.md && grep -q -i "parked" internal/scaffold/assets/README.md && grep -q -i "merging it is the decision" specs/README.md && grep -q -i "merging it is the decision" internal/scaffold/assets/README.md)
 - [x] AC-4: furrow-write opens spec PRs as accepted with a proposal for every question, and furrow-write and furrow-swarm never merge a spec PR (check: grep -q "status: accepted" skills/furrow-write/SKILL.md && grep -q -i "never merge" skills/furrow-write/SKILL.md && grep -q -i "never merge.*spec" skills/furrow-swarm/SKILL.md)
-- [ ] AC-5: Proposing and accepting a spec this way reads right to the owner end to end (human: merge the next spec PR without editing it, and read the spec on main)
+- [x] AC-5: Proposing and accepting a spec this way reads right to the owner end to end (human: merge the next spec PR without editing it, and read the spec on main)
 
 ## Out of scope
 
@@ -118,3 +118,5 @@ that pass review, never merges a spec PR.
   a decided spec.
 - 2026-11-02: Chose to have furrow-swarm report spec PRs waiting for a merge instead of "draft
   specs waiting to be accepted", because a draft is now parked, not waiting.
+
+- 2026-11-03: AC-5 signed off by Deven Jarvis.
