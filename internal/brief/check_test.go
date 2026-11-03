@@ -304,8 +304,55 @@ func TestBriefCheckReviewable(t *testing.T) {
 			t.Errorf("%s: %q", name, rep.Problems)
 		}
 	}
-	// ~~~ fences hide placeholders too.
-	if rep := check(body(map[string]string{"Not done": "Nothing.\n\n~~~~\n<!-- furrow: x -->\n~~~\n~~~~"})); !rep.OK {
-		t.Errorf("placeholder in a ~~~~ fence: %q", rep.Problems)
+}
+
+func TestBriefCheckFencedPlaceholders(t *testing.T) {
+	b, check := checkSetup(t)
+	after := "**Before:** a.\n**After:** b.\n\n"
+	// After Behaviour's **After:** line, a fenced placeholder is shown output: the raw brief pasted
+	// as "show it", in ``` or ~~~ fences, closed only by a run at least as long.
+	good := map[string]map[string]string{
+		"pasted raw brief": {"Behaviour": after + "````markdown\n" + b.Markdown() + "\n```\n## Not a heading\n````"},
+		"a ~~~~ fence":     {"Behaviour": after + "~~~~\n<!-- furrow: x -->\n~~~\n~~~~"},
+	}
+	for name, change := range good {
+		if rep := check(body(change)); !rep.OK {
+			t.Errorf("%s: %q", name, rep.Problems)
+		}
+	}
+
+	// Anywhere else, a placeholder in a fence is still a placeholder.
+	fenced := "```\n<!-- furrow: x -->\n```"
+	bad := []struct {
+		name string
+		text string
+		want []string
+	}{
+		{"in Behaviour before the After line", body(map[string]string{"Behaviour": "**Before:** a.\n\n" + fenced + "\n\n**After:** b."}),
+			[]string{"`## Behaviour` still has a placeholder. Write it."}},
+		{"in Behaviour with no After line", body(map[string]string{"Behaviour": "**Before:** a.\n\n" + fenced}),
+			[]string{"`## Behaviour` still has a placeholder. Write it.", "`## Behaviour` needs a `**Before:**` and an `**After:**` line."}},
+		{"after an After line that is itself in a fence", body(map[string]string{"Behaviour": "**Before:** a.\n\n```\n**After:** b.\n<!-- furrow: x -->\n```"}),
+			[]string{"`## Behaviour` still has a placeholder. Write it.", "`## Behaviour` needs a `**Before:**` and an `**After:**` line."}},
+		{"unfenced, after the After line", body(map[string]string{"Behaviour": after + "<!-- furrow: x -->\n\nNo visible effect."}),
+			[]string{"`## Behaviour` still has a placeholder. Write it."}},
+		{"in Not done", body(map[string]string{"Not done": "Nothing.\n\n" + fenced}),
+			[]string{"`## Not done` still has a placeholder. Write it."}},
+		{"in Not done, in a ~~~~ fence", body(map[string]string{"Not done": "Nothing.\n\n~~~~\n<!-- furrow: x -->\n~~~\n~~~~"}),
+			[]string{"`## Not done` still has a placeholder. Write it."}},
+		{"in a fence inside <details>", body(map[string]string{"Review this": "1. a\n\n<details><summary>2 changed files</summary>\n\n" + fenced + "\n\n</details>"}),
+			[]string{"`## Review this` still has a placeholder. Write it."}},
+		{"in Judgment calls", body(map[string]string{"Judgment calls": "None.\n\n" + fenced}),
+			[]string{"`## Judgment calls` still has a placeholder. Write it."}},
+		{"before the first heading", fenced + "\n\n" + body(nil),
+			[]string{"The text before `## Behaviour` still has a placeholder. Write it."}},
+		{"in a section furrow brief doesn't write", body(nil) + "\n## Extra\n\n" + fenced + "\n",
+			[]string{"`## Extra` still has a placeholder. Write it."}},
+	}
+	for _, c := range bad {
+		rep := check(c.text)
+		if rep.OK || !reflect.DeepEqual(rep.Problems, c.want) {
+			t.Errorf("%s: ok=%v problems =\n%q\nwant\n%q", c.name, rep.OK, rep.Problems, c.want)
+		}
 	}
 }

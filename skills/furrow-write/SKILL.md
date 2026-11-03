@@ -44,9 +44,11 @@ description: Turn an idea into a draft Furrow spec, split into steps that can ru
    wants parked: written down but not built yet.
 10. **Open the spec's PR with its brief.** Open it with `furrow brief --spec <ID>`'s output as the
     body, then, once you know its number, regenerate with `furrow brief --spec <ID> --pr <N>` so each
-    question links to its line, and paste that. Fill in `## Decision`: what accepting this commits
-    the owner to and the main alternative it rejects, in at most 80 words, without restating the
-    spec. Run `furrow brief --check <body file> --spec <ID>` until it exits 0.
+    question links to its line, and paste that. Fill in `## Decision`'s two lines, at most 25
+    words each, without restating the spec: `**Commits us to:**` what accepting this means we
+    build, and `**Instead of:**` the main alternative it rejects, and why. On an amendment,
+    `## Your calls` lists only questions added since the merge base: ones already decided aren't
+    asked again. Run `furrow brief --check <body file> --spec <ID>` until it exits 0.
 11. **One review thread per open question.** With the forge's tools, comment on each question's
     lines in the spec's diff, opening a thread that says `**Qn** <question>`, then
     `Proposed: …`, then `Reply here to overrule. Merging without a reply accepts the proposal.`

@@ -17,11 +17,15 @@ You're the reviewer, not the author. Assume nothing is done until you've seen th
    explained path's reason.
 4. **The brief.** The PR description is the reviewer's brief. Save it to a file;
    `furrow brief --check <file> --base origin/<base>` must exit 0. Then read it against the diff:
-   - **Behaviour** says what the code does, not what the author meant it to do.
+   - **Behaviour**: Before and After say what the code does, not what the author meant it to do.
+     Re-run the "show it" command when it's cheap and compare its output; it should show only
+     the part that changed.
+   - **Review this**: each item names code that exists in the diff, and asks a real question.
    - **Diagram**: every node and edge exists in the code. It has a caption and a `Legend:` line,
      at most 8 nodes, is a mermaid `flowchart TD`, and shows behaviour, not a call graph.
    - **Visual proof**: each image shows the screen its row names.
-   - **Departures** lists every line the diff adds to the spec's `## Decisions`.
+   - **Judgment calls** match the lines the diff adds to the spec's `## Decisions`, one for one.
+   - **Needs you**: each invariant's line says truly how the diff touches it.
    - A screenshot is evidence for the owner, never a reason a `human:` criterion is ticked.
 
    A claim the diff doesn't bear out is a finding, as a failed test would be.

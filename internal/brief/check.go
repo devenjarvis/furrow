@@ -94,7 +94,7 @@ func Check(b *Brief, text string) *Report {
 			rep.add("No `## %s` section. Run `furrow brief` and paste it.", s.Heading)
 			continue
 		}
-		if hasPlaceholder(body) {
+		if hasPlaceholder(body, s.Heading == Behaviour) {
 			rep.add("`## %s` still has a placeholder. Write it.", s.Heading)
 		}
 		switch s.Heading {
@@ -110,7 +110,7 @@ func Check(b *Brief, text string) *Report {
 			checkJudgmentCalls(rep, body)
 		}
 	}
-	if hasPlaceholder(parts[0].text) {
+	if hasPlaceholder(parts[0].text, false) {
 		first := Behaviour
 		if len(b.Sections) > 0 {
 			first = b.Sections[0].Heading
@@ -118,7 +118,7 @@ func Check(b *Brief, text string) *Report {
 		rep.add("The text before `## %s` still has a placeholder. Write it.", first)
 	}
 	for _, p := range parts[1:] {
-		if !expected[p.heading] && hasPlaceholder(p.text) {
+		if !expected[p.heading] && hasPlaceholder(p.text, false) {
 			rep.add("`## %s` still has a placeholder. Write it.", p.heading)
 		}
 	}
@@ -196,11 +196,33 @@ func outsideFences(text string) (string, bool) {
 	return strings.Join(out, "\n"), found
 }
 
-// hasPlaceholder says whether text has a <!-- furrow: placeholder outside fenced code blocks. One
-// inside a fence is shown output, such as a pasted brief; one inside <details> still counts.
-func hasPlaceholder(text string) bool {
-	prose, _ := outsideFences(text)
-	return strings.Contains(prose, Placeholder)
+// hasPlaceholder says whether text has a <!-- furrow: placeholder. With showIt, text is
+// ## Behaviour's body, and a placeholder in a fenced code block after its **After:** line is shown
+// output, such as a pasted brief, so it doesn't count. Every other one counts, in a fence or
+// <details> or not, so an unfilled section can't hide in a code block.
+func hasPlaceholder(text string, showIt bool) bool {
+	fence, after := "", false
+	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		trimmed := strings.TrimSpace(line)
+		inside := fence != ""
+		switch {
+		case inside:
+			if closesFence(fence, trimmed) {
+				fence = ""
+			}
+		case openFence(trimmed) != "":
+			fence = openFence(trimmed)
+		case strings.HasPrefix(trimmed, AfterLabel):
+			after = true
+		}
+		if inside && showIt && after {
+			continue
+		}
+		if strings.Contains(line, Placeholder) {
+			return true
+		}
+	}
+	return false
 }
 
 // checkBehaviour wants a **Before:** and an **After:** line of at most 20 words each, something
