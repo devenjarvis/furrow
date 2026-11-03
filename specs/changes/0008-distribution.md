@@ -1,7 +1,7 @@
 ---
 id: FUR-0008
 title: Releases, Homebrew, CI, and a pinned copy for repos that use Furrow
-status: draft
+status: accepted
 area: distribution
 priority: p1
 human_review: required
@@ -13,7 +13,7 @@ steps:
     title: CI for this repo
     after: []
     touches:
-      - .github/workflows/ci.yml
+      - .github/**
     covers: [AC-1, AC-2]
     size: s
     merged: false
@@ -22,7 +22,7 @@ steps:
     after: [1]
     touches:
       - .goreleaser.yaml
-      - .github/workflows/release.yml
+      - .github/**
     covers: [AC-3]
     size: s
     merged: false
@@ -70,6 +70,7 @@ version, and the shim fetches exactly that binary and checks its checksum.
 
 - Is the Homebrew tap worth it, or is `go install` plus the shim enough? Proposed: shim first, tap
   when someone asks.
-- Needs the `devenjarvis/furrow` repo on GitHub before any of this can be tried.
 
 ## Decisions
+
+- 2026-11-03: The `devenjarvis/furrow` repo is on GitHub, so the open question about needing it is settled.
