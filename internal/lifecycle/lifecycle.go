@@ -19,9 +19,6 @@ import (
 
 const dateLayout = "2006-01-02"
 
-// AgentRefusal is what signoff says inside an agent session (INV-3).
-const AgentRefusal = "Sign-off is for a person (INV-3). Ask the owner to run this."
-
 // agentVars mark an agent session. Claude Code sets CLAUDECODE; other agents set FURROW_AGENT.
 var agentVars = []string{"CLAUDECODE", "FURROW_AGENT"}
 
@@ -209,29 +206,40 @@ func (r Report) Text(w io.Writer) {
 	fmt.Fprintln(w, "When you've checked one, run `furrow signoff <id> <AC-n>...`.")
 }
 
-// CheckPerson refuses inside an agent session (INV-3). A nil getenv counts as an agent.
-func CheckPerson(getenv func(string) string) error {
+// agentSession reports whether getenv shows an agent session. A nil getenv counts as one: no
+// environment, no proof that git's identity is a person's.
+func agentSession(getenv func(string) string) bool {
 	if getenv == nil {
-		return errors.New(AgentRefusal)
+		return true
 	}
 	for _, k := range agentVars {
 		if getenv(k) != "" {
-			return errors.New(AgentRefusal)
+			return true
 		}
 	}
-	return nil
+	return false
 }
 
-// SignoffRequest is one furrow signoff. By is the person's name, from the --by flag. When it's
-// empty, Name supplies it; a nil Name reads `git config user.name` in the repo. Name is only
-// called once Getenv shows a person (INV-3). Getenv is how signoff tells a person from an agent.
+// SignoffRequest is one furrow signoff. Args are the command's arguments: each spec id starts a
+// group and the AC-ns after it belong to that spec. ID and Criteria are one more group, put before
+// Args. By is the person who checked, from --by. When it's empty, Name supplies it outside an agent
+// session; a nil Name reads `git config user.name` in the repo. Inside one (Getenv shows
+// CLAUDECODE or FURROW_AGENT), the session's git identity may be the agent's, so By is required
+// and Name is never called.
 type SignoffRequest struct {
 	ID       string
 	Criteria []string
+	Args     []string
 	By       string
 	Name     func() string
 	Getenv   func(string) string
 	Now      time.Time
+}
+
+// signoffGroup is one spec and the criteria named after it.
+type signoffGroup struct {
+	id       string
+	criteria []string
 }
 
 // GitUserName is `git config user.name` in dir, or "" when git has none or dir isn't a repo.
@@ -243,15 +251,109 @@ func GitUserName(dir string) string {
 	return name
 }
 
-// Signoff ticks human: criteria that review lists, logs each in ## Decisions, and archives the
-// spec when that completes it. It refuses inside an agent session, and changes nothing on any
-// refusal.
-func Signoff(repo *spec.Repo, req SignoffRequest) (string, error) {
-	if err := CheckPerson(req.Getenv); err != nil {
-		return "", err
+// signoffGroups splits args into groups: an argument that reads as a ref starts one, and the
+// arguments after it belong to it. A spec named twice has its groups merged, in the order first
+// named.
+func signoffGroups(repo *spec.Repo, args []string) ([]*signoffGroup, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("Start with a spec id, such as `furrow signoff %s-0005 AC-8`.", repo.Config.Prefix)
 	}
+	var occ []*signoffGroup
+	for _, a := range args {
+		if _, err := repo.ParseRef(a, nil); err == nil {
+			occ = append(occ, &signoffGroup{id: a})
+			continue
+		}
+		if len(occ) == 0 {
+			return nil, fmt.Errorf("Start with a spec id, such as `furrow signoff %s-0005 AC-8`.", repo.Config.Prefix)
+		}
+		g := occ[len(occ)-1]
+		g.criteria = append(g.criteria, a)
+	}
+	var groups []*signoffGroup
+	byID := map[string]*signoffGroup{}
+	for _, g := range occ {
+		if len(g.criteria) == 0 {
+			return nil, fmt.Errorf("Name at least one criterion after %s.", g.id)
+		}
+		if m := byID[g.id]; m != nil {
+			m.criteria = append(m.criteria, g.criteria...)
+			continue
+		}
+		byID[g.id] = g
+		groups = append(groups, g)
+	}
+	return groups, nil
+}
+
+// signoffPlan is one spec's sign-off, worked out before any file is written.
+type signoffPlan struct {
+	s       *spec.Spec
+	text    string
+	msg     string
+	archive *archivePlan
+}
+
+// planSignoff checks each criterion in g and, when all pass, works out the spec's new text.
+func planSignoff(repo *spec.Repo, g *signoffGroup, by string, now time.Time) (*signoffPlan, []string) {
+	s, err := wholeSpec(repo, g.id)
+	if err != nil {
+		return nil, []string{err.Error()}
+	}
+	if s.Archived {
+		return nil, []string{fmt.Sprintf("%s is archived. Nothing to sign off.", s.ID)}
+	}
+	var picked []*spec.Criterion
+	var refusals []string
+	seen := map[string]bool{}
+	for _, id := range g.criteria {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		c := s.Criterion(id)
+		switch {
+		case c == nil:
+			refusals = append(refusals, fmt.Sprintf("%s has no %s.", s.ID, id))
+		case c.Proof != "human":
+			refusals = append(refusals, fmt.Sprintf("%s isn't a human: criterion. Agents tick it with its evidence.", id))
+		case c.Ticked:
+			refusals = append(refusals, fmt.Sprintf("%s is already ticked.", id))
+		default:
+			if why := notWaitingWhy(s, c); why != "" {
+				refusals = append(refusals, fmt.Sprintf("%s isn't waiting for sign-off: %s.", id, why))
+			} else {
+				picked = append(picked, c)
+			}
+		}
+	}
+	if len(refusals) > 0 {
+		return nil, refusals
+	}
+	sort.SliceStable(picked, func(i, j int) bool { return picked[i].Num < picked[j].Num })
+
+	text, err := readFile(repo, s.File)
+	if err != nil {
+		return nil, []string{err.Error()}
+	}
+	date := now.Format(dateLayout)
+	var ids []string
+	for _, c := range picked {
+		if text, err = tickBox(text, c.ID); err != nil {
+			return nil, []string{fmt.Sprintf("%s: %v", s.File, err)}
+		}
+		text = appendToSection(text, "Decisions", fmt.Sprintf("- %s: %s signed off by %s.", date, c.ID, by))
+		ids = append(ids, c.ID)
+	}
+	return &signoffPlan{s: s, text: text, msg: fmt.Sprintf("Signed off %s on %s by %s.", and(ids), s.ID, by)}, nil
+}
+
+// Signoff ticks human: criteria that review lists, on one spec or several, logs each in
+// ## Decisions, and archives each spec it completes. Every criterion is checked first: on any
+// refusal it changes nothing.
+func Signoff(repo *spec.Repo, req SignoffRequest) (string, error) {
 	by := strings.TrimSpace(req.By)
-	if by == "" {
+	if by == "" && !agentSession(req.Getenv) {
 		name := req.Name
 		if name == nil {
 			name = func() string { return GitUserName(repo.Root) }
@@ -264,73 +366,62 @@ func Signoff(repo *spec.Repo, req SignoffRequest) (string, error) {
 	if strings.ContainsAny(by, "\r\n") {
 		return "", errors.New("--by must be one line.")
 	}
-	s, err := wholeSpec(repo, req.ID)
+	var args []string
+	if req.ID != "" {
+		args = append(append(args, req.ID), req.Criteria...)
+	}
+	groups, err := signoffGroups(repo, append(args, req.Args...))
 	if err != nil {
 		return "", err
 	}
-	if len(req.Criteria) == 0 {
-		return "", fmt.Errorf("Name at least one criterion, such as `furrow signoff %s AC-1`.", s.ID)
+
+	var plans []*signoffPlan
+	var refusals []string
+	for _, g := range groups {
+		p, why := planSignoff(repo, g, by, req.Now)
+		refusals = append(refusals, why...)
+		if p != nil {
+			plans = append(plans, p)
+		}
 	}
-	var picked []*spec.Criterion
-	seen := map[string]bool{}
-	for _, id := range req.Criteria {
-		if seen[id] {
+	if len(refusals) > 0 {
+		return "", errors.New(strings.Join(refusals, "\n"))
+	}
+
+	// Plan every archive before writing, carrying each area's text forward so two specs in one
+	// area both reach its ## History.
+	areas := map[string]string{}
+	var msgs, cant []string
+	for _, p := range plans {
+		after, err := spec.ParseSpec([]byte(p.text))
+		if err != nil {
+			return "", fmt.Errorf("%s: %v", p.s.File, err)
+		}
+		if !after.Complete() {
 			continue
 		}
-		seen[id] = true
-		c := s.Criterion(id)
-		switch {
-		case c == nil:
-			return "", fmt.Errorf("%s has no %s.", s.ID, id)
-		case c.Proof != "human":
-			return "", fmt.Errorf("%s isn't a human: criterion. Agents tick it with its evidence.", id)
-		case s.Archived:
-			return "", fmt.Errorf("%s is archived. Nothing to sign off.", s.ID)
-		case c.Ticked:
-			return "", fmt.Errorf("%s is already ticked.", id)
+		if p.archive, err = planArchive(repo, p.s, p.text, req.Now, areas); err != nil {
+			cant = append(cant, fmt.Sprintf("Can't archive %s yet: %v", p.s.ID, err))
 		}
-		if why := notWaitingWhy(s, c); why != "" {
-			return "", fmt.Errorf("%s isn't waiting for sign-off: %s.", id, why)
+	}
+	for _, p := range plans {
+		msgs = append(msgs, p.msg)
+		if p.archive == nil {
+			if err := writeFile(repo, p.s.File, p.text); err != nil {
+				return "", err
+			}
+			continue
 		}
-		picked = append(picked, c)
-	}
-	sort.SliceStable(picked, func(i, j int) bool { return picked[i].Num < picked[j].Num })
-
-	text, err := readFile(repo, s.File)
-	if err != nil {
-		return "", err
-	}
-	date := req.Now.Format(dateLayout)
-	var ids []string
-	for _, c := range picked {
-		if text, err = tickBox(text, c.ID); err != nil {
-			return "", fmt.Errorf("%s: %v", s.File, err)
-		}
-		text = appendToSection(text, "Decisions", fmt.Sprintf("- %s: %s signed off by %s.", date, c.ID, by))
-		ids = append(ids, c.ID)
-	}
-	after, err := spec.ParseSpec([]byte(text))
-	if err != nil {
-		return "", fmt.Errorf("%s: %v", s.File, err)
-	}
-	msg := fmt.Sprintf("Signed off %s on %s by %s.", and(ids), s.ID, by)
-	if !after.Complete() {
-		if err := writeFile(repo, s.File, text); err != nil {
+		if err := p.archive.apply(repo); err != nil {
 			return "", err
 		}
-		return msg, nil
+		msgs = append(msgs, p.archive.message())
 	}
-	plan, err := planArchive(repo, s, text, req.Now)
-	if err != nil {
-		if werr := writeFile(repo, s.File, text); werr != nil {
-			return "", werr
-		}
-		return "", fmt.Errorf("%s\nCan't archive it yet: %v", msg, err)
+	msg := strings.Join(msgs, "\n")
+	if len(cant) > 0 {
+		return "", errors.New(msg + "\n" + strings.Join(cant, "\n"))
 	}
-	if err := plan.apply(repo); err != nil {
-		return "", err
-	}
-	return msg + "\n" + plan.message(), nil
+	return msg, nil
 }
 
 // wholeSpec finds the spec a ref like FUR-0005 names.
@@ -386,7 +477,7 @@ func Archive(repo *spec.Repo, id string, now time.Time) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	plan, err := planArchive(repo, s, text, now)
+	plan, err := planArchive(repo, s, text, now, nil)
 	if err != nil {
 		return "", err
 	}
@@ -402,7 +493,9 @@ type archivePlan struct {
 	specText, areaText string
 }
 
-func planArchive(repo *spec.Repo, s *spec.Spec, text string, now time.Time) (*archivePlan, error) {
+// planArchive works out one spec's archive. areas holds area texts already changed by earlier
+// plans in the same command, and gets this plan's area text; nil means none.
+func planArchive(repo *spec.Repo, s *spec.Spec, text string, now time.Time, areas map[string]string) (*archivePlan, error) {
 	a := repo.Areas[s.Area]
 	if a == nil {
 		return nil, fmt.Errorf("%s's area %q has no file. Run `furrow lint`.", s.ID, s.Area)
@@ -411,14 +504,19 @@ func planArchive(repo *spec.Repo, s *spec.Spec, text string, now time.Time) (*ar
 	if err != nil {
 		return nil, fmt.Errorf("%s: %v", s.File, err)
 	}
-	areaText, err := readFile(repo, a.File)
-	if err != nil {
-		return nil, err
+	areaText, ok := areas[a.File]
+	if !ok {
+		if areaText, err = readFile(repo, a.File); err != nil {
+			return nil, err
+		}
 	}
 	areaText = appendToSection(areaText, "History", fmt.Sprintf("- %s: %s (archived %s)", s.ID, s.Title, now.Format(dateLayout)))
 	to := filepath.ToSlash(filepath.Join(repo.Config.Specs, "archive", filepath.Base(s.File)))
 	if _, err := os.Stat(filepath.Join(repo.Root, filepath.FromSlash(to))); err == nil {
 		return nil, fmt.Errorf("%s already exists.", to)
+	}
+	if areas != nil {
+		areas[a.File] = areaText
 	}
 	return &archivePlan{id: s.ID, from: s.File, to: to, area: a.File, specText: specText, areaText: areaText}, nil
 }

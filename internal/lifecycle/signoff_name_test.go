@@ -78,26 +78,37 @@ func TestSignoffNameFromGit(t *testing.T) {
 	}
 }
 
-func TestSignoffRefusesAgentsBeforeGit(t *testing.T) {
+func TestSignoffAgentNeedsBy(t *testing.T) {
 	isolateGit(t)
 	r, path := waitingSpec(t)
-	gittest.Must(t, r.Root, "config", "user.name", "Ann Lee")
+	gittest.Must(t, r.Root, "config", "user.name", "Claude")
 	before := r.Read(path)
 	for _, k := range []string{"CLAUDECODE", "FURROW_AGENT"} {
 		asked := false
 		_, err := lifecycle.Signoff(r.Load(), lifecycle.SignoffRequest{
 			ID: "FUR-0001", Criteria: []string{"AC-1"}, Getenv: envOf(map[string]string{k: "1"}), Now: day,
-			Name: func() string { asked = true; return "Ann Lee" },
+			Name: func() string { asked = true; return "Claude" },
 		})
-		if err == nil || err.Error() != lifecycle.AgentRefusal {
+		if err == nil || err.Error() != "Say who checked it: --by NAME." {
 			t.Errorf("%s set: got %v", k, err)
 		}
 		if asked {
-			t.Errorf("%s set: signoff asked git for a name before refusing", k)
+			t.Errorf("%s set: signoff asked git for a name", k)
 		}
 		if r.Read(path) != before {
 			t.Errorf("%s set: signoff changed the file", k)
 		}
+	}
+	// A nil Getenv can't show a person, so it gets no fallback either.
+	if _, err := lifecycle.Signoff(r.Load(), lifecycle.SignoffRequest{ID: "FUR-0001", Criteria: []string{"AC-1"}, Now: day}); err == nil || err.Error() != "Say who checked it: --by NAME." {
+		t.Errorf("nil Getenv: got %v", err)
+	}
+	// With nil Name, the default lookup isn't run either: git's user.name never reaches the file.
+	if _, err := lifecycle.Signoff(r.Load(), lifecycle.SignoffRequest{ID: "FUR-0001", Criteria: []string{"AC-1"}, Getenv: envOf(map[string]string{"CLAUDECODE": "1"}), Now: day}); err == nil {
+		t.Error("agent session fell back to git's user.name")
+	}
+	if r.Read(path) != before {
+		t.Error("signoff changed the file")
 	}
 	// A person with no --by: the lookup runs, and its name is used.
 	asked := false
