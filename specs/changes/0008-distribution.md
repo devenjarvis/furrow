@@ -16,7 +16,7 @@ steps:
       - .github/**
     covers: [AC-1, AC-2]
     size: s
-    merged: false
+    merged: true
   - n: 2
     title: Tagged releases with GoReleaser and a Homebrew tap
     after: [1]
@@ -56,7 +56,7 @@ version, and the shim fetches exactly that binary and checks its checksum.
 
 ## Acceptance criteria
 
-- [ ] AC-1: CI runs `make check` on every PR (check: a PR shows the job)
+- [x] AC-1: CI runs `make check` on every PR (check: a PR shows the job)
 - [ ] AC-2: CI fails a PR whose diff leaves its step's territory unexplained (human: a test PR)
 - [ ] AC-3: Tagging `v0.1.0` produces four binaries, checksums and a formula (human: the release page)
 - [ ] AC-4: `bin/furrow` refuses a binary whose checksum doesn't match (test: TestShimChecksum)
@@ -74,3 +74,7 @@ version, and the shim fetches exactly that binary and checks its checksum.
 ## Decisions
 
 - 2026-11-03: The `devenjarvis/furrow` repo is on GitHub, so the open question about needing it is settled.
+- 2026-11-03: Chose to skip territory in CI off step branches because `furrow territory` exits 1 there, the same as a real violation.
+- 2026-11-03: Chose to recreate the head branch at CI's merge commit because territory reads the step from the branch, and checkout leaves HEAD detached.
+- 2026-11-03: Chose to rerun CI when a PR description is edited, so a `## Territory` explanation added later can clear the check.
+- 2026-11-03: Chose `actions/checkout@v5` and `actions/setup-go@v6` because the v4/v5 majors warned that Node.js 20 is deprecated on the first CI run.

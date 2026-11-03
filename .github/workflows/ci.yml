@@ -1,0 +1,58 @@
+# CI for Furrow itself: `make check` on every PR and push to main, and `furrow territory` on
+# step PRs, so a diff that leaves its step's touches unexplained fails.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: make check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: make check
+        run: make check
+
+  territory:
+    name: furrow territory
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # The whole history, so territory can find where the PR left its base.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: furrow territory
+        env:
+          # Untrusted PR text and names reach the shell only as environment variables.
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # Only step branches have a territory. .furrow.yml names them step/{num}-{step}.
+          if ! [[ "$HEAD_REF" =~ ^step/[0-9]{4}-[0-9]+$ ]]; then
+            echo "$HEAD_REF is not a step branch, so it has no territory to check."
+            exit 0
+          fi
+          body="$RUNNER_TEMP/pr-body.md"
+          printf '%s\n' "$PR_BODY" > "$body"
+          # Furrow reads the step from the branch name, and the checkout is a detached merge commit.
+          git checkout -q -B "$HEAD_REF"
+          go run ./cmd/furrow territory --base "origin/$BASE_REF" --body-file "$body"
