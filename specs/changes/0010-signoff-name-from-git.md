@@ -19,7 +19,7 @@ steps:
       - internal/lifecycle/**
     covers: [AC-1, AC-2]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0010: furrow signoff takes the name from git when --by is left out
@@ -38,8 +38,8 @@ checked it: --by NAME." The agent check (INV-3) still runs first, before git is 
 
 ## Acceptance criteria
 
-- [ ] AC-1: With no `--by`, the sign-off line names git's `user.name`, and with neither it refuses with the message (test: TestSignoffNameFromGit)
-- [ ] AC-2: Inside an agent session it refuses before running git (test: TestSignoffRefusesAgentsBeforeGit)
+- [x] AC-1: With no `--by`, the sign-off line names git's `user.name`, and with neither it refuses with the message (test: TestSignoffNameFromGit)
+- [x] AC-2: Inside an agent session it refuses before running git (test: TestSignoffRefusesAgentsBeforeGit)
 
 ## Out of scope
 
@@ -51,3 +51,7 @@ checked it: --by NAME." The agent check (INV-3) still runs first, before git is 
   sign-off line honest without friction.
 
 ## Decisions
+
+- 2026-11-03: Chose a `SignoffRequest.Name` lookup, defaulting to `git config user.name` in the repo root, so tests can prove the agent check runs before git.
+- 2026-11-03: Chose to treat a git failure (no repo, no user.name) as no name, so it ends in the same "Say who checked it" refusal.
+- 2026-11-03: Used the existing `gitx.Git.Run`, so `internal/gitx` needed no change.

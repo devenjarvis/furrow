@@ -24,12 +24,13 @@ can be archived. On a step that's already merged it says so and changes nothing.
 steps are all merged, grouped by spec, with its proof text as what to look at. With none it prints
 `Nothing waiting for sign-off.`
 
-**`furrow signoff <id> <AC-n>... --by NAME`** is for people. Inside an agent session (`CLAUDECODE`
+**`furrow signoff <id> <AC-n>... [--by NAME]`** is for people. Inside an agent session (`CLAUDECODE`
 or `FURROW_AGENT` set) it exits 1 with "Sign-off is for a person (INV-3). Ask the owner to run
 this." before doing anything else. Each criterion must be one `review` lists, or it refuses and
 changes nothing. It ticks each box and appends `- YYYY-MM-DD: AC-n signed off by NAME.` to
-`## Decisions`, in AC order. When that completes the spec, it archives it and says so. `--by` is
-required for now; it will default to `git config user.name` once `internal/gitx` exists.
+`## Decisions`, in AC order. When that completes the spec, it archives it and says so. With no
+`--by`, NAME is `git config user.name` in the repo, read through `internal/gitx` only after the
+agent check passes. With neither, it refuses: "Say who checked it: --by NAME."
 
 **`furrow archive <id>`** refuses, naming the unmerged steps and unticked boxes, unless the spec is
 complete. Then it sets `status: done`, moves the file from `changes/` to `archive/` with the same
