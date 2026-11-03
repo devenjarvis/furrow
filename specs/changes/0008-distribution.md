@@ -74,3 +74,6 @@ version, and the shim fetches exactly that binary and checks its checksum.
 ## Decisions
 
 - 2026-11-03: The `devenjarvis/furrow` repo is on GitHub, so the open question about needing it is settled.
+- 2026-11-03: Chose to skip territory in CI off step branches because `furrow territory` exits 1 there, the same as a real violation.
+- 2026-11-03: Chose to recreate the head branch at CI's merge commit because territory reads the step from the branch, and checkout leaves HEAD detached.
+- 2026-11-03: Chose to rerun CI when a PR description is edited, so a `## Territory` explanation added later can clear the check.
