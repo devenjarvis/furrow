@@ -1,0 +1,68 @@
+# Releases for Furrow: a `v*` tag runs .github/workflows/release.yml, which runs this.
+# One static binary per platform (INV-7), checksums, and a Homebrew cask in the tap.
+# GoReleaser v2 deprecated `brews` (formulas) for prebuilt binaries in favour of `homebrew_casks`.
+version: 2
+
+project_name: furrow
+
+before:
+  hooks:
+    - go mod verify
+
+builds:
+  - id: furrow
+    main: ./cmd/furrow
+    binary: furrow
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X main.version={{ .Tag }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: furrow
+    ids: [furrow]
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+
+release:
+  github:
+    owner: devenjarvis
+    name: furrow
+  draft: false
+  prerelease: auto
+
+homebrew_casks:
+  - name: furrow
+    ids: [furrow]
+    binaries: [furrow]
+    repository:
+      owner: devenjarvis
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: https://github.com/devenjarvis/furrow
+    description: Specs in, parallel pull requests out, for a swarm of coding agents.
+    dependencies:
+      - formula: git
+    caveats: |
+      The binary isn't notarized. If macOS refuses to open it, run:
+        xattr -dr com.apple.quarantine "$(brew --caskroom)/furrow"
+    commit_author:
+      name: furrow-release
+      email: noreply@github.com
+    commit_msg_template: "furrow {{ .Tag }}"
