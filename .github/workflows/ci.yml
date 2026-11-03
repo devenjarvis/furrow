@@ -20,8 +20,8 @@ jobs:
     name: make check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
       - name: make check
@@ -33,10 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # The whole history, so territory can find where the PR left its base.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
       - name: furrow territory
