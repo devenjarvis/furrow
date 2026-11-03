@@ -32,9 +32,10 @@ folder. Two entries overlap when their literal prefixes agree up to the shorter 
 **`furrow lint`** enforces the twelve rules in `specs/README.md`: identity, enums, the area,
 required sections, numbered criteria with proofs, steps for decided specs (numbered, with touches,
 covering every criterion, never size `l`, no `TBD` outside code), `after` refs that exist with no
-cycles, `touches` folders that exist, invariants that exist and force human review, sign-off lines
-for ticked `human:` boxes, done meaning done, and well-formed areas. It warns when an accepted spec
-is complete and ready to archive. It exits 1 on any error.
+cycles, `touches` whose top-level folder exists (deeper folders may be new), invariants that
+exist and force human review, sign-off lines for ticked `human:` boxes, done meaning done, and
+well-formed areas. It warns when an accepted spec is complete and ready to archive. It exits 1
+on any error.
 
 **Deciding a spec.** A spec's PR is opened with `status: accepted`. The unmerged PR is the
 proposal, and merging it is the decision: `furrow next` runs from the base branch and never sees
