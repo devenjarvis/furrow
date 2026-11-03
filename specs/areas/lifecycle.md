@@ -40,3 +40,5 @@ that the area's `## Behaviour` should already say what the spec changed.
 Dates come from an injected clock.
 
 ## History
+
+- FUR-0010: furrow signoff takes the name from git when --by is left out (archived 2026-11-03)
