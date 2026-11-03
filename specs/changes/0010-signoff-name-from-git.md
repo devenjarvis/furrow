@@ -1,7 +1,7 @@
 ---
 id: FUR-0010
 title: furrow signoff takes the name from git when --by is left out
-status: draft
+status: accepted
 area: lifecycle
 priority: p2
 human_review: required
