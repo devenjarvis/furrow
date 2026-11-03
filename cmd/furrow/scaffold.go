@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/devenjarvis/furrow/internal/config"
+	"github.com/devenjarvis/furrow/internal/gitx"
 	"github.com/devenjarvis/furrow/internal/scaffold"
 )
 
@@ -13,22 +15,85 @@ func init() {
 	register("new", "Start a draft spec with the next number", runNew)
 	register("area", "Start a living spec for one part of the product", runArea)
 	register("invariants", "List the product's invariants", runInvariants)
+	register("doctor", "Say whether bin/furrow's pinned version is behind the latest release", runDoctor)
 }
 
 func runInit(env *Env, args []string) int {
-	fs := newFlags(env, "init", "[--prefix P]")
+	fs := newFlags(env, "init", "[--prefix P] [--pin --checksums FILE [--version V]]")
 	prefix := fs.String("prefix", "", "spec id prefix (default: the folder's name, upper-cased)")
+	pin := fs.Bool("pin", false, "also write bin/furrow, a shim that downloads and checks a pinned release")
+	checksums := fs.String("checksums", "", "with --pin: the release's checksums.txt")
+	pinVersion := fs.String("version", version, "with --pin: the release to pin")
 	if pos, err := parseFlags(fs, args); err != nil {
 		return 2
 	} else if len(pos) > 0 {
 		fs.Usage()
 		return 2
 	}
+	// Check the pin before init writes anything, so a bad one leaves the repo as it was.
+	var shim string
+	if *pin {
+		if *checksums == "" {
+			v := *pinVersion
+			if v == "dev" {
+				v = "v0.1.0"
+			}
+			return fail(env, "Pinning needs the release's checksums. Download %s and pass --checksums checksums.txt.", scaffold.ChecksumsURL(v))
+		}
+		data, err := os.ReadFile(resolve(env.Dir, *checksums))
+		if err != nil {
+			return fail(env, "Couldn't read the checksums: %v", err)
+		}
+		if shim, err = scaffold.ShimText(*pinVersion, data); err != nil {
+			return fail(env, "%v", err)
+		}
+	} else if *checksums != "" {
+		return fail(env, "--checksums only works with --pin.")
+	}
 	res, err := scaffold.Init(env.Dir, *prefix)
+	if err == nil && *pin {
+		var pinned scaffold.InitResult
+		pinned, err = scaffold.WritePin(env.Dir, shim)
+		res.Entries = append(res.Entries, pinned.Entries...)
+		res.Notes = append(res.Notes, pinned.Notes...)
+	}
 	res.Text(env.Stdout)
 	if err != nil {
 		return fail(env, "%v", err)
 	}
+	return 0
+}
+
+// resolve makes a path from the command line absolute against the command's folder.
+func resolve(dir, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(dir, path)
+}
+
+func runDoctor(env *Env, args []string) int {
+	fs := newFlags(env, "doctor", "[--repo URL] [--json]")
+	repo := fs.String("repo", scaffold.ReleaseRepo, "the git repo whose v* tags are Furrow's releases")
+	asJSON := fs.Bool("json", false, "print JSON")
+	if pos, err := parseFlags(fs, args); err != nil {
+		return 2
+	} else if len(pos) > 0 {
+		fs.Usage()
+		return 2
+	}
+	root, _, err := config.Find(env.Dir)
+	if err != nil {
+		return fail(env, "%v", err)
+	}
+	st, err := scaffold.Doctor(root, gitx.Git{Dir: root}, *repo)
+	if err != nil {
+		return fail(env, "%v", err)
+	}
+	if *asJSON {
+		return printJSON(env, st)
+	}
+	st.Text(env.Stdout)
 	return 0
 }
 
