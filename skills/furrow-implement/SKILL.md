@@ -23,7 +23,7 @@ Its acceptance criteria are what you prove.
    screenshot. **Never tick a `human:` criterion**, even if you checked it yourself. It waits for the
    owner in `furrow review`.
 6. **Log decisions.** Add `- YYYY-MM-DD: Chose X because Y.` to the spec's `## Decisions` for
-   anything the spec didn't say.
+   anything the spec didn't say, in at most 30 words. Each one is a judgment call in the brief.
 7. **Keep the diagram current.** If the spec's `## What` has a ```` ```mermaid ```` diagram and
    your step changes what it shows, update it. Draw to the standard: a one-sentence caption above
    saying what it answers, a `Legend:` line below saying what a box, an arrow and each colour
@@ -33,10 +33,18 @@ Its acceptance criteria are what you prove.
    and after with the repo's own tools, as its `AGENTS.md` says, and put the images in the table.
    A screenshot is evidence for the owner, never a reason to tick a `human:` criterion (INV-3).
 9. **Fill in the brief.** The PR description is `furrow brief`'s output. Regenerate it if the
-   diff changed, then fill every `<!-- furrow:` placeholder. `## Behaviour` says what a user or
-   caller sees before and after, in at most 80 words, not which files changed. Save it to a file,
-   then run `furrow brief --check <file>` and `furrow territory --body-file <file>`. Both must
-   exit 0.
+   diff changed, then fill every `<!-- furrow:` placeholder, for an owner reading on a phone:
+   - `**Before:**` and `**After:**`: what a user or caller saw and sees now, at most 20 words
+     each, not which files changed.
+   - One "show it" under the After line: for a CLI, the command and its output; for a UI, the
+     screenshot; for a library, a call and its result. Paste real output, as an excerpt of at most
+     15 lines showing only the part that changed. With nothing to show: `No visible effect.`
+   - `## Review this`: at most 3 numbered items, each a place in the code where a decision was
+     made (`` `file` `name` ``) and the question to ask about it. The file list stays folded.
+   - `## Needs you`: each invariant's line says how this diff touches it, or `Not touched.`
+
+   Save it to a file, then run `furrow brief --check <file>` and
+   `furrow territory --body-file <file>`. Both must exit 0.
 10. **Hand it back.** `furrow done <REF>`. It sets the step's `merged: true` in this PR, so merging
     the PR unblocks whatever waits on it. It refuses if a covered non-human criterion is unticked.
 11. **Last step of the spec?** Fold what the spec changed into `specs/areas/<area>.md`'s

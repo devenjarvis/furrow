@@ -42,7 +42,7 @@ steps:
       - specs/areas/agents.md
     covers: [AC-8, AC-9, AC-10, AC-11]
     size: m
-    merged: false
+    merged: true
   - n: 4
     title: The spec brief has no Proof and asks only new questions
     after: [1, 2]
@@ -167,10 +167,10 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 - [x] AC-5: The sections come in the new order, Proof is a closing `<details>` with one line per non-human criterion, and `--json` has `judgment_calls` and `proof` (test: TestBriefLayoutAndProof)
 - [x] AC-6: `--check` reports a missing Before or After line, one over 20 words, a Behaviour that shows nothing, more than 3 Review items, and a judgment call over 30 words (test: TestBriefCheckReviewable)
 - [x] AC-7: The spec brief's Decision is Commits us to and Instead of lines, and `--check --spec` reports a missing one or one over 25 words (test: TestSpecBriefDecisionLines)
-- [ ] AC-8: The three skills describe the new brief (check: grep -q "Before:" skills/furrow-implement/SKILL.md && grep -q "Review this" skills/furrow-implement/SKILL.md && grep -q -i "show it" skills/furrow-verify/SKILL.md && grep -q "Instead of" skills/furrow-write/SKILL.md)
+- [x] AC-8: The three skills describe the new brief (check: grep -q "Before:" skills/furrow-implement/SKILL.md && grep -q "Review this" skills/furrow-implement/SKILL.md && grep -q -i "show it" skills/furrow-verify/SKILL.md && grep -q "Instead of" skills/furrow-write/SKILL.md)
 - [ ] AC-9: A step PR written with the new brief can be reviewed on a phone without wading through what doesn't need a person (human: open the first step PR made after this merges on your phone, and read it before the diff)
-- [ ] AC-10: `--check` ignores a placeholder inside a fence after Behaviour's After line, and still reports one inside a fence in any other section (test: TestBriefCheckFencedPlaceholders)
-- [ ] AC-11: furrow-implement keeps "show it" to an excerpt of at most 15 lines (check: grep -q "15 lines" skills/furrow-implement/SKILL.md)
+- [x] AC-10: `--check` ignores a placeholder inside a fence after Behaviour's After line, and still reports one inside a fence in any other section (test: TestBriefCheckFencedPlaceholders)
+- [x] AC-11: furrow-implement keeps "show it" to an excerpt of at most 15 lines (check: grep -q "15 lines" skills/furrow-implement/SKILL.md)
 - [x] AC-12: The spec brief ends without a Proof block (test: TestSpecBriefHasNoProof)
 - [x] AC-13: On an amendment, Your calls lists only questions added since the merge base, and says `None. Ready to accept.` when there are none (test: TestSpecBriefAmendmentCalls)
 
@@ -203,3 +203,6 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 - 2026-11-02: Chose to count only unindented numbered lines as Review this items, and to check every Judgment calls line, list marker excluded, against the 30-word cap.
 - 2026-11-03: Chose to match questions by their text before "Proposed:", spaces collapsed, so rewrapping one or changing its proposal doesn't ask it again.
 - 2026-11-03: Chose to add no `--json` key: the filtered Your calls is already in `sections`, so the JSON stays the Markdown's shape.
+- 2026-11-03: Chose to exempt only fenced lines after an unfenced `**After:**` line, narrowing the 2026-11-02 fence rule as AC-10 requires; a placeholder on the After line still counts.
+- 2026-11-03: Chose to move step 1's "fenced placeholder in Not done passes" case into TestBriefCheckFencedPlaceholders as a reported problem, because AC-10 reverses it.
+- 2026-11-03: Chose to leave `CheckSpec` counting every placeholder, fenced or not, because a spec brief has no "show it" to paste output into.
