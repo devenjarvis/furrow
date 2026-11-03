@@ -258,3 +258,68 @@ func TestTerritoryJSON(t *testing.T) {
 		t.Errorf("json = %s", data)
 	}
 }
+
+func TestTerritorySignoff(t *testing.T) {
+	r := setup(t)
+	g := gittest.Git(r.Root)
+	repo := load(t, r)
+	// Off a step branch: --signoff needs no step and ignores the branch name.
+	gittest.Must(t, r.Root, "switch", "-q", "-c", "signoff/fur-0007")
+
+	r.Write("specs/changes/0007-thing.md", "ticked\n")
+	r.Write("specs/changes/0008-other.md", "ticked\n")
+	r.Write("specs/archive/0009-old.md", "archived\n")
+	r.Write("specs/areas/core.md", "folded\n")
+	rep, err := territory.Check(g, repo, territory.Options{Signoff: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.ExitCode() != 0 || len(rep.Outside) != 0 || len(rep.Inside) != 4 {
+		t.Errorf("only specs: exit %d %+v", rep.ExitCode(), rep)
+	}
+	var b bytes.Buffer
+	rep.Text(&b)
+	if b.String() != "Sign-off PR: 4 files, all under specs/.\n" {
+		t.Errorf("text = %q", b.String())
+	}
+
+	// A code file, and a specs file outside changes/, archive/ and areas/, fail and are named.
+	r.Write("internal/thing/a.go", "package thing\n")
+	r.Write("specs/README.md", "changed\n")
+	rep, err = territory.Check(g, repo, territory.Options{Signoff: true, Body: "## Territory\n- internal/thing/a.go\n"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.ExitCode() != 1 || !reflect.DeepEqual(rep.Outside, []string{"internal/thing/a.go", "specs/README.md"}) || len(rep.Explained) != 0 {
+		t.Errorf("with code: exit %d %+v", rep.ExitCode(), rep)
+	}
+	b.Reset()
+	rep.Text(&b)
+	want := "Sign-off PR: 4 files under specs/.\n" +
+		"A sign-off PR changes only specs. Move internal/thing/a.go to its own PR.\n" +
+		"A sign-off PR changes only specs. Move specs/README.md to its own PR.\n"
+	if b.String() != want {
+		t.Errorf("text:\n%s\nwant:\n%s", b.String(), want)
+	}
+
+	// --json keeps today's shape.
+	data, _ := json.Marshal(rep)
+	var got map[string]any
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	wantJSON := map[string]any{
+		"step": "", "base": "origin/main",
+		"inside":    []any{"specs/archive/0009-old.md", "specs/areas/core.md", "specs/changes/0007-thing.md", "specs/changes/0008-other.md"},
+		"explained": []any{},
+		"outside":   []any{"internal/thing/a.go", "specs/README.md"},
+	}
+	if !reflect.DeepEqual(got, wantJSON) {
+		t.Errorf("json = %s", data)
+	}
+
+	// --signoff with --step is a usage error.
+	if _, err := territory.Check(g, repo, territory.Options{Signoff: true, Step: "FUR-0007.1"}); !errors.Is(err, territory.ErrSignoffWithStep) {
+		t.Errorf("--signoff --step: err = %v", err)
+	}
+}
