@@ -289,3 +289,42 @@ func TestLintOpenQuestionsIgnoreFences(t *testing.T) {
 		t.Errorf("fenced questions count: %v", got)
 	}
 }
+
+func TestLintTouchesNewFolder(t *testing.T) {
+	cases := []struct {
+		name    string
+		touches []string
+		want    string // "" for clean, else a substring of exactly one problem
+	}{
+		{"new folder under existing", []string{"specs/new/deeper/**"}, ""},
+		{"new file in new folder", []string{"specs/fresh/SKILL.md"}, ""},
+		{"brace in a deep segment", []string{"specs/{a,b}/x.go"}, ""},
+		{"one literal segment", []string{"README.md", "**", "nope/**"}, ""},
+		{"missing top-level", []string{"nope/x/**"}, `step 1 touches "nope/x/**", but the folder nope doesn't exist`},
+		{"top-level is a file", []string{"docs/product.md/x/y"}, ""},
+		{"top-level file not folder", []string{"go.mod/x/y"}, `the folder go.mod doesn't exist`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := spectest.New(t)
+			r.Write("go.mod", "module x\n")
+			r.Spec(spectest.Spec{Num: 1, Steps: []spectest.Step{{Touches: c.touches}}})
+			msgs := lintMessages(r.Load())
+			if c.want == "" {
+				if len(msgs) != 0 {
+					t.Errorf("want clean, got:\n%s", strings.Join(msgs, "\n"))
+				}
+				return
+			}
+			hits := 0
+			for _, m := range msgs {
+				if strings.Contains(m, c.want) {
+					hits++
+				}
+			}
+			if hits != 1 || len(msgs) != 1 {
+				t.Errorf("want exactly one problem containing %q, got:\n%s", c.want, strings.Join(msgs, "\n"))
+			}
+		})
+	}
+}

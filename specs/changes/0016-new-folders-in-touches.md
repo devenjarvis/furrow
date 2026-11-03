@@ -22,7 +22,7 @@ steps:
       - specs/areas/specs.md
     covers: [AC-1, AC-2, AC-3]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0016: A step may touch folders it creates
@@ -56,9 +56,9 @@ The message stays: `step 1 touches "Pakages/FetchCore/**", but the folder Pakage
 
 ## Acceptance criteria
 
-- [ ] AC-1: An accepted spec whose step touches a new folder under an existing top-level folder passes lint (test: TestLintTouchesNewFolder)
-- [ ] AC-2: A missing top-level folder still fails lint with the same message (test: TestLintRules)
-- [ ] AC-3: The specs area describes the rule as it now works (check: grep -q "top-level folder" specs/areas/specs.md)
+- [x] AC-1: An accepted spec whose step touches a new folder under an existing top-level folder passes lint (test: TestLintTouchesNewFolder)
+- [x] AC-2: A missing top-level folder still fails lint with the same message (test: TestLintRules)
+- [x] AC-3: The specs area describes the rule as it now works (check: grep -q "top-level folder" specs/areas/specs.md)
 
 ## Out of scope
 
@@ -72,3 +72,6 @@ The message stays: `step 1 touches "Pakages/FetchCore/**", but the folder Pakage
   PR adds the folder with a `.gitkeep`, which keeps the typo check meaningful.
 
 ## Decisions
+
+- 2026-11-03: Chose to cut literal segments at `{` inside lint.go, because `paths.Literal` stops only at `*?[` and `internal/paths` is outside this step.
+- 2026-11-03: Chose to quote `**`, `{…}` and comma items in spectest's YAML lists, because unquoted they aren't valid flow-list YAML.
