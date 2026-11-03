@@ -20,7 +20,7 @@ steps:
       - cmd/furrow/import.go
     covers: [AC-1, AC-2, AC-5, AC-6, AC-7, AC-8, AC-9]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: furrow import edition
     after: [1]
@@ -127,14 +127,14 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 
 ## Acceptance criteria
 
-- [ ] AC-1: Importing a fixture copy of Fetch's specs (each status, a dependency chain, a `kind`) gives a tree `furrow lint` passes, with done specs in `archive/`, merged (test: TestImportFetch)
-- [ ] AC-2: A ready spec whose only open boxes are `human:` ones comes out accepted and merged, and its boxes are listed by `furrow review` (test: TestImportFetchSignoffQueue)
+- [x] AC-1: Importing a fixture copy of Fetch's specs (each status, a dependency chain, a `kind`) gives a tree `furrow lint` passes, with done specs in `archive/`, merged (test: TestImportFetch)
+- [x] AC-2: A ready spec whose only open boxes are `human:` ones comes out accepted and merged, and its boxes are listed by `furrow review` (test: TestImportFetchSignoffQueue)
 - [ ] AC-3: Importing a copy of Edition's specs gives a lint-clean tree, and its step lines become steps (test: TestImportEdition)
 - [ ] AC-4: `furrow next` on the imported Edition tree offers the same steps as `scripts/next --offline` (check: compare the two outputs)
-- [ ] AC-5: An entry in touches naming the spec's own file is dropped, one naming another spec follows it, and `context` entries and links in bodies point to the new paths (test: TestImportFetchRewritesPaths)
-- [ ] AC-6: Missing `--areas`, or a spec no area matches, is refused with the message naming the spec, and nothing is written. An existing area file keeps its text and gains only History lines (test: TestImportFetchAreas)
-- [ ] AC-7: Each ticked `human:` box gets one "signed off by NAME (imported)" line, and without `--by` the import refuses (test: TestImportFetchSignoffLines)
-- [ ] AC-8: The dry run writes nothing and prints the plan, and `--write` refuses while the planned tree has problems (test: TestImportFetchDryRun)
+- [x] AC-5: An entry in touches naming the spec's own file is dropped, one naming another spec follows it, and `context` entries and links in bodies point to the new paths (test: TestImportFetchRewritesPaths)
+- [x] AC-6: Missing `--areas`, or a spec no area matches, is refused with the message naming the spec, and nothing is written. An existing area file keeps its text and gains only History lines (test: TestImportFetchAreas)
+- [x] AC-7: Each ticked `human:` box gets one "signed off by NAME (imported)" line, and without `--by` the import refuses (test: TestImportFetchSignoffLines)
+- [x] AC-8: The dry run writes nothing and prints the plan, and `--write` refuses while the planned tree has problems (test: TestImportFetchDryRun)
 - [ ] AC-9: A dry run on devenjarvis/fetch reads right to the owner (human: run `furrow import fetch --areas … --by …` in a Fetch clone and skim the plan)
 
 ## Out of scope
@@ -168,3 +168,8 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 - 2026-11-03: `context` entries that name a spec are rewritten too: Fetch's specs list other specs
   there (FETCH-0121 lists three), and lint doesn't check that context paths exist, so they'd
   break silently.
+- 2026-11-03: Link rewriting skips criterion lines, since INV-4 outranks the links rule; a criterion naming a spec path keeps its old text.
+- 2026-11-03: Relative links to a spec in the same folder stay as written; ones that cross folders become `../archive/…` or `../changes/…`.
+- 2026-11-03: Lint of the planned tree runs in a temp folder holding the repo's top-level folders and product file, so touches checks still see them. Only errors count as problems.
+- 2026-11-03: Furrow's README and template come from `scaffold.Init` run in a temp folder, because the assets aren't exported and scaffold is outside this step.
+- 2026-11-03: Every area in the areas file gets a file, even one with no archived specs yet, so lint finds each area a spec names.

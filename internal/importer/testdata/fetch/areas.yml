@@ -1,0 +1,23 @@
+# Areas for the fixture, in the order the importer tries them.
+areas:
+  - area: needs-you
+    title: Needs you
+    paths: [App/Sources/Features/NeedsYou/**]
+  - area: github
+    title: GitHub and enrichment
+    paths:
+      - Packages/AcmeCore/Sources/AcmeCore/GitHub/**
+  - area: triage
+    title: Rules and effort
+    paths:
+      - Packages/AcmeCore/Sources/AcmeCore/Rules/**
+  - area: profiles
+    title: Profiles
+    paths:
+      - App/Sources/Features/Profiles/**
+  - area: app
+    title: The app shell
+    paths:
+      - App/**
+specs:
+  FETCH-0005: profiles  # its touches are only Models/, which no area covers
