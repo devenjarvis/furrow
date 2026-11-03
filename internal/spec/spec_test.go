@@ -301,7 +301,7 @@ func TestLintTouchesNewFolder(t *testing.T) {
 		{"brace in a deep segment", []string{"specs/{a,b}/x.go"}, ""},
 		{"one literal segment", []string{"README.md", "**", "nope/**"}, ""},
 		{"missing top-level", []string{"nope/x/**"}, `step 1 touches "nope/x/**", but the folder nope doesn't exist`},
-		{"top-level is a file", []string{"docs/product.md/x/y"}, ""},
+		{"deeper segment is a file", []string{"docs/product.md/x/y"}, ""},
 		{"top-level file not folder", []string{"go.mod/x/y"}, `the folder go.mod doesn't exist`},
 	}
 	for _, c := range cases {
