@@ -80,3 +80,5 @@ Dates come from an injected clock.
 ## History
 
 - FUR-0010: furrow signoff takes the name from git when --by is left out (archived 2026-11-03)
+- FUR-0005: Hand back steps, sign off what a person must judge, archive finished specs (archived 2026-11-03)
+- FUR-0015: Sign off from anywhere: merging a sign-off PR is the sign-off (archived 2026-11-03)

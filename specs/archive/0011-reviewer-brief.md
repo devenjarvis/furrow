@@ -1,7 +1,7 @@
 ---
 id: FUR-0011
 title: A reviewer's brief for every step's PR
-status: accepted
+status: done
 area: brief
 priority: p1
 human_review: required
@@ -337,8 +337,8 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - [x] AC-21: Changed criteria shows added, removed and reworded criteria against the merge base, and is left out for a new spec file (test: TestSpecBriefChangedCriteria)
 - [x] AC-22: `--check --spec` reports missing sections, placeholders and a long Decision; `--spec` with `--step` exits 2; an archived or unknown spec exits 1 with its message (test: TestSpecBriefCheckAndFailures)
 - [x] AC-23: furrow-write opens the spec PR with `furrow brief --spec`, opens a review thread per open question, and moves an owner's overrule into `## Decisions` (check: grep -q "furrow brief --spec" skills/furrow-write/SKILL.md && grep -q -i "thread" skills/furrow-write/SKILL.md && grep -q "Owner chose" skills/furrow-write/SKILL.md)
-- [ ] AC-24: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
-- [ ] AC-25: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
+- [x] AC-24: A brief for a real step of this repo tells a reviewer what changed and where to look faster than its diff does (human: run `furrow brief` on a merged step of this spec and read it before the diff)
+- [x] AC-25: The skills' rules for the Behaviour, diagrams and visual proof match how the owner wants PRs reviewed (human: read the diffs to furrow-next, furrow-implement, furrow-verify and furrow-write)
 - [x] AC-26: The Diagram section's placeholder asks for a caption and is followed by a `Legend:` placeholder line (test: TestBriefDiagramAsksForLegend)
 - [x] AC-27: The standard's two copies and furrow-write give the caption, `Legend:`, 8-node and `flowchart TD` rules (check: for f in specs/README.md internal/scaffold/assets/README.md skills/furrow-write/SKILL.md; do grep -q "Legend:" $f && grep -q "flowchart TD" $f || exit 1; done)
 
@@ -401,3 +401,5 @@ current by the fold. `furrow init` writes `# visual: []` with a one-line comment
 - 2026-11-02: Chose to accept `https://` remotes with a user (`https://token@github.com/o/r`) as GitHub too, and to escape `[`, `]` and `\` in a linked question, because both occur and neither changes the link.
 - 2026-11-02: Chose to draw the brief area's diagram as data flow from `.furrow.yml`, the spec file and git through `brief.Build` and `brief.BuildSpec` to the PR description and back into `brief.Check`, with no colours, because it is the one picture a reviewer needs and fits in 8 nodes.
 - 2026-11-02: Chose to keep the full diagram rules in the brief area and a short paragraph in the specs area, because the brief is where Furrow asks for diagrams in a PR and the specs area says what a spec or area file holds.
+- 2026-11-03: AC-24 signed off by Deven Jarvis.
+- 2026-11-03: AC-25 signed off by Deven Jarvis.

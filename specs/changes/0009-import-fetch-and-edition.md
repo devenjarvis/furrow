@@ -135,7 +135,7 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 - [x] AC-6: Missing `--areas`, or a spec no area matches, is refused with the message naming the spec, and nothing is written. An existing area file keeps its text and gains only History lines (test: TestImportFetchAreas)
 - [x] AC-7: Each ticked `human:` box gets one "signed off by NAME (imported)" line, and without `--by` the import refuses (test: TestImportFetchSignoffLines)
 - [x] AC-8: The dry run writes nothing and prints the plan, and `--write` refuses while the planned tree has problems (test: TestImportFetchDryRun)
-- [ ] AC-9: A dry run on devenjarvis/fetch reads right to the owner (human: run `furrow import fetch --areas … --by …` in a Fetch clone and skim the plan)
+- [x] AC-9: A dry run on devenjarvis/fetch reads right to the owner (human: run `furrow import fetch --areas … --by …` in a Fetch clone and skim the plan)
 
 ## Out of scope
 
@@ -173,3 +173,4 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 - 2026-11-03: Lint of the planned tree runs in a temp folder holding the repo's top-level folders and product file, so touches checks still see them. Only errors count as problems.
 - 2026-11-03: Furrow's README and template come from `scaffold.Init` run in a temp folder, because the assets aren't exported and scaffold is outside this step.
 - 2026-11-03: Every area in the areas file gets a file, even one with no archived specs yet, so lint finds each area a spec names.
+- 2026-11-03: AC-9 signed off by Deven Jarvis.

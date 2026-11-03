@@ -150,3 +150,6 @@ most 8 nodes, drawn `flowchart TD`; and behaviour, what flows where, not a call 
 names a real file, package, type or function.
 
 ## History
+
+- FUR-0011: A reviewer's brief for every step's PR (archived 2026-11-03)
+- FUR-0014: Briefs a person can review on a phone (archived 2026-11-03)
