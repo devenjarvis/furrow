@@ -1,7 +1,7 @@
 ---
 id: FUR-0016
 title: A step may touch folders it creates
-status: accepted
+status: done
 area: specs
 priority: p1
 human_review: optional

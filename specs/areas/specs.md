@@ -60,3 +60,5 @@ paused or done.
 touches `main.go`. `furrow help` lists them.
 
 ## History
+
+- FUR-0016: A step may touch folders it creates (archived 2026-11-03)
