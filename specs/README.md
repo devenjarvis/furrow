@@ -88,8 +88,8 @@ remote. `furrow next` reads the remote's branches, so no two agents get the same
 | `## Decisions` | grows | `- 2026-11-01: Chose X because Y.` Written while building. |
 | `## Notes for the agent` | optional | Gotchas, prior art, fixtures. |
 
-A ticked `human:` criterion needs a line in `## Decisions` that `furrow signoff` writes:
-`- 2026-11-01: AC-4 signed off by Deven.`
+A ticked `human:` criterion needs a line in `## Decisions`, written by `furrow signoff` in a
+sign-off PR: `- 2026-11-01: AC-4 signed off by Deven.` Merging that PR is the sign-off.
 
 A spec that changes how parts connect or how something flows (a new component, a changed call
 path, a state machine) draws it in `## What` as a ```` ```mermaid ```` diagram. It shows only what
@@ -137,6 +137,19 @@ diagram in `## Behaviour`, and the fold on a spec's last step keeps it current.
    except `human:` ones. Run `furrow done FUR-NNNN.N`. If this was the last step, fold the change into
    the area spec.
 7. Mark the PR ready.
+
+### Signing off
+
+A `human:` criterion is signed off in a sign-off PR, never in a step's PR, and only when the owner
+asks.
+
+1. `furrow review` lists what waits. Ask the owner which criteria they've checked, and how.
+2. On a branch from the base, `furrow signoff FUR-0005 AC-8 FUR-0012 AC-5 --by <owner>` ticks
+   exactly those and writes each sign-off line. `--by` names the person who checked, never the agent.
+3. `furrow territory --signoff` proves the diff changes only specs.
+4. Open one PR titled `Sign off: FUR-0005 AC-8, FUR-0012 AC-5`.
+5. Merge it only when the owner says to, in their own words. Merging it is the sign-off. Closing it
+   says "not yet".
 
 ### When the spec is wrong
 

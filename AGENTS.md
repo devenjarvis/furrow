@@ -62,6 +62,8 @@ specs/             the work
 
 ## Never
 
-- Sign off a `human:` criterion, or edit a criterion's text to make it pass (INV-3, INV-4).
+- Tick a `human:` criterion by hand, sign one off unless the owner asks (then use the
+  `furrow-signoff` skill, which opens a sign-off PR), merge a sign-off PR without the owner's own
+  words, or edit a criterion's text to make it pass (INV-3, INV-4).
 - Add a dependency, or shell out to anything but `git`.
 - Work outside your step's `touches` without explaining it under "## Territory" in the PR.

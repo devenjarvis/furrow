@@ -8,7 +8,8 @@ without stepping on each other.
 - `furrow next --agents 4` hands out four steps that are unblocked and don't overlap.
 - `furrow claim` takes a step by creating its branch on the remote. That's atomic, so one agent wins.
 - `furrow territory` proves a diff stayed inside its step.
-- Work unblocks on merge. What only a person can judge waits in `furrow review` for `furrow signoff`.
+- Work unblocks on merge. What only a person can judge waits in `furrow review`. `furrow signoff`
+  ticks it in a sign-off PR, from any session, and the owner merging that PR is the sign-off.
 - Finished specs are archived. Each area keeps a **living spec** of how it works now.
 
 It's one Go binary that needs only `git`, plus a Claude Code plugin with skills for single agents

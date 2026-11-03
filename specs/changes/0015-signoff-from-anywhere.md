@@ -49,7 +49,7 @@ steps:
       - skills/**
     covers: [AC-6, AC-7, AC-8, AC-9]
     size: m
-    merged: false
+    merged: true
 ---
 
 # FUR-0015: Sign off from anywhere: merging a sign-off PR is the sign-off
@@ -158,9 +158,9 @@ is rebased, and `furrow signoff` is run again if its criteria moved.
 - [x] AC-3: One `signoff` call ticks criteria on two specs and archives each one it completes (test: TestSignoffSeveralSpecs)
 - [x] AC-4: If any criterion in any group is refused, or the arguments don't start with a spec id, no file changes (test: TestSignoffSeveralSpecsAllOrNothing)
 - [x] AC-5: `territory --signoff` passes a diff under `changes/`, `archive/` and `areas/`, and fails one that also changes a code file, naming it (test: TestTerritorySignoff)
-- [ ] AC-6: INV-3 says merging a sign-off PR is the sign-off, by the owner or on the owner's own words (check: grep -q "sign-off PR" docs/product.md && ! grep -q "refuses to run inside an agent session" docs/product.md)
-- [ ] AC-7: Both copies of the standard describe sign-off PRs (check: grep -q "sign-off PR" specs/README.md && grep -q "sign-off PR" internal/scaffold/assets/README.md)
-- [ ] AC-8: `furrow-signoff` exists, and no skill or doc still says `signoff` refuses in an agent session (check: test -f skills/furrow-signoff/SKILL.md && ! grep -rqi "refuses to run in your session\|signoff refuses" skills README.md AGENTS.md CLAUDE.md)
+- [x] AC-6: INV-3 says merging a sign-off PR is the sign-off, by the owner or on the owner's own words (check: grep -q "sign-off PR" docs/product.md && ! grep -q "refuses to run inside an agent session" docs/product.md)
+- [x] AC-7: Both copies of the standard describe sign-off PRs (check: grep -q "sign-off PR" specs/README.md && grep -q "sign-off PR" internal/scaffold/assets/README.md)
+- [x] AC-8: `furrow-signoff` exists, and no skill or doc still says `signoff` refuses in an agent session (check: test -f skills/furrow-signoff/SKILL.md && ! grep -rqi "refuses to run in your session\|signoff refuses" skills README.md AGENTS.md CLAUDE.md)
 - [ ] AC-9: From a cloud session on a phone, the owner gets a criterion signed off end to end (human: ask Claude to sign off a waiting criterion, read its sign-off PR, and merge it or ask Claude to)
 
 ## Out of scope
@@ -194,3 +194,6 @@ is rebased, and `furrow signoff` is run again if its criteria moved.
 - 2026-11-03: Chose to report every refusal at once, one per line, as `done` does, rather than stopping at the first.
 - 2026-11-03: Chose to treat a nil Getenv as an agent session, so a caller without an environment never falls back to git's name.
 - 2026-11-03: Chose to keep `SignoffRequest.ID` and `Criteria` as one group before `Args`, so one-spec callers and tests stay unchanged.
+- 2026-11-03: Chose to put "Signing off" under "How an agent works a step" as its own numbered subsection, so both standards list the same five moves.
+- 2026-11-03: Chose to have furrow-signoff branch as `signoff/<date>-<slug>`, a name `furrow claims` ignores, since a sign-off PR has no step.
+- 2026-11-03: Chose to keep CLAUDE.md's `CLAUDECODE=1` line, now saying `--by` is required, because that's what the variable still changes.

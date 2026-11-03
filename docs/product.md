@@ -26,9 +26,10 @@ hand it back.
    `furrow territory` proves the diff stayed inside.
 6. **Hand back:** `furrow done FUR-0007.2` marks the step merged in the same PR, so merging the PR
    makes it true. Steps that waited on it unblock at once.
-7. **Sign off:** criteria that a person must judge (`human:`) wait in `furrow review`. The owner
-   runs `furrow signoff`. When nothing is left, the spec is archived and what it changed lives on
-   in its area's living spec.
+7. **Sign off:** criteria that a person must judge (`human:`) wait in `furrow review`. Once the
+   owner has checked them, `furrow signoff` ticks them on a branch, in a sign-off PR that changes
+   only specs, and merging that PR is the sign-off. When nothing is left, the spec is archived and
+   what it changed lives on in its area's living spec.
 
 ## Words
 
@@ -50,9 +51,9 @@ These are never broken. A spec that touches one lists it under `invariants:`, an
   and the remote's branches. No server, no database, no hidden state, no cache that can disagree.
 - **INV-2: Git is enough.** Every command works with only `git` and a remote. A forge's API (GitHub
   or another) can add detail, but nothing depends on it.
-- **INV-3: Agents never sign off for a person.** A `human:` criterion is ticked only through
-  `furrow signoff`, which refuses to run inside an agent session, and every ticked `human:`
-  criterion has a sign-off line naming who checked it.
+- **INV-3: Agents never sign off for a person.** A `human:` criterion is ticked only in a sign-off
+  PR, and only merging that PR signs it off: the owner merges it, or asks an agent, in their own
+  words, to merge it. Every ticked `human:` criterion has a sign-off line naming who checked it.
 - **INV-4: Criteria aren't bent.** Furrow never rewrites the text of an acceptance criterion. It
   only ticks boxes. A criterion that's wrong is changed by a person, in a spec PR.
 - **INV-5: One step, one owner.** At most one claim exists per step, and claiming is atomic.
