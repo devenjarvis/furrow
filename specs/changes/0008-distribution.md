@@ -34,7 +34,7 @@ steps:
       - cmd/furrow/scaffold.go
     covers: [AC-4, AC-5]
     size: m
-    merged: false
+    merged: true
 ---
 
 # FUR-0008: Releases, Homebrew, CI, and a pinned copy for repos that use Furrow
@@ -59,7 +59,7 @@ version, and the shim fetches exactly that binary and checks its checksum.
 - [x] AC-1: CI runs `make check` on every PR (check: a PR shows the job)
 - [ ] AC-2: CI fails a PR whose diff leaves its step's territory unexplained (human: a test PR)
 - [ ] AC-3: Tagging `v0.1.0` produces four binaries, checksums and a formula (human: the release page)
-- [ ] AC-4: `bin/furrow` refuses a binary whose checksum doesn't match (test: TestShimChecksum)
+- [x] AC-4: `bin/furrow` refuses a binary whose checksum doesn't match (test: TestShimChecksum)
 - [ ] AC-5: The shim works in a cloud session through its proxy (human: run it in a session)
 
 ## Out of scope
@@ -81,3 +81,11 @@ version, and the shim fetches exactly that binary and checks its checksum.
 - 2026-11-03: Chose the tap `devenjarvis/homebrew-tap` and a `HOMEBREW_TAP_GITHUB_TOKEN` secret because the release's own token can't push to another repo.
 - 2026-11-03: Chose a Homebrew cask over a formula because GoReleaser v2 deprecated `brews`; `goreleaser check` fails on it. The cask installs the same binary.
 - 2026-11-03: Chose `go run goreleaser@v2.19.0` in the workflow over its action, so the version is pinned and nothing joins go.mod (INV-7).
+- 2026-11-03: Chose `init --pin --checksums FILE` (the release's checksums.txt) because the binary can't download (INV-7) or know its own archive's checksum.
+- 2026-11-03: Chose `--version`, defaulting to the running furrow's version, so a release build pins itself and a dev build must name a tag.
+- 2026-11-03: Chose to write `.furrow/.gitignore` over editing the repo's `.gitignore`, because init never overwrites a file.
+- 2026-11-03: Chose to keep an existing `bin/furrow`, like every file init writes; moving the pin is delete it and rerun `furrow init --pin`.
+- 2026-11-03: Chose `git ls-remote --tags` for `furrow doctor`'s latest release, so it needs only git (INV-2, INV-7); pre-releases count only when nothing else is tagged.
+- 2026-11-03: Chose a `FURROW_DOWNLOAD_URL` override in the shim for another release host; TestShimChecksum uses it with a file:// URL, so no test touches the network.
+- 2026-11-03: Chose to exit 0 when the pin is behind, so CI doesn't start failing the day a release comes out.
+- 2026-11-03: Chose to describe `init --pin` and `doctor` in the distribution area only, because `specs/areas/scaffolding.md` is outside this step's territory.
