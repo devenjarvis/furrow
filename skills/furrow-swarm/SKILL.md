@@ -22,7 +22,8 @@ that nothing else can run beside.
    - claim it first with `furrow claim <ref>`. On exit 3, stop and report;
    - follow the `furrow-next` reading list and the `furrow-implement` steps;
    - the exact territory: the step's `touches`, plus its spec file and area file;
-   - never tick a `human:` criterion, never run `furrow signoff`, never edit a criterion's text;
+   - never tick a `human:` criterion, never sign off (no `furrow signoff`, no sign-off PR), never
+     edit a criterion's text;
    - commit on the step branch, push, and report: claim output, files changed, tests and results,
      `furrow territory` and `furrow lint` output, decisions, and any spec problem.
 3. **As each agent reports**, run `furrow-verify` on its branch yourself, starting from the agent's
@@ -39,7 +40,8 @@ that nothing else can run beside.
 
 `furrow next` says nothing is ready and no agent is out. Then report to the owner:
 - what merged, by ref, and anything an agent decided that they should know;
-- `furrow review`: the `human:` checks waiting for them;
+- `furrow review`: the `human:` checks waiting for them, each with its spec, criterion and what
+  to look at, so they can ask for a sign-off PR (`furrow-signoff`) once they've checked;
 - spec problems, spec PRs waiting for the owner to merge, and blocked steps with their reasons.
 
 ## Watch for
@@ -47,5 +49,6 @@ that nothing else can run beside.
 - An agent that edits outside its territory: `furrow territory` catches it. Send it back.
 - Hidden dependencies: two "parallel" steps that both need something neither owns. Fix the spec's
   `after` in a spec commit before handing out more work.
-- Never let an agent sign off or accept a spec. Those are the owner's. You merge step PRs that pass
+- Never let an agent you started sign off or accept a spec. Those are the owner's. A sign-off PR
+  comes only when the owner asks for one, through `furrow-signoff`. You merge step PRs that pass
   review, but never merge a spec PR: merging it is the owner's decision.

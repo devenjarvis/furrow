@@ -32,4 +32,5 @@ pinned `bin/furrow`) knows what's free.
    work, write it under "Spec problem" in the PR and stop. Otherwise continue with
    `furrow-implement`.
 
-Never tick a `human:` criterion, run `furrow signoff`, or edit a criterion's text.
+Never tick a `human:` criterion by hand, never sign off unless the owner asks (then use
+`furrow-signoff`), and never edit a criterion's text.

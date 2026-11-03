@@ -20,8 +20,9 @@ Its acceptance criteria are what you prove.
 4. **Run the repo's check**: `check:` in `.furrow.yml`, or `make check`. Fix everything it reports.
 5. **Tick with evidence.** In the spec, tick each covered criterion you proved: `- [ ]` to `- [x]`.
    Put the evidence in the PR next to each one: the test name, a command and its output, or a
-   screenshot. **Never tick a `human:` criterion**, even if you checked it yourself. It waits for the
-   owner in `furrow review`.
+   screenshot. **Never tick a `human:` criterion by hand**, even if you checked it yourself. It waits
+   for the owner in `furrow review`. Never sign off unless the owner asks, and then use
+   `furrow-signoff`, in a sign-off PR of its own.
 6. **Log decisions.** Add `- YYYY-MM-DD: Chose X because Y.` to the spec's `## Decisions` for
    anything the spec didn't say, in at most 30 words. Each one is a judgment call in the brief.
 7. **Keep the diagram current.** If the spec's `## What` has a ```` ```mermaid ```` diagram and
