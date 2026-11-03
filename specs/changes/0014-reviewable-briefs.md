@@ -50,7 +50,7 @@ steps:
       - internal/brief/spec*
     covers: [AC-12, AC-13]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0014: Briefs a person can review on a phone
@@ -171,8 +171,8 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 - [ ] AC-9: A step PR written with the new brief can be reviewed on a phone without wading through what doesn't need a person (human: open the first step PR made after this merges on your phone, and read it before the diff)
 - [ ] AC-10: `--check` ignores a placeholder inside a fence after Behaviour's After line, and still reports one inside a fence in any other section (test: TestBriefCheckFencedPlaceholders)
 - [ ] AC-11: furrow-implement keeps "show it" to an excerpt of at most 15 lines (check: grep -q "15 lines" skills/furrow-implement/SKILL.md)
-- [ ] AC-12: The spec brief ends without a Proof block (test: TestSpecBriefHasNoProof)
-- [ ] AC-13: On an amendment, Your calls lists only questions added since the merge base, and says `None. Ready to accept.` when there are none (test: TestSpecBriefAmendmentCalls)
+- [x] AC-12: The spec brief ends without a Proof block (test: TestSpecBriefHasNoProof)
+- [x] AC-13: On an amendment, Your calls lists only questions added since the merge base, and says `None. Ready to accept.` when there are none (test: TestSpecBriefAmendmentCalls)
 
 ## Out of scope
 
@@ -201,3 +201,5 @@ The last step folds this into `specs/areas/brief.md` and `specs/areas/agents.md`
 - 2026-11-02: Chose to have `--check` ignore placeholders inside fenced code blocks, closed by a fence at least as long, so "show it" can paste raw `furrow brief` output.
 - 2026-11-02: Chose to sort judgment calls by their dated lines before dropping the dates, so they stay in date order.
 - 2026-11-02: Chose to count only unindented numbered lines as Review this items, and to check every Judgment calls line, list marker excluded, against the 30-word cap.
+- 2026-11-03: Chose to match questions by their text before "Proposed:", spaces collapsed, so rewrapping one or changing its proposal doesn't ask it again.
+- 2026-11-03: Chose to add no `--json` key: the filtered Your calls is already in `sections`, so the JSON stays the Markdown's shape.

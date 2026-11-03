@@ -137,7 +137,11 @@ func BuildSpec(g gitx.Git, repo *spec.Repo, opt SpecOptions) (*SpecBrief, error)
 
 	b := &SpecBrief{Spec: s.ID, Base: base, Plan: []PlanWave{}, Collisions: []Collision{}, ChangedCriteria: []CriterionChange{}}
 	b.add(Decision, decisionPlaceholder)
-	b.add(YourCalls, yourCalls(OpenQuestions(string(raw)), s.File, githubRepo(g, repo, opt.PR), opt.PR))
+	qs := OpenQuestions(string(raw))
+	if existed {
+		qs = newQuestions(OpenQuestions(old), qs)
+	}
+	b.add(YourCalls, yourCalls(qs, s.File, githubRepo(g, repo, opt.PR), opt.PR))
 
 	var oldDecisions []string
 	if existed {
@@ -179,9 +183,14 @@ func (b *SpecBrief) add(heading, markdown string) {
 	b.Sections = append(b.Sections, Section{Heading: heading, Markdown: markdown})
 }
 
-// Markdown is the spec's brief as it goes in the PR description.
+// Markdown is the spec's brief as it goes in the PR description. It has no Proof block: that
+// belongs to a step brief.
 func (b *SpecBrief) Markdown() string {
-	return (&Brief{Sections: b.Sections}).Markdown()
+	parts := make([]string, len(b.Sections))
+	for i, s := range b.Sections {
+		parts[i] = "## " + s.Heading + "\n\n" + s.Markdown + "\n"
+	}
+	return strings.Join(parts, "\n")
 }
 
 // findSpec returns the spec id names, if it's in changes/.
@@ -258,6 +267,24 @@ func OpenQuestions(raw string) []Question {
 		if ok {
 			out[i].Proposed = strings.TrimSpace(p)
 		}
+	}
+	return out
+}
+
+// newQuestions returns the questions in now whose text, spaces collapsed, isn't a question in
+// old, the spec file at the merge base. They're numbered from 1 in file order.
+func newQuestions(old, now []Question) []Question {
+	decided := map[string]bool{}
+	for _, q := range old {
+		decided[strings.Join(strings.Fields(q.Text), " ")] = true
+	}
+	var out []Question
+	for _, q := range now {
+		if decided[strings.Join(strings.Fields(q.Text), " ")] {
+			continue
+		}
+		q.N = len(out) + 1
+		out = append(out, q)
 	}
 	return out
 }
