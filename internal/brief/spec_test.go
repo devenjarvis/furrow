@@ -491,3 +491,65 @@ func TestSpecBriefDecisionLines(t *testing.T) {
 		t.Errorf("not deterministic: %q then %q", a, c)
 	}
 }
+
+func TestSpecBriefHasNoProof(t *testing.T) {
+	r, _ := specRepo(t)
+	r.Spec(draft(questions, "", nil))
+	md := buildSpec(t, r, brief.SpecOptions{Offline: true}).Markdown()
+	if strings.Contains(md, "<details><summary>Proof") || strings.Contains(md, "Proof:") {
+		t.Errorf("the spec brief has a Proof block:\n%s", md)
+	}
+	if !strings.HasSuffix(md, "2 steps: 1 m, 1 s.\n") {
+		t.Errorf("the spec brief should end with its last section:\n%s", md)
+	}
+}
+
+func TestSpecBriefAmendmentCalls(t *testing.T) {
+	// The base has spec 7 with three questions. The branch rewraps one, and adds one.
+	r, _ := specRepo(t, draft(questions, "", nil))
+	amended := "- Is it called   thing? Proposed: no, it changed.\n" +
+		"- Should it\n  be fast?\n" +
+		"- Does it wrap? Proposed: yes, over\n  two lines.\n" +
+		"- Is it new? Proposed: yes.\n"
+	r.Spec(draft(amended, "", nil))
+	b := buildSpec(t, r, brief.SpecOptions{Offline: true})
+	calls := strings.Join([]string{
+		brief.YourCallsIntro,
+		"",
+		"**Q1** Is it new? (" + draftFile + ":" + itoa(lineOf(t, r, draftFile, "- Is it new")) + ")",
+		"Proposed: yes.",
+	}, "\n")
+	if got := specSection(t, b, "Your calls"); got != calls {
+		t.Errorf("Your calls =\n%s\nwant\n%s", got, calls)
+	}
+
+	// With a PR on GitHub, the new question links to its line.
+	gittest.Must(t, r.Root, "remote", "set-url", "origin", "https://github.com/o/r.git")
+	sum := sha256.Sum256([]byte(draftFile))
+	link := "**Q1** [Is it new?](https://github.com/o/r/pull/42/files#diff-" + hex.EncodeToString(sum[:]) + "R" +
+		itoa(lineOf(t, r, draftFile, "- Is it new")) + ")"
+	if got := specSection(t, buildSpec(t, r, brief.SpecOptions{PR: 42, Offline: true}), "Your calls"); !strings.Contains(got, link) || strings.Contains(got, "**Q2**") {
+		t.Errorf("Your calls with --pr should hold only %s:\n%s", link, got)
+	}
+
+	// An amendment that adds no question is ready to accept, and --check still wants the section.
+	r.Spec(draft(questions, "- 2026-11-03: Chose A because B.\n", nil))
+	b = buildSpec(t, r, brief.SpecOptions{Offline: true})
+	if got := specSection(t, b, "Your calls"); got != "None. Ready to accept." {
+		t.Errorf("Your calls with no new question = %q", got)
+	}
+	md := b.Markdown()
+	if rep := brief.CheckSpec(b, strings.Replace(md, "## Your calls\n\nNone. Ready to accept.\n\n", "", 1)); rep.OK {
+		t.Error("--check --spec passed a brief with no ## Your calls")
+	}
+
+	// A spec file new on the branch asks every question, as before.
+	r, _ = specRepo(t)
+	r.Spec(draft(questions, "", nil))
+	got := specSection(t, buildSpec(t, r, brief.SpecOptions{Offline: true}), "Your calls")
+	for _, q := range []string{"**Q1** Is it called thing?", "**Q2** Should it be fast?", "**Q3** Does it wrap?"} {
+		if !strings.Contains(got, q) {
+			t.Errorf("a new spec's Your calls has no %s:\n%s", q, got)
+		}
+	}
+}
