@@ -35,6 +35,17 @@ func has(list []string, v string) bool {
 	return false
 }
 
+// literal is the entry's segments before the first one with a glob character, `{` included.
+func literal(entry string) []string {
+	lit := paths.Literal(entry)
+	for i, seg := range lit {
+		if strings.Contains(seg, "{") {
+			return lit[:i]
+		}
+	}
+	return lit
+}
+
 // Lint checks every rule in specs/README.md. Problems come back in a fixed order: load problems,
 // then specs by number, then areas by name, then repo-wide ones.
 func Lint(r *Repo) []Problem {
@@ -128,23 +139,19 @@ func Lint(r *Repo) []Problem {
 				}
 			}
 		}
-		// 8. Touches folders exist.
+		// 8. Touches' top-level folders exist. Deeper folders may be ones the step creates.
 		if !s.Archived && s.Status == Accepted {
 			for _, st := range s.Steps {
 				if StepMerged(st) {
 					continue
 				}
 				for _, t := range st.Touches {
-					lit := paths.Literal(paths.Resolve(t, r.Config.Aliases))
-					if len(lit) == 0 {
+					lit := literal(paths.Resolve(t, r.Config.Aliases))
+					if len(lit) < 2 {
 						continue
 					}
-					dir := strings.Join(lit[:len(lit)-1], "/")
-					if dir == "" {
-						continue
-					}
-					if info, err := os.Stat(filepath.Join(r.Root, dir)); err != nil || !info.IsDir() {
-						add(f, "step %d touches %q, but the folder %s doesn't exist", st.N, t, dir)
+					if info, err := os.Stat(filepath.Join(r.Root, lit[0])); err != nil || !info.IsDir() {
+						add(f, "step %d touches %q, but the folder %s doesn't exist", st.N, t, lit[0])
 					}
 				}
 			}

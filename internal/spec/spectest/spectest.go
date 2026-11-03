@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -122,8 +123,17 @@ func (r *Repo) Spec(s Spec) string {
 	return s.Path()
 }
 
+// list renders a YAML flow list, quoting items that YAML would read as something else (`**`,
+// `{a,b}`).
 func list(items []string) string {
-	return "[" + strings.Join(items, ", ") + "]"
+	out := make([]string, len(items))
+	for i, it := range items {
+		out[i] = it
+		if strings.ContainsAny(it, ",{}[]") || strings.HasPrefix(it, "*") {
+			out[i] = strconv.Quote(it)
+		}
+	}
+	return "[" + strings.Join(out, ", ") + "]"
 }
 
 // Text renders a fixture spec.

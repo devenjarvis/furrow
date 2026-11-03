@@ -25,7 +25,7 @@ steps:
       - .github/**
     covers: [AC-3]
     size: s
-    merged: false
+    merged: true
   - n: 3
     title: A pinned shim for repos that use Furrow
     after: [2]
@@ -78,3 +78,6 @@ version, and the shim fetches exactly that binary and checks its checksum.
 - 2026-11-03: Chose to recreate the head branch at CI's merge commit because territory reads the step from the branch, and checkout leaves HEAD detached.
 - 2026-11-03: Chose to rerun CI when a PR description is edited, so a `## Territory` explanation added later can clear the check.
 - 2026-11-03: Chose `actions/checkout@v5` and `actions/setup-go@v6` because the v4/v5 majors warned that Node.js 20 is deprecated on the first CI run.
+- 2026-11-03: Chose the tap `devenjarvis/homebrew-tap` and a `HOMEBREW_TAP_GITHUB_TOKEN` secret because the release's own token can't push to another repo.
+- 2026-11-03: Chose a Homebrew cask over a formula because GoReleaser v2 deprecated `brews`; `goreleaser check` fails on it. The cask installs the same binary.
+- 2026-11-03: Chose `go run goreleaser@v2.19.0` in the workflow over its action, so the version is pinned and nothing joins go.mod (INV-7).

@@ -1,0 +1,39 @@
+# Releases: a `v*` tag runs `make check`, then GoReleaser (.goreleaser.yaml) builds macOS and
+# Linux binaries for arm64 and amd64, publishes them with checksums on the release page, and
+# updates the Homebrew cask in devenjarvis/homebrew-tap.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the GitHub release and upload its files
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      # The whole history and the tags, so GoReleaser can find the previous tag for the changelog.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: make check
+        run: make check
+      # Run GoReleaser at a pinned version with `go run`, so nothing joins go.mod (INV-7).
+      - name: goreleaser release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # A token that can push to devenjarvis/homebrew-tap. The release's own token can't.
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          # GoReleaser may need a newer Go than go.mod's; let `go run` fetch it.
+          GOTOOLCHAIN: auto
+        run: go run github.com/goreleaser/goreleaser/v2@v2.19.0 release --clean
