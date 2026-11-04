@@ -147,7 +147,7 @@ func Fetch(o Options) (*Plan, error) {
 	if strings.TrimSpace(o.AreasFile) == "" {
 		return nil, errors.New(NoAreas)
 	}
-	af, err := readAreas(filepath.Join(o.Root, o.AreasFile))
+	af, err := readAreas(areasPath(o.Root, o.AreasFile))
 	if err != nil {
 		return nil, err
 	}
@@ -365,6 +365,14 @@ func standardTree(root, specsDir, prefix string) ([]fileWrite, error) {
 		}
 	}
 	return texts, nil
+}
+
+// areasPath is the --areas file: as given when absolute, else from the repo root.
+func areasPath(root, file string) string {
+	if filepath.IsAbs(file) {
+		return file
+	}
+	return filepath.Join(root, file)
 }
 
 func readAreas(path string) (areasFile, error) {

@@ -120,7 +120,7 @@ func Edition(o Options) (*Plan, error) {
 	if strings.TrimSpace(o.AreasFile) == "" {
 		return nil, errors.New(NoAreas)
 	}
-	af, err := readAreas(filepath.Join(o.Root, o.AreasFile))
+	af, err := readAreas(areasPath(o.Root, o.AreasFile))
 	if err != nil {
 		return nil, err
 	}

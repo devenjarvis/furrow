@@ -180,6 +180,12 @@ func TestImportEditionRefusals(t *testing.T) {
 		t.Error("the dry run changed files")
 	}
 
+	abs := o
+	abs.AreasFile = filepath.Join(root, "areas.yml")
+	if p, err := Edition(abs); err != nil || len(p.Problems) > 0 {
+		t.Errorf("an absolute --areas path: %v %v", err, p)
+	}
+
 	o.AreasFile = ""
 	if _, err := Edition(o); err == nil || err.Error() != NoAreas {
 		t.Errorf("no --areas: %v", err)
