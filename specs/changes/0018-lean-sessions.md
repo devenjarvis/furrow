@@ -34,7 +34,7 @@ steps:
       - specs/areas/scheduling.md
     covers: [AC-6, AC-7, AC-8, AC-9, AC-10, AC-11]
     size: m
-    merged: false
+    merged: true
   - n: 3
     title: The plugin ships builder, verifier and chores agents
     after: []
