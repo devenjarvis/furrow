@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -30,6 +31,8 @@ type Config struct {
 	// Visual lists globs or aliases, resolved like touches. A diff touching one needs visual
 	// proof in its brief. Empty by default.
 	Visual []string `yaml:"visual"`
+	// Stack is how many unmerged, handed-back steps a new step may sit on. 0, the default, is off.
+	Stack int `yaml:"-"`
 }
 
 // Default returns the configuration used for every key a .furrow.yml leaves out.
@@ -102,8 +105,39 @@ func Parse(data []byte) (Config, error) {
 			cfg.Visual = append(cfg.Visual, v)
 		}
 	}
+	stack, err := parseStack(data)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.Stack = stack
 	if !strings.Contains(cfg.Branch, "{num}") || !strings.Contains(cfg.Branch, "{step}") {
 		return Config{}, fmt.Errorf("%s: branch %q must contain {num} and {step}", FileName, cfg.Branch)
 	}
 	return cfg, nil
+}
+
+// parseStack reads the stack key: a whole number from 0 to 9, and 0 when it's left out.
+func parseStack(data []byte) (int, error) {
+	var raw struct {
+		Stack yaml.Node `yaml:"stack"`
+	}
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return 0, fmt.Errorf("%s: %v", FileName, err)
+	}
+	n := &raw.Stack
+	if n.Kind == 0 || (n.Kind == yaml.ScalarNode && n.Tag == "!!null") {
+		return 0, nil
+	}
+	if n.Kind == yaml.ScalarNode && n.Tag == "!!int" {
+		if v, err := strconv.Atoi(n.Value); err == nil && v >= 0 && v <= 9 {
+			return v, nil
+		}
+	}
+	got := n.Value
+	if n.Kind != yaml.ScalarNode {
+		if out, err := yaml.Marshal(n); err == nil {
+			got = strings.TrimSpace(string(out))
+		}
+	}
+	return 0, fmt.Errorf("%s: stack must be a whole number from 0 to 9, got %q", FileName, got)
 }

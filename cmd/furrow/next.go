@@ -46,9 +46,17 @@ func readClaims(env *Env, repo *spec.Repo, offline bool) ([]schedule.Claim, bool
 	if offline {
 		return nil, false, "(Claims not checked: offline.)"
 	}
-	claims, err := claim.List(gitx.Git{Dir: repo.Root, Env: gitEnv(env)}, repo.Config)
+	g := gitx.Git{Dir: repo.Root, Env: gitEnv(env)}
+	unreachable := fmt.Sprintf("(Couldn't reach %s, so claimed steps aren't left out.)", repo.Config.Remote)
+	claims, err := claim.List(g, repo.Config)
 	if err != nil {
-		return nil, false, fmt.Sprintf("(Couldn't reach %s, so claimed steps aren't left out.)", repo.Config.Remote)
+		return nil, false, unreachable
+	}
+	if repo.Config.Stack > 0 {
+		// Stacking reads each claim's tip: is it handed back, and what is it stacked on?
+		if claims, err = claim.ReadStack(g, repo, claims); err != nil {
+			return nil, false, unreachable
+		}
 	}
 	return claims, true, ""
 }

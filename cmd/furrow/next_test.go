@@ -164,3 +164,109 @@ func TestNextAgentsNoneAssignable(t *testing.T) {
 		t.Errorf("json = %s", out.String())
 	}
 }
+
+func TestNextStack(t *testing.T) {
+	r := spectest.New(t)
+	r.Write("internal/.keep", "")
+	one := spectest.Spec{Num: 1, Steps: []spectest.Step{{Touches: []string{"internal/a/**"}}}}
+	r.Spec(one)
+	r.Spec(spectest.Spec{Num: 2, Steps: []spectest.Step{{After: []string{"FUR-0001.1"}, Touches: []string{"internal/a/x.go"}}}})
+	r.Spec(spectest.Spec{Num: 3, Steps: []spectest.Step{{Touches: []string{"internal/c/**"}}}})
+	r.Spec(spectest.Spec{Num: 4, Steps: []spectest.Step{{After: []string{"FUR-0002.1"}}}})
+	gittest.Init(t, r.Root)
+	// FUR-0001.1 is claimed, and furrow done has run on its branch: it's handed back.
+	gittest.Must(t, r.Root, "switch", "-q", "-c", "step/0001-1")
+	gittest.Must(t, r.Root, "commit", "-q", "--allow-empty", "-m", "Claim FUR-0001.1: Step 1\n\nfurrow-claim: 0123456789abcdef")
+	done := one
+	done.Steps = []spectest.Step{{Touches: []string{"internal/a/**"}, Merged: true}}
+	r.Spec(done)
+	gittest.Commit(t, r.Root, "FUR-0001.1: done")
+	gittest.Must(t, r.Root, "push", "-q", "origin", "step/0001-1")
+	gittest.Must(t, r.Root, "switch", "-q", "main")
+
+	// stack: 0, the default: exactly what furrow next printed before stacking.
+	before := "Ready to start:\n" +
+		"  FUR-0003.1  p1  s  Step 1\n" +
+		"              specs/changes/0003-spec-3.md · touches internal/c/**\n" +
+		"Can run together: FUR-0003.1\n" +
+		"Claimed:\n" +
+		"  FUR-0001.1  step/0001-1\n" +
+		"Waiting:\n" +
+		"  FUR-0002.1  after FUR-0001.1\n" +
+		"  FUR-0004.1  after FUR-0002.1\n"
+	env, out, _ := testEnv(r.Root)
+	if code := run(env, []string{"next"}); code != 0 || out.String() != before {
+		t.Errorf("stack: 0 (exit %d):\n%s\nwant:\n%s", code, out.String(), before)
+	}
+	type stepJSON struct {
+		Ref     string `json:"ref"`
+		StackOn *struct {
+			Ref    string `json:"ref"`
+			Branch string `json:"branch"`
+		} `json:"stack_on"`
+		Depth *int `json:"depth"`
+	}
+	type planJSON struct {
+		Ready   []stepJSON `json:"ready"`
+		Waiting []stepJSON `json:"waiting"`
+	}
+	nextJSON := func(args ...string) planJSON {
+		t.Helper()
+		env, out, _ := testEnv(r.Root)
+		if code := run(env, append([]string{"next", "--json"}, args...)); code != 0 {
+			t.Fatalf("exit %d", code)
+		}
+		var p planJSON
+		if err := json.Unmarshal(out.Bytes(), &p); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	p := nextJSON()
+	if len(p.Ready) != 1 || p.Ready[0].StackOn != nil || p.Ready[0].Depth == nil || *p.Ready[0].Depth != 0 {
+		t.Errorf("stack: 0 json = %+v", p)
+	}
+
+	r.Write(".furrow.yml", spectest.Config+"stack: 2\n")
+	env, out, _ = testEnv(r.Root)
+	if code := run(env, []string{"next"}); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	want := "Ready to start:\n" +
+		"  FUR-0003.1  p1  s  Step 1\n" +
+		"              specs/changes/0003-spec-3.md · touches internal/c/**\n" +
+		"  FUR-0002.1  p1  s  Step 1\n" +
+		"              specs/changes/0002-spec-2.md · touches internal/a/x.go\n" +
+		"  FUR-0002.1  stacked on step/0001-1 (FUR-0001.1)\n" +
+		"Can run together: FUR-0003.1, FUR-0002.1\n" +
+		"Claimed:\n" +
+		"  FUR-0001.1  step/0001-1\n" +
+		"Waiting:\n" +
+		"  FUR-0004.1  after FUR-0002.1 (FUR-0002.1 isn't handed back)\n"
+	if out.String() != want {
+		t.Errorf("stack: 2:\n%s\nwant:\n%s", out.String(), want)
+	}
+	p = nextJSON()
+	if len(p.Ready) != 2 || p.Ready[0].StackOn != nil || *p.Ready[0].Depth != 0 {
+		t.Fatalf("stack: 2 json = %+v", p)
+	}
+	if s := p.Ready[1]; s.Ref != "FUR-0002.1" || s.StackOn == nil || s.StackOn.Ref != "FUR-0001.1" || s.StackOn.Branch != "step/0001-1" || *s.Depth != 1 {
+		t.Errorf("stacked step json = %+v", s)
+	}
+
+	// Offline, the tips can't be read: nothing stacks.
+	env, out, _ = testEnv(r.Root)
+	run(env, []string{"next", "--offline"})
+	if !strings.HasPrefix(out.String(), "(Claims not checked: offline.)\n") || strings.Contains(out.String(), "stacked") {
+		t.Errorf("offline:\n%s", out.String())
+	}
+	if p := nextJSON("--offline"); len(p.Ready) != 2 || p.Ready[0].StackOn != nil || p.Ready[1].StackOn != nil {
+		t.Errorf("offline json = %+v", p)
+	}
+
+	env, out, _ = testEnv(r.Root)
+	run(env, []string{"graph"})
+	if !strings.Contains(out.String(), "FUR-0002.1  [ready (stacked)]") {
+		t.Errorf("graph:\n%s", out.String())
+	}
+}
