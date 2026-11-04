@@ -5,7 +5,7 @@ title: Scaffolding
 
 # Scaffolding
 
-Starting Furrow in a repo and starting new specs: `furrow init`, `furrow new`, `furrow area` and `furrow invariants`.
+Starting Furrow in a repo and starting new specs: `furrow init`, `furrow import`, `furrow new`, `furrow area` and `furrow invariants`.
 
 ## Behaviour
 
@@ -19,6 +19,29 @@ and `docs/product.md` (`# <folder>`, a placeholder and an `## Invariants` sectio
 only, at most 6, else `SPEC`. If `.furrow.yml` exists, its settings win over `--prefix`. If the
 product file exists without an `## Invariants` section, init says to add one. The files come from
 `go:embed` in `internal/scaffold/assets/`.
+
+**`furrow import fetch|edition --areas FILE [--by NAME] [--write] [--json]`** moves a repo's specs
+onto Furrow from the format it used before, at the root of a repo whose `.furrow.yml` exists.
+Without `--write` it's a dry run: it prints each spec's id, status, area and new path, the area
+files it creates or adds `## History` lines to, and its problems, writes nothing, and exits 1 when
+there are problems. `--write` refuses while there are any. Specs that are done go to `archive/`
+with every step merged; the rest go to `changes/`. The areas file names each area, its title and
+the paths it covers, and may map specs to areas under `specs:`; a spec no area matches is a
+problem. It writes Furrow's `specs/README.md` and `specs/_template.md`, and moves files with plain
+file operations, never git.
+
+- `fetch` reads `specs/NNNN-*.md` with Fetch's front matter. Each spec becomes one step, its
+  `depends_on` the step's `after`. A ticked `human:` box gets an "(imported)" sign-off line from
+  `--by`.
+- `edition` reads `docs/specs/<feature>.md`, numbered in file-name order. The `**Status:**` line
+  becomes front matter (Shipped is done; Building and Accepted are accepted; a Draft "after 1.0"
+  is p2), and the area is the `specs:` entry, else the `**Area:**` line's first word, else the
+  touches. Goal becomes `## Why`; Screens, Data and the step list go under `## What`; Behavior's
+  `**S5.**` criteria become `- [x] AC-5: S5. … (test: s5…)`, ticked when every step naming them is
+  merged; answered open questions and "Changes since accepted" become `## Decisions`, with a line
+  mapping the letters to AC numbers. Each step line's `After` (`N`, `<spec> N`) becomes `after`,
+  `Touches` a package alias or a path (a folder gets `/**`), and `Blocked` stays; a paused spec's
+  step with no step line is blocked by the pause.
 
 **`furrow new <slug> --title T --area A [--json]`** writes `specs/changes/NNNN-<slug>.md`, where NNNN
 is one more than the highest number among file names in changes and archive. It starts from the

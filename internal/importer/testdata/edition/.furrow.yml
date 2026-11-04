@@ -1,0 +1,7 @@
+prefix: EDN
+specs: specs
+product: docs/product.md
+check: ./scripts/check
+aliases:
+  EditionKit: apple/Packages/EditionKit
+  Edition: apple/Apps/Edition

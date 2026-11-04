@@ -9,10 +9,10 @@ import (
 )
 
 func init() {
-	register("import", "Move a repo's specs onto Furrow from its old format (fetch)", runImport)
+	register("import", "Move a repo's specs onto Furrow from its old format (fetch, edition)", runImport)
 }
 
-const importUsage = "fetch [--areas FILE] [--by NAME] [--write] [--json]"
+const importUsage = "fetch|edition [--areas FILE] [--by NAME] [--write] [--json]"
 
 func runImport(env *Env, args []string) int {
 	fs := newFlags(env, "import", importUsage)
@@ -23,6 +23,8 @@ func runImport(env *Env, args []string) int {
 		fs.PrintDefaults()
 		fmt.Fprintln(env.Stderr)
 		fmt.Fprintln(env.Stderr, importer.AreasHelp)
+		fmt.Fprintln(env.Stderr)
+		fmt.Fprintln(env.Stderr, importer.EditionHelp)
 	}
 	areas := fs.String("areas", "", "YAML file naming the areas and the paths they cover")
 	by := fs.String("by", "", "who signed off the human: checks already ticked")
@@ -39,14 +41,15 @@ func runImport(env *Env, args []string) int {
 		fs.Usage()
 		return 2
 	}
+	var plan *importer.Plan
 	switch pos[0] {
 	case "fetch":
+		plan, err = importer.FetchDir(env.Dir, *areas, *by, env.Now())
 	case "edition":
-		return fail(env, "furrow import edition isn't built yet (FUR-0009.2). Only `furrow import fetch` works today.")
+		plan, err = importer.EditionDir(env.Dir, *areas, *by, env.Now())
 	default:
-		return fail(env, "Can't import from %q. Furrow knows: fetch.", pos[0])
+		return fail(env, "Can't import from %q. Furrow knows: fetch, edition.", pos[0])
 	}
-	plan, err := importer.FetchDir(env.Dir, *areas, *by, env.Now())
 	if err != nil {
 		return fail(env, "%v", err)
 	}
