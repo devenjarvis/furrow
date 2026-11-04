@@ -173,10 +173,10 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 - 2026-11-03: Furrow's README and template come from `scaffold.Init` run in a temp folder, because the assets aren't exported and scaffold is outside this step.
 - 2026-11-03: Every area in the areas file gets a file, even one with no archived specs yet, so lint finds each area a spec names.
 - 2026-11-03: AC-9 signed off by Deven Jarvis.
-- 2026-11-04: The owner unblocked step 2 by asking for Edition's move, and chose AC-n over keeping the letters: each criterion's text starts with its letter (`AC-5: S5. …`), so tests named `s5…` are still found, and Furrow's model is unchanged.
-- 2026-11-04: Edition's criteria get the proof `(test: s5…)`, because Edition names a test after the criterion it covers. A criterion is ticked when every step naming it is merged; in a Shipped spec, all are.
-- 2026-11-04: Edition's specs are numbered in file-name order, and specs: in the areas file may key a spec by its old slug as well as its id, since ids are given by the import.
+- 2026-11-04: The owner unblocked step 2 and chose AC-n over keeping letters. Each criterion's text starts with its letter (`AC-5: S5. …`), so tests named `s5…` are still found.
+- 2026-11-04: Edition's criteria get the proof `(test: s5…)`, since Edition names tests after criteria. One is ticked when every step naming it is merged, or its spec shipped.
+- 2026-11-04: Edition's specs are numbered in file-name order, so specs: in the areas file may name a spec by its old slug as well as its id.
 - 2026-11-04: Answered open questions (Edition's "Answered" group) move to ## Decisions, since Furrow asks every open question in a decided spec for a proposed answer.
 - 2026-11-04: A paused spec's open step without a step line gets blocked: the spec's pause, because Edition never asked paused specs for step lines.
-- 2026-11-04: An Edition spec keeps its Status line as "Status when imported", and its step list under ## What as `### Steps`, without checkboxes, so the front matter is the only status.
+- 2026-11-04: An Edition spec keeps its Status line as "Status when imported" and its step list as `### Steps` without checkboxes, so front matter is the only status.
 - 2026-11-04: Links in criteria are rewritten too: the import writes those criteria, so INV-4 isn't touched.
