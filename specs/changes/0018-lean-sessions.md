@@ -219,12 +219,12 @@ agent into its own `.claude/agents/` and editing it.
 - [ ] AC-3: furrow-verify says that run as a sub-agent its report is the verdict table, the findings and a `ready to merge:` line, at most 25 lines. (check: grep -q "ready to merge:" skills/furrow-verify/SKILL.md)
 - [ ] AC-4: furrow-swarm sends the chores listed in this spec to `furrow-chores` and anything else back to the builder. (check: grep -q "furrow-chores" skills/furrow-swarm/SKILL.md)
 - [ ] AC-5: furrow-swarm stops at a wave boundary, when nothing can start until the owner acts, or past about 200K tokens, with a handoff of at most 10 lines that ends `Start a new session with: Run furrow status, then furrow-swarm.` (check: grep -q "Run furrow status, then furrow-swarm" skills/furrow-swarm/SKILL.md)
-- [ ] AC-6: `furrow status` prints In progress, Handed back, Ready now, Waiting on the owner, Stale or leftover claims and Next, in that order, each sorted by ref, with `(none)` for an empty section. (test: TestStatusText)
-- [ ] AC-7: Ready now shows at most 5 steps, ranked as `furrow next` ranks them, then `+N more: furrow next`; `--json`'s `ready` lists them all and `ready_total` counts them. (test: TestStatusReadyCap)
-- [ ] AC-8: The `Next:` line is the first of the five rules that applies. (test: TestStatusNextLine)
-- [ ] AC-9: `--json` prints the keys in this spec with the same facts as the text, and two runs on the same repo and clock print the same bytes. (test: TestStatusJSON)
-- [ ] AC-10: With `--offline` or an unreachable remote, the claim sections say `(remote not checked)`, `claims_checked` is false, ready matches `furrow next --offline`, and it exits 0. (test: TestStatusOffline)
-- [ ] AC-11: On Furrow's own repo, `furrow status --offline` prints at most 40 lines. (check: test "$(go run ./cmd/furrow status --offline | wc -l)" -le 40)
+- [x] AC-6: `furrow status` prints In progress, Handed back, Ready now, Waiting on the owner, Stale or leftover claims and Next, in that order, each sorted by ref, with `(none)` for an empty section. (test: TestStatusText)
+- [x] AC-7: Ready now shows at most 5 steps, ranked as `furrow next` ranks them, then `+N more: furrow next`; `--json`'s `ready` lists them all and `ready_total` counts them. (test: TestStatusReadyCap)
+- [x] AC-8: The `Next:` line is the first of the five rules that applies. (test: TestStatusNextLine)
+- [x] AC-9: `--json` prints the keys in this spec with the same facts as the text, and two runs on the same repo and clock print the same bytes. (test: TestStatusJSON)
+- [x] AC-10: With `--offline` or an unreachable remote, the claim sections say `(remote not checked)`, `claims_checked` is false, ready matches `furrow next --offline`, and it exits 0. (test: TestStatusOffline)
+- [x] AC-11: On Furrow's own repo, `furrow status --offline` prints at most 40 lines. (check: test "$(go run ./cmd/furrow status --offline | wc -l)" -le 40)
 - [ ] AC-12: `agents/furrow-builder.md` and `agents/furrow-verifier.md` exist, have no `model:` line, and each says what it returns and repeats the never-sign-off rules. (check: test -f agents/furrow-builder.md && test -f agents/furrow-verifier.md && ! grep -q "^model:" agents/furrow-builder.md agents/furrow-verifier.md)
 - [ ] AC-13: `agents/furrow-chores.md` exists with `model: sonnet` and says it returns at most 10 lines. (check: grep -q "^model: sonnet" agents/furrow-chores.md)
 - [ ] AC-14: `.claude/agents` is a link to `../agents`. (check: test "$(readlink .claude/agents)" = ../agents)
@@ -246,3 +246,8 @@ agent into its own `.claude/agents/` and editing it.
 - How many ready steps should `furrow status` show? Proposed: 5, with `+N more: furrow next`, so the output stays under 40 lines.
 
 ## Decisions
+
+- 2026-11-04: Chose to list a stale claim under In progress and also count it in Stale or leftover claims, because it is still someone's unfinished step.
+- 2026-11-04: Chose to count claims on merged or unknown steps, and orphaned stacked claims, as leftover, matching furrow claims' leftover and orphaned states.
+- 2026-11-04: Chose to print a section header with its count only when non-empty, and an empty Waiting on the owner as `(none)`, omitting zero lines.
+- 2026-11-04: Chose to copy furrow claims' age format into internal/status rather than export it, so this step stays inside its touches.
