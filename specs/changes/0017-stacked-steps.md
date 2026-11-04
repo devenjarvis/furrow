@@ -248,13 +248,13 @@ green is new.
 
 ## Decisions
 
-- 2026-11-04: Chose to read the stack size in `schedule.Build` from `repo.Config.Stack`, and to stack only when claims were checked and each `schedule.Claim` carries `HandedBack` and `StackOn` (set by `claim.ReadStack`), because that keeps the schedule free of git and leaves `furrow claim`'s plan unchanged until step 2 reads the tips too.
-- 2026-11-04: Chose to print a stacked step's parent as a third line under it in `Ready to start:`, `  FUR-0091.1  stacked on step/0090-1 (FUR-0090.1)`, because the first two lines keep today's layout and the spec's line starts with the ref.
-- 2026-11-04: Chose to name every wait that isn't handed back in the waiting reason (`FUR-0090.1, FUR-0095.1 aren't handed back` for two), to list every step it waits on after "on different stacks:", and to check the three rules in the spec's order, so the first rule that fails is the one reported.
-- 2026-11-04: Chose to add `why_waiting` to a waiting step's `--json`, left out when empty, because INV-6 says agents never parse prose; with `stack: 0` it never appears, so the JSON there differs only by `stack_on` and `depth`.
-- 2026-11-04: Chose to make `furrow graph --json` say `"state": "ready (stacked)"` like its text, and to widen graph's state column only when a label is longer than `[waiting]`, so `stack: 0` prints exactly as before.
-- 2026-11-04: Chose to find a claim commit as the newest commit in the tip's history whose message starts `Claim <REF>:` and has a `furrow-claim:` line, because a stacked branch also holds its parent's claim commit, and a re-claim's own commit is the newest.
-- 2026-11-04: Chose to count a stacked chain only through steps that are unmerged and still have a claim branch, so a parent that merged or whose branch is gone ends the chain.
+- 2026-11-04: Chose to read `stack` in `schedule.Build` and stack only when claims were checked and carry `HandedBack` and `StackOn` from `claim.ReadStack`, keeping the schedule free of git.
+- 2026-11-04: Chose to print a stacked step's parent as a third line under it, `FUR-0091.1  stacked on step/0090-1 (FUR-0090.1)`, so the first two lines keep today's layout.
+- 2026-11-04: Chose to name every wait that isn't handed back, list every step after "on different stacks:", and check the rules in the spec's order, reporting the first that fails.
+- 2026-11-04: Chose to add `why_waiting` to a waiting step's `--json`, left out when empty, because agents never parse prose (INV-6). With `stack: 0` it never appears.
+- 2026-11-04: Chose `"state": "ready (stacked)"` in `graph --json` to match the text, widening graph's state column only for longer labels, so `stack: 0` prints exactly as before.
+- 2026-11-04: Chose to find a claim commit as the newest `Claim <REF>:` commit with a `furrow-claim:` line, because a stacked branch also holds its parent's claim commit.
+- 2026-11-04: Chose to count a chain only through unmerged steps that still have a claim branch, so a parent that merged or whose branch is gone ends the chain.
 
 ## Notes for the agent
 
