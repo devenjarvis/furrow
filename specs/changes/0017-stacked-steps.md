@@ -213,11 +213,11 @@ green is new.
 - [x] AC-4: A step after two handed-back steps on different stacks is waiting with "on different stacks"; after two on the same chain it stacks on the top one. (test: TestStackOneChain)
 - [x] AC-5: A stacked step whose touches overlap its parent's chain isn't held for it, but is held for an overlap with any other claimed step; and plain ready steps rank before stacked ones. (test: TestStackOverlapAndRank)
 - [x] AC-6: `furrow next` and `--json` show `stack_on` and `depth`; with `stack: 0` the text output is unchanged from before this spec on the same repo, and `--offline` stacks nothing. (test: TestNextStack)
-- [ ] AC-7: Claiming a stacked step pushes a claim commit whose parent is the parent branch's tip and whose message has `furrow-stack: <branch>`, and prints "Stacked on <branch>. Open the PR against that branch." with `base_branch` in `--json`. (test: TestClaimStacked)
-- [ ] AC-8: Two agents claiming the same stacked step at once: exactly one wins, the other exits 3. (test: TestClaimStackedRace)
-- [ ] AC-9: Claiming a stacked step whose parent is no longer handed back is refused with the message above; if the parent merged, it's claimed on base. (test: TestClaimStackParentGone)
-- [ ] AC-10: `furrow claims` shows a stacked claim's parent, and marks it orphaned when the parent's branch is gone and the parent isn't merged. (test: TestClaimsStackOn)
-- [ ] AC-11: With no `--base`, `furrow territory` on a stacked step diffs against the parent's branch and names it in the first line; once the parent's branch is gone it diffs against base; `--base` wins. (test: TestTerritoryStackBase)
+- [x] AC-7: Claiming a stacked step pushes a claim commit whose parent is the parent branch's tip and whose message has `furrow-stack: <branch>`, and prints "Stacked on <branch>. Open the PR against that branch." with `base_branch` in `--json`. (test: TestClaimStacked)
+- [x] AC-8: Two agents claiming the same stacked step at once: exactly one wins, the other exits 3. (test: TestClaimStackedRace)
+- [x] AC-9: Claiming a stacked step whose parent is no longer handed back is refused with the message above; if the parent merged, it's claimed on base. (test: TestClaimStackParentGone)
+- [x] AC-10: `furrow claims` shows a stacked claim's parent, and marks it orphaned when the parent's branch is gone and the parent isn't merged. (test: TestClaimsStackOn)
+- [x] AC-11: With no `--base`, `furrow territory` on a stacked step diffs against the parent's branch and names it in the first line; once the parent's branch is gone it diffs against base; `--base` wins. (test: TestTerritoryStackBase)
 - [ ] AC-12: The furrow-implement and furrow-next skills say to open a stacked step's PR against its parent's branch, to link it with `gh stack link` when `gh stack` is there, and to run `furrow done` before marking the PR ready. (check: grep -q "gh stack link" skills/furrow-implement/SKILL.md && grep -qi "before marking the PR ready" skills/furrow-implement/SKILL.md && grep -q "Stacked on" skills/furrow-next/SKILL.md)
 - [ ] AC-13: furrow-swarm's description names building, working through the queue and working in parallel as when to use it, and its steps start stacked work as steps are handed back and report stacks bottom to top. (check: grep -qi "work in parallel" skills/furrow-swarm/SKILL.md && grep -qi "bottom" skills/furrow-swarm/SKILL.md)
 - [ ] AC-14: furrow-verify checks a stacked step's PR is based on its parent's branch. (check: grep -qi "parent's branch" skills/furrow-verify/SKILL.md)
@@ -255,6 +255,11 @@ green is new.
 - 2026-11-04: Chose `"state": "ready (stacked)"` in `graph --json` to match the text, widening graph's state column only for longer labels, so `stack: 0` prints exactly as before.
 - 2026-11-04: Chose to find a claim commit as the newest `Claim <REF>:` commit with a `furrow-claim:` line, because a stacked branch also holds its parent's claim commit.
 - 2026-11-04: Chose to count a chain only through unmerged steps that still have a claim branch, so a parent that merged or whose branch is gone ends the chain.
+- 2026-11-04: Chose to add `furrow claim --json`, printing ref, branch, sha, pr_title and base_branch, since claim had no JSON for `base_branch` to join.
+- 2026-11-04: Chose, with stacking on, to call any wait without a handed-back claim "no longer handed back", since git can't tell a parent that stopped from one never handed back.
+- 2026-11-04: Chose to print `furrow claims` stack notes after the age, `on <branch>` or `orphaned (<branch> is gone)`, keeping the state column, and `"orphaned": true` in JSON.
+- 2026-11-04: Chose to judge a parent merged in territory by reading its spec on `<remote>/<base>`, because the stacked branch's own copy already says `merged: true`.
+- 2026-11-04: Chose to have territory check the parent branch with ls-remote, then fetch it; offline it uses an existing `<remote>/<parent>` ref, else base.
 
 ## Notes for the agent
 
