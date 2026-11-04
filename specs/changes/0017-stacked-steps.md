@@ -27,7 +27,7 @@ steps:
       - specs/areas/scheduling.md
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: furrow claim builds on the parent's branch, and territory diffs against it
     after: [1]
@@ -207,12 +207,12 @@ green is new.
 
 ## Acceptance criteria
 
-- [ ] AC-1: `stack: N` in `.furrow.yml` is read; a missing key is 0, and a value that isn't a whole number from 0 to 9 fails with the message above. (test: TestConfigStack)
-- [ ] AC-2: A claimed step is handed back exactly when its claim branch's tip has the step marked `merged: true`; a tip without the spec file, or with `merged: false`, isn't. (test: TestHandedBack)
-- [ ] AC-3: With `stack: 3`, a step after one handed-back step is ready and stacked on that step's branch at depth 1; after a handed-back step that is itself stacked, depth 2; and a step that would be 4 deep is waiting with "over stack: 3". (test: TestStackDepth)
-- [ ] AC-4: A step after two handed-back steps on different stacks is waiting with "on different stacks"; after two on the same chain it stacks on the top one. (test: TestStackOneChain)
-- [ ] AC-5: A stacked step whose touches overlap its parent's chain isn't held for it, but is held for an overlap with any other claimed step; and plain ready steps rank before stacked ones. (test: TestStackOverlapAndRank)
-- [ ] AC-6: `furrow next` and `--json` show `stack_on` and `depth`; with `stack: 0` the text output is unchanged from before this spec on the same repo, and `--offline` stacks nothing. (test: TestNextStack)
+- [x] AC-1: `stack: N` in `.furrow.yml` is read; a missing key is 0, and a value that isn't a whole number from 0 to 9 fails with the message above. (test: TestConfigStack)
+- [x] AC-2: A claimed step is handed back exactly when its claim branch's tip has the step marked `merged: true`; a tip without the spec file, or with `merged: false`, isn't. (test: TestHandedBack)
+- [x] AC-3: With `stack: 3`, a step after one handed-back step is ready and stacked on that step's branch at depth 1; after a handed-back step that is itself stacked, depth 2; and a step that would be 4 deep is waiting with "over stack: 3". (test: TestStackDepth)
+- [x] AC-4: A step after two handed-back steps on different stacks is waiting with "on different stacks"; after two on the same chain it stacks on the top one. (test: TestStackOneChain)
+- [x] AC-5: A stacked step whose touches overlap its parent's chain isn't held for it, but is held for an overlap with any other claimed step; and plain ready steps rank before stacked ones. (test: TestStackOverlapAndRank)
+- [x] AC-6: `furrow next` and `--json` show `stack_on` and `depth`; with `stack: 0` the text output is unchanged from before this spec on the same repo, and `--offline` stacks nothing. (test: TestNextStack)
 - [ ] AC-7: Claiming a stacked step pushes a claim commit whose parent is the parent branch's tip and whose message has `furrow-stack: <branch>`, and prints "Stacked on <branch>. Open the PR against that branch." with `base_branch` in `--json`. (test: TestClaimStacked)
 - [ ] AC-8: Two agents claiming the same stacked step at once: exactly one wins, the other exits 3. (test: TestClaimStackedRace)
 - [ ] AC-9: Claiming a stacked step whose parent is no longer handed back is refused with the message above; if the parent merged, it's claimed on base. (test: TestClaimStackParentGone)
@@ -247,6 +247,14 @@ green is new.
   and each PR has one base.
 
 ## Decisions
+
+- 2026-11-04: Chose to read `stack` in `schedule.Build` and stack only when claims were checked and carry `HandedBack` and `StackOn` from `claim.ReadStack`, keeping the schedule free of git.
+- 2026-11-04: Chose to print a stacked step's parent as a third line under it, `FUR-0091.1  stacked on step/0090-1 (FUR-0090.1)`, so the first two lines keep today's layout.
+- 2026-11-04: Chose to name every wait that isn't handed back, list every step after "on different stacks:", and check the rules in the spec's order, reporting the first that fails.
+- 2026-11-04: Chose to add `why_waiting` to a waiting step's `--json`, left out when empty, because agents never parse prose (INV-6). With `stack: 0` it never appears.
+- 2026-11-04: Chose `"state": "ready (stacked)"` in `graph --json` to match the text, widening graph's state column only for longer labels, so `stack: 0` prints exactly as before.
+- 2026-11-04: Chose to find a claim commit as the newest `Claim <REF>:` commit with a `furrow-claim:` line, because a stacked branch also holds its parent's claim commit.
+- 2026-11-04: Chose to count a chain only through unmerged steps that still have a claim branch, so a parent that merged or whose branch is gone ends the chain.
 
 ## Notes for the agent
 

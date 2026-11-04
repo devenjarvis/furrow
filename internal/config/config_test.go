@@ -63,3 +63,42 @@ func TestParseVisual(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigStack(t *testing.T) {
+	for _, tc := range []struct {
+		yaml string
+		want int
+	}{
+		{"prefix: FUR\n", 0},
+		{"stack: 0\n", 0},
+		{"stack: 3\n", 3},
+		{"stack: 9\n", 9},
+		{"stack:\n", 0},
+	} {
+		cfg, err := Parse([]byte(tc.yaml))
+		if err != nil {
+			t.Errorf("%q: %v", tc.yaml, err)
+			continue
+		}
+		if cfg.Stack != tc.want {
+			t.Errorf("%q: stack = %d, want %d", tc.yaml, cfg.Stack, tc.want)
+		}
+	}
+	if Default().Stack != 0 {
+		t.Error("stack should default to 0")
+	}
+	for _, tc := range []struct{ yaml, got string }{
+		{"stack: yes\n", "yes"},
+		{"stack: 10\n", "10"},
+		{"stack: -1\n", "-1"},
+		{"stack: 2.5\n", "2.5"},
+		{"stack: \"3\"\n", "3"},
+		{"stack: [1]\n", "[1]"},
+	} {
+		_, err := Parse([]byte(tc.yaml))
+		want := `.furrow.yml: stack must be a whole number from 0 to 9, got "` + tc.got + `"`
+		if err == nil || err.Error() != want {
+			t.Errorf("%q: err = %v, want %s", tc.yaml, err, want)
+		}
+	}
+}
