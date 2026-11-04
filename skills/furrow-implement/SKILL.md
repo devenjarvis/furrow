@@ -46,14 +46,34 @@ Its acceptance criteria are what you prove.
 
    Save it to a file, then run `furrow brief --check <file>` and
    `furrow territory --body-file <file>`. Both must exit 0.
-10. **Hand it back.** `furrow done <REF>`. It sets the step's `merged: true` in this PR, so merging
-    the PR unblocks whatever waits on it. It refuses if a covered non-human criterion is unticked.
+10. **Hand it back.** `furrow done <REF>`, committed and pushed **before marking the PR ready**,
+    never after. It sets the step's `merged: true` in this PR, so merging the PR unblocks whatever
+    waits on it, and from the moment it's pushed the step is handed back: with `stack:` on, other
+    steps can start on top of it. A PR merged before `done` leaves the step unmerged on the base and
+    blocks everything after it. `done` refuses if a covered non-human criterion is unticked. Do all
+    of steps 4 to 12 in one push where you can, so the repo's CI runs once.
 11. **Last step of the spec?** Fold what the spec changed into `specs/areas/<area>.md`'s
     `## Behaviour`, in present tense, as if it had always worked this way, with the spec's diagram
     if it has one. Don't archive: the owner's sign-off, or `furrow archive`, does that once every
     box is ticked.
 12. Run `furrow lint`, commit, push, put the filled-in brief in the PR description, and mark the
     PR ready.
+
+## A stacked step
+
+If `furrow claim` said `Stacked on <branch>`, your branch sits on the parent step's branch.
+
+- The PR's base is that branch (see `furrow-next`); with `gh stack` installed, `gh stack link`
+  joins it to the parent's PR as a GitHub stack. `furrow territory` diffs against the parent's
+  branch on its own. Pass `--base origin/<parent branch>` to other commands that compare with the base, such as
+  `furrow brief`.
+- If the parent's branch changes after review, rebase onto it (`git rebase origin/<parent>`) and
+  push with `--force-with-lease`, unless GitHub's stack has already rebased yours.
+- If the parent merged and GitHub didn't rebase yours, rebase onto the base:
+  `git rebase --onto origin/<base> <old parent tip>`. `furrow territory` listing the parent's files
+  as outside is the sign.
+- If the parent's PR was closed without merging, stop and tell the owner: your step was built on
+  work that isn't coming.
 
 ## When the spec is wrong
 
