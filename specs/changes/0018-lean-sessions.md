@@ -43,7 +43,7 @@ steps:
       - .claude/agents
     covers: [AC-12, AC-13, AC-14]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0018: Lean orchestrator sessions: small hand-backs, fresh verifiers, one-call status
