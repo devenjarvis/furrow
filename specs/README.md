@@ -76,6 +76,17 @@ once a step is merged, and in review once every step is merged but `human:` boxe
 In progress isn't written down either. A step is in progress while its claim branch exists on the
 remote. `furrow next` reads the remote's branches, so no two agents get the same step.
 
+A claimed step is **handed back** once `furrow done` is pushed to its branch: the branch's copy of
+the spec says `merged: true` for it, and its PR waits for review.
+
+### Stacking
+
+With `stack: N` in `.furrow.yml` (0, or left out, is off), a step doesn't have to wait for what it
+comes `after` to merge. When every unmerged step it waits on is handed back, and they sit on one
+chain at most N deep, it's ready **stacked** on the top one: `furrow claim` starts its branch from
+that step's branch, and its PR is based on it. The owner reviews a stack from the bottom, and
+merging the bottom PR moves the next one onto the base. Plain ready steps are offered first.
+
 ## Body sections
 
 | Section | Required | What goes in it |
@@ -136,7 +147,9 @@ diagram in `## Behaviour`, and the fold on a spec's last step keeps it current.
 6. Run the repo's check (`check:` in `.furrow.yml`). Tick each criterion you covered, with evidence,
    except `human:` ones. Run `furrow done FUR-NNNN.N`. If this was the last step, fold the change into
    the area spec.
-7. Mark the PR ready.
+7. Push, then mark the PR ready: `furrow done` goes in before ready, never after, so the step is
+   handed back and nothing that waits on it is held up. A stacked step's PR is based on the branch
+   `furrow claim` said it's stacked on.
 
 ### Signing off
 

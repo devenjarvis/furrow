@@ -17,7 +17,8 @@ Furrow ships a Claude Code plugin from the repo root. `.claude-plugin/plugin.jso
 - **furrow-next**: pick the top ready step (or the one given), read the spec, its context, its area
   and the Decisions of what it comes after, `furrow claim` it (exit 3: pick again), open the draft
   PR `[REF] title` with `furrow brief`'s output as its body (the brief is the template; no other),
-  and plan one test per covered criterion.
+  and plan one test per covered criterion. A step `claim` says is `Stacked on` a branch gets its
+  PR based on that branch, linked with `gh stack link` when `gh stack` is installed.
 - **furrow-implement**: tests first, stay inside `touches` (`furrow territory`), run the repo's
   check, tick covered criteria with evidence, and log decisions. Then it keeps the spec's diagram
   current, captures visual proof before and after with the repo's own tools when the brief has a
@@ -28,13 +29,16 @@ Furrow ships a Claude Code plugin from the repo root. `.claude-plugin/plugin.jso
   place in the code and the question to ask; and how the diff touches each invariant. It writes
   each `## Decisions` line in at most 30 words. `furrow brief --check` and `furrow territory --body-file` on the description must
   both exit 0 before `furrow done`. On a spec's last step it folds the change, and the diagram, into
-  the area's Behaviour. Problems go under "Spec problem", never into the criteria.
+  the area's Behaviour. `furrow done` is pushed before the PR is marked ready, never after, so the
+  step is handed back and steps can stack on it. A stacked step rebases onto its parent when the
+  parent changes, and onto the base if the parent merged without GitHub rebasing it. Problems go under "Spec problem", never into the criteria.
 - **furrow-verify**: a skeptic's review: every covered criterion's proof, territory with the PR
   body, the brief (`furrow brief --check`, then Before and After, each diagram node and edge, each
   image, the Judgment calls and the invariant lines read against the diff; it re-runs a cheap
   "show it" command and compares the output, and checks each Review this item names real code; a
   claim the diff doesn't bear out is a finding),
-  invariants, spec hygiene, the repo's check, and a verdict table.
+  invariants, spec hygiene, the repo's check, and a verdict table. A stacked step's PR must be based on
+  its parent's branch.
 - **furrow-write**: `furrow new`, then steps with small non-overlapping touches, honest `after`
   and invariants, a proof for every criterion, lint and graph. A spec that changes structure draws
   it in `## What` as a mermaid diagram to the standard's rules. Every open question gets
@@ -44,9 +48,12 @@ Furrow ships a Claude Code plugin from the repo root. `.claude-plugin/plugin.jso
   one, it moves the question to `## Decisions` as an `Owner chose … over the proposed …` line and
   regenerates the brief; if a `Qn` is ambiguous it asks. On an amendment, Your calls lists only
   new questions: ones decided when the spec merged aren't asked again. It never merges or accepts a spec.
-- **furrow-swarm**: `furrow next --agents N --json`, one worktree and background agent per
+- **furrow-swarm**: the skill for building, working through the queue or working in parallel.
+  `furrow next --agents N --json`, one worktree and background agent per
   assignment, verify what returns, merge what passes, hand out newly unblocked steps as slots free
-  up, archive finished specs, and report what waits on the owner.
+  up, archive finished specs, and report what waits on the owner. With `stack:` on, a hand-back frees
+  work too: what waits on it is handed out stacked on it. The report lists each stack bottom to top,
+  since the owner reviews from the bottom.
 
 No skill tells an agent to sign off, tick a `human:` box, accept a spec, or change a criterion's
 text.

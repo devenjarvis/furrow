@@ -13,8 +13,10 @@ You're the reviewer, not the author. Assume nothing is done until you've seen th
    - `check:`: run the command and read the result.
    - `human:`: it must be **unticked**. Say what the owner should look at, and whether the PR gives
      them what they need: steps, screenshots, output.
-3. **Territory.** `furrow territory --base origin/<base> --body-file <PR body>` must exit 0. Read each
-   explained path's reason.
+3. **Territory.** `furrow territory --base origin/<PR's base branch> --body-file <PR body>` must exit
+   0. Read each explained path's reason. For a stacked step (its claim commit has a
+   `furrow-stack:` trailer), check the PR is based on the parent's branch, not the base, so the
+   diff is only this step's.
 4. **The brief.** The PR description is the reviewer's brief. Save it to a file;
    `furrow brief --check <file> --base origin/<base>` must exit 0. Then read it against the diff:
    - **Behaviour**: Before and After say what the code does, not what the author meant it to do.

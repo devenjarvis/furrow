@@ -22,9 +22,14 @@ pinned `bin/furrow`) knows what's free.
    - `AGENTS.md` or `CLAUDE.md`, and `docs/product.md`'s **Invariants**.
 4. **Claim.** `furrow claim <REF>`. It creates the step's branch on the remote and switches to it.
    Exit 3 means someone beat you to it: run `furrow next` again and pick another. Never work on a
-   step you didn't claim.
+   step you didn't claim. If `claim` prints `Stacked on <branch>`, the step is built on top of a
+   step that's handed back but not merged yet (the repo's `.furrow.yml` sets `stack:`), and its
+   branch starts from that branch, not the base.
 5. **Open a draft PR** with the forge's tools, titled exactly as `claim` printed: `[REF] <step
-   title>`. Its body is `furrow brief`'s output, as printed: the reviewer's brief, which lists
+   title>`. Its base is the base branch, or, for a stacked step, the branch `claim` said it's
+   `Stacked on`, so the PR shows only this step's change. If `gh stack` is installed, run
+   `gh stack link` to join the PRs into a GitHub stack; without it, the chained bases are the
+   stack. Its body is `furrow brief`'s output, as printed: the reviewer's brief, which lists
    the criteria the step `covers`, each unticked, and leaves `<!-- furrow:` placeholders for
    `furrow-implement` to fill in. The brief is the template; don't use another.
 6. **Plan.** Write down the files you'll change (all inside `touches`), one test per covered
