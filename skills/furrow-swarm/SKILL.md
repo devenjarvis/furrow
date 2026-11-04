@@ -5,45 +5,84 @@ description: Run several coding agents at once on a Furrow repo, each on its own
 
 # Run a swarm
 
-You're the orchestrator. Furrow decides what can run together. You hand out work, check what comes
-back, and keep the queue moving. You don't build steps yourself while agents are out, except one
-that nothing else can run beside.
+You're the orchestrator. Furrow decides what can run together. You hand out work, read what comes
+back, and keep the queue moving. Keep your own conversation small: agents build, verify and do
+chores, and report to you in a few lines. You don't build or verify steps yourself.
+
+The plugin ships the agents you start: `furrow-builder`, `furrow-verifier` and `furrow-chores`.
+Start them by name; don't write your own agent prompts.
 
 ## Loop
 
-1. `git fetch origin`, update the base branch, and run `furrow next --agents N --json`. `N` is the
-   number of agents you're allowed. `together` holds the assignments: no two share a path, and none
-   overlaps a step someone has already claimed. If `claims_checked` is false, the remote wasn't
-   reachable, so stop rather than risk doubled work.
+1. **Start from `furrow status`.** It says what's in progress, handed back, ready, and waiting on
+   the owner, and what to do next. Then `git fetch origin`, update the base branch, and run
+   `furrow next --agents N --json`. `N` is the number of agents you're allowed. `together` holds the
+   assignments: no two share a path, and none overlaps a step someone has already claimed. If
+   `claims_checked` is false, the remote wasn't reachable, so stop rather than risk doubled work.
 2. **For each assignment**, make a worktree at the latest base, detached:
-   `git worktree add --detach ../wt/<ref> origin/<base>`. Then start one background agent per
-   worktree. Its brief must be self-contained:
+   `git worktree add --detach ../wt/<ref> origin/<base>`. Then start one background
+   `furrow-builder` agent per worktree. Its brief gives:
    - the ref and the worktree path, and "work only there";
-   - claim it first with `furrow claim <ref>`. On exit 3, stop and report;
-   - follow the `furrow-next` reading list and the `furrow-implement` steps;
    - the exact territory: the step's `touches`, plus its spec file and area file;
-   - never tick a `human:` criterion, never sign off (no `furrow signoff`, no sign-off PR), never
-     edit a criterion's text;
-   - for a stacked step, the PR's base is the branch `claim` says it's `Stacked on`;
-   - run `furrow done` and push it before marking the PR ready, never after;
-   - commit on the step branch, push, and report: claim output, files changed, tests and results,
-     `furrow territory` and `furrow lint` output, decisions, and any spec problem.
-3. **As each agent reports**, run `furrow-verify` on its branch yourself, starting from the agent's
-   claims but not trusting them. Merge only what passes, through the repo's PR flow, or by merging
-   the branch if the owner works that way. A spec problem goes to the owner. Don't fix the spec to
-   make the code pass.
-4. **After each merge, and each hand-back**, run `furrow next --agents <free slots> --json` again.
+   - for a stacked step, the branch it's `Stacked on`, which is its PR's base;
+   - anything the owner said that bears on the step.
+
+   The builder claims, builds, runs `furrow done` and pushes before marking the PR ready, and never
+   ticks a `human:` box, signs off or edits a criterion's text. Its brief ends with this hand-back
+   contract:
+
+   ```
+   FUR-0018.2  PR #51  step/0018-2  handed back
+   claim: exit 0
+   make check: exit 0
+   furrow territory: exit 0
+   furrow lint: exit 0
+   furrow done: pushed
+   decisions: chose internal/status over cmd-only, so the text and JSON share one model
+   spec problem: none
+   ```
+
+   At most 15 lines: each command with its exit code, decisions one line each, a spec problem or
+   `none`. Raw output only for a command that failed, at most 20 lines of it.
+3. **As each builder hands back**, start a fresh `furrow-verifier` agent with the ref, the branch,
+   the PR number and a worktree. Never run `furrow-verify` in your own conversation: read only the
+   verdict. On `ready to merge: yes`, merge through the repo's PR flow, or by merging the branch if
+   the owner works that way. On `ready to merge: no`, send the findings back to the step's builder.
+   A spec problem goes to the owner. Don't fix the spec to make the code pass.
+4. **Chores go to a `furrow-chores` agent**, with the ref, the branch, a worktree and the chore:
+   rebasing a stacked step onto a parent that changed, merging the base into a step branch when
+   the only conflict is in `specs/`, re-running the repo's check, and reading a CI failure. It
+   reports at most 10 lines. A conflict outside `specs/`, a failure it can't explain, and anything
+   else go back to the step's builder.
+5. **After each merge, and each hand-back**, run `furrow next --agents <free slots> --json` again.
    Merges unblock new steps. With `stack:` set in `.furrow.yml`, a step that's handed back (its
    `furrow done` is pushed) unblocks too: what waits on it comes back with `stack_on`, to be built on
-   top of it. Hand work out as soon as an agent is free instead of waiting for the whole wave or
-   for the owner to merge.
-5. **Tidy:** when `furrow lint` warns that a spec is ready to archive, run `furrow archive <id>`.
+   top of it. Hand work out as soon as an agent is free, within the wave.
+6. **Tidy:** when `furrow lint` warns that a spec is ready to archive, run `furrow archive <id>`.
    `furrow claims` lists leftover branches. `furrow release` them, or ask the owner to delete them if
    the remote doesn't let you.
 
+## Hand off
+
+Stop, instead of carrying on into the next wave, when any of these holds:
+
+- a wave has merged and `furrow next` offers new work, so the next wave starts in a fresh session;
+- nothing can start until the owner acts: a review, a sign-off, a spec to merge;
+- the conversation is over about 200K tokens, when the tool shows it.
+
+Wait for the agents that are out, then write a handoff of at most 10 lines. Hold only what the repo
+doesn't: questions put to the owner in chat and not yet answered, and anything blocked outside
+Furrow (a secret, a sign-in, a broken tool). End it with exactly this line:
+
+```
+Start a new session with: Run furrow status, then furrow-swarm.
+```
+
+Then give the "Stop when" report below.
+
 ## Stop when
 
-`furrow next` says nothing is ready and no agent is out. Then report to the owner:
+`furrow next` says nothing is ready and no agent is out, or you've handed off. Report to the owner:
 - what merged, by ref, and anything an agent decided that they should know;
 - each stack waiting for review, bottom to top, with its PRs: the owner reviews from the bottom,
   and can merge the whole stack from its top PR once every PR in it is approved;

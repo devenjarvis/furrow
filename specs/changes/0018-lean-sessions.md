@@ -214,11 +214,11 @@ agent into its own `.claude/agents/` and editing it.
 
 ## Acceptance criteria
 
-- [ ] AC-1: furrow-swarm's builder brief ends with the hand-back contract: at most 15 lines, each command with its exit code, decisions one line each, a spec problem or "none", and raw output only for a failure, at most 20 lines. (check: grep -q "At most 15 lines" skills/furrow-swarm/SKILL.md)
-- [ ] AC-2: furrow-swarm verifies each hand-back in a fresh `furrow-verifier` agent, never in the orchestrator itself, and merges on its `ready to merge: yes`. (check: grep -q "furrow-verifier" skills/furrow-swarm/SKILL.md)
-- [ ] AC-3: furrow-verify says that run as a sub-agent its report is the verdict table, the findings and a `ready to merge:` line, at most 25 lines. (check: grep -q "ready to merge:" skills/furrow-verify/SKILL.md)
-- [ ] AC-4: furrow-swarm sends the chores listed in this spec to `furrow-chores` and anything else back to the builder. (check: grep -q "furrow-chores" skills/furrow-swarm/SKILL.md)
-- [ ] AC-5: furrow-swarm stops at a wave boundary, when nothing can start until the owner acts, or past about 200K tokens, with a handoff of at most 10 lines that ends `Start a new session with: Run furrow status, then furrow-swarm.` (check: grep -q "Run furrow status, then furrow-swarm" skills/furrow-swarm/SKILL.md)
+- [x] AC-1: furrow-swarm's builder brief ends with the hand-back contract: at most 15 lines, each command with its exit code, decisions one line each, a spec problem or "none", and raw output only for a failure, at most 20 lines. (check: grep -q "At most 15 lines" skills/furrow-swarm/SKILL.md)
+- [x] AC-2: furrow-swarm verifies each hand-back in a fresh `furrow-verifier` agent, never in the orchestrator itself, and merges on its `ready to merge: yes`. (check: grep -q "furrow-verifier" skills/furrow-swarm/SKILL.md)
+- [x] AC-3: furrow-verify says that run as a sub-agent its report is the verdict table, the findings and a `ready to merge:` line, at most 25 lines. (check: grep -q "ready to merge:" skills/furrow-verify/SKILL.md)
+- [x] AC-4: furrow-swarm sends the chores listed in this spec to `furrow-chores` and anything else back to the builder. (check: grep -q "furrow-chores" skills/furrow-swarm/SKILL.md)
+- [x] AC-5: furrow-swarm stops at a wave boundary, when nothing can start until the owner acts, or past about 200K tokens, with a handoff of at most 10 lines that ends `Start a new session with: Run furrow status, then furrow-swarm.` (check: grep -q "Run furrow status, then furrow-swarm" skills/furrow-swarm/SKILL.md)
 - [x] AC-6: `furrow status` prints In progress, Handed back, Ready now, Waiting on the owner, Stale or leftover claims and Next, in that order, each sorted by ref, with `(none)` for an empty section. (test: TestStatusText)
 - [x] AC-7: Ready now shows at most 5 steps, ranked as `furrow next` ranks them, then `+N more: furrow next`; `--json`'s `ready` lists them all and `ready_total` counts them. (test: TestStatusReadyCap)
 - [x] AC-8: The `Next:` line is the first of the five rules that applies. (test: TestStatusNextLine)
@@ -253,3 +253,5 @@ agent into its own `.claude/agents/` and editing it.
 - 2026-11-04: Chose to copy furrow claims' age format into internal/status rather than export it, so this step stays inside its touches.
 - 2026-11-04: Chose to leave `tools:` out of all three agents, so each inherits the session's tools, including the forge MCP tools a builder needs for its PR.
 - 2026-11-04: Chose to leave plugin.json unchanged: Claude Code finds `agents/` at a plugin's root by default, as the spec says.
+- 2026-11-04: Chose to have furrow-swarm start the shipped agents by name and keep only the hand-back contract in the brief, since each agent's body repeats the rules.
+- 2026-11-04: Chose to fold furrow status into specs/areas/scheduling.md in this last step, as FUR-0018.2 deferred it.

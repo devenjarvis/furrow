@@ -38,7 +38,8 @@ Furrow ships a Claude Code plugin from the repo root. `.claude-plugin/plugin.jso
   "show it" command and compares the output, and checks each Review this item names real code; a
   claim the diff doesn't bear out is a finding),
   invariants, spec hygiene, the repo's check, and a verdict table. A stacked step's PR must be based on
-  its parent's branch.
+  its parent's branch. Run as a sub-agent, its report is only the verdict table, the findings and a
+  `ready to merge: yes` or `ready to merge: no` line, at most 25 lines.
 - **furrow-write**: `furrow new`, then steps with small non-overlapping touches, honest `after`
   and invariants, a proof for every criterion, lint and graph. A spec that changes structure draws
   it in `## What` as a mermaid diagram to the standard's rules. Every open question gets
@@ -49,11 +50,42 @@ Furrow ships a Claude Code plugin from the repo root. `.claude-plugin/plugin.jso
   regenerates the brief; if a `Qn` is ambiguous it asks. On an amendment, Your calls lists only
   new questions: ones decided when the spec merged aren't asked again. It never merges or accepts a spec.
 - **furrow-swarm**: the skill for building, working through the queue or working in parallel.
-  `furrow next --agents N --json`, one worktree and background agent per
-  assignment, verify what returns, merge what passes, hand out newly unblocked steps as slots free
-  up, archive finished specs, and report what waits on the owner. With `stack:` on, a hand-back frees
-  work too: what waits on it is handed out stacked on it. The report lists each stack bottom to top,
-  since the owner reviews from the bottom.
+  It starts from `furrow status`, then `furrow next --agents N --json`, one worktree and background
+  `furrow-builder` agent per assignment. Each builder hands back in at most 15 lines: each command
+  with its exit code, decisions one line each, a spec problem or `none`, and raw output only for a
+  failure, at most 20 lines. Each hand-back is verified in a fresh `furrow-verifier` agent, never in
+  the orchestrator; it merges on `ready to merge: yes` and sends `no` findings back to the builder.
+  Chores (rebasing a stacked step, merging the base when only `specs/` conflicts, re-running the
+  check, reading a CI failure) go to `furrow-chores`; anything else goes back to the builder. It
+  hands out newly unblocked steps as slots free up and archives finished specs. With `stack:` on, a
+  hand-back frees work too: what waits on it is handed out stacked on it. It stops at a wave
+  boundary, when nothing can start until the owner acts, or past about 200K tokens, with a handoff of
+  at most 10 lines holding only what the repo doesn't (unanswered questions, blockers outside
+  Furrow) and ending `Start a new session with: Run furrow status, then furrow-swarm.` Then it
+  reports what waits on the owner, each stack bottom to top, since the owner reviews from the bottom.
+
+**Agents.** The plugin ships three agent definitions in `agents/`, and this repo's `.claude/agents`
+links there. `furrow-builder` claims and builds one step and returns the 15-line hand-back;
+`furrow-verifier` runs `furrow-verify` and returns the 25-line verdict; both use the session's
+model. `furrow-chores` (`model: sonnet`) does the chores and returns at most 10 lines. Each repeats
+the rules it needs: never tick a `human:` box, never sign off, never edit a criterion's text, work
+only in its worktree. A project overrides one by copying it into its own `.claude/agents/`.
+
+Where each step's detail lives, and what reaches the orchestrator.
+
+```mermaid
+flowchart TD
+  status["furrow status (cmd/furrow/status.go)"] -->|state of play| swarm["skills/furrow-swarm"]
+  swarm -->|assignment| builder["agents/furrow-builder.md"]
+  builder -->|hand-back, 15 lines| swarm
+  swarm -->|ref and branch| verifier["agents/furrow-verifier.md"]
+  verifier -->|verdict, 25 lines| swarm
+  swarm -->|rebase, re-run a check| chores["agents/furrow-chores.md"]
+  swarm -->|handoff, 10 lines| owner["the owner's next session"]
+```
+
+Legend: a box is a command, skill, agent or session; an arrow is what one hands the next, as
+labelled.
 
 No skill tells an agent to sign off, tick a `human:` box, accept a spec, or change a criterion's
 text.
