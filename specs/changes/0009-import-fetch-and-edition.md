@@ -30,7 +30,6 @@ steps:
     covers: [AC-3, AC-4]
     size: m
     merged: false
-    blocked: "Edition's move isn't planned yet. The owner unblocks it."
 ---
 
 # FUR-0009: Move Fetch and Edition onto Furrow
