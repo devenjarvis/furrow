@@ -51,7 +51,7 @@ steps:
       - specs/areas/agents.md
     covers: [AC-12, AC-13, AC-14, AC-15, AC-16]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0017: Stacked steps: start a step on top of one waiting for review
@@ -218,10 +218,10 @@ green is new.
 - [x] AC-9: Claiming a stacked step whose parent is no longer handed back is refused with the message above; if the parent merged, it's claimed on base. (test: TestClaimStackParentGone)
 - [x] AC-10: `furrow claims` shows a stacked claim's parent, and marks it orphaned when the parent's branch is gone and the parent isn't merged. (test: TestClaimsStackOn)
 - [x] AC-11: With no `--base`, `furrow territory` on a stacked step diffs against the parent's branch and names it in the first line; once the parent's branch is gone it diffs against base; `--base` wins. (test: TestTerritoryStackBase)
-- [ ] AC-12: The furrow-implement and furrow-next skills say to open a stacked step's PR against its parent's branch, to link it with `gh stack link` when `gh stack` is there, and to run `furrow done` before marking the PR ready. (check: grep -q "gh stack link" skills/furrow-implement/SKILL.md && grep -qi "before marking the PR ready" skills/furrow-implement/SKILL.md && grep -q "Stacked on" skills/furrow-next/SKILL.md)
-- [ ] AC-13: furrow-swarm's description names building, working through the queue and working in parallel as when to use it, and its steps start stacked work as steps are handed back and report stacks bottom to top. (check: grep -qi "work in parallel" skills/furrow-swarm/SKILL.md && grep -qi "bottom" skills/furrow-swarm/SKILL.md)
-- [ ] AC-14: furrow-verify checks a stacked step's PR is based on its parent's branch. (check: grep -qi "parent's branch" skills/furrow-verify/SKILL.md)
-- [ ] AC-15: `specs/README.md` documents `stack:` and handed back, and the agents area describes stacked PRs in present tense. (check: grep -q "stack:" specs/README.md && grep -qi "handed back" specs/README.md && grep -qi "stack" specs/areas/agents.md)
+- [x] AC-12: The furrow-implement and furrow-next skills say to open a stacked step's PR against its parent's branch, to link it with `gh stack link` when `gh stack` is there, and to run `furrow done` before marking the PR ready. (check: grep -q "gh stack link" skills/furrow-implement/SKILL.md && grep -qi "before marking the PR ready" skills/furrow-implement/SKILL.md && grep -q "Stacked on" skills/furrow-next/SKILL.md)
+- [x] AC-13: furrow-swarm's description names building, working through the queue and working in parallel as when to use it, and its steps start stacked work as steps are handed back and report stacks bottom to top. (check: grep -qi "work in parallel" skills/furrow-swarm/SKILL.md && grep -qi "bottom" skills/furrow-swarm/SKILL.md)
+- [x] AC-14: furrow-verify checks a stacked step's PR is based on its parent's branch. (check: grep -qi "parent's branch" skills/furrow-verify/SKILL.md)
+- [x] AC-15: `specs/README.md` documents `stack:` and handed back, and the agents area describes stacked PRs in present tense. (check: grep -q "stack:" specs/README.md && grep -qi "handed back" specs/README.md && grep -qi "stack" specs/areas/agents.md)
 - [ ] AC-16: In a real repo with `stack: 2`, a swarm stacks a step on a handed-back one, opens it as a PR based on the parent's branch, and the owner can review and merge the pair from GitHub. (human: open the two PRs, check the second is based on the first and shows as stacked, merge them and see main has both)
 
 ## Out of scope
@@ -260,6 +260,8 @@ green is new.
 - 2026-11-04: Chose to print `furrow claims` stack notes after the age, `on <branch>` or `orphaned (<branch> is gone)`, keeping the state column, and `"orphaned": true` in JSON.
 - 2026-11-04: Chose to judge a parent merged in territory by reading its spec on `<remote>/<base>`, because the stacked branch's own copy already says `merged: true`.
 - 2026-11-04: Chose to have territory check the parent branch with ls-remote, then fetch it; offline it uses an existing `<remote>/<parent>` ref, else base.
+- 2026-11-04: The skills tell agents to push `furrow done` before marking a PR ready in every repo, stacked or not, since a merge before `done` blocks dependents either way.
+- 2026-11-04: The stacking rules live in specs/README.md under Status, beside "handed back", since `next` and `claim` both use them.
 
 ## Notes for the agent
 

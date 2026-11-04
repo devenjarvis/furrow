@@ -1,6 +1,6 @@
 ---
 name: furrow-swarm
-description: Run several coding agents at once on a Furrow repo, each on its own non-overlapping spec step in its own worktree, then verify and merge what comes back. Use when asked to "run a swarm", "work in parallel", "use N agents", or to build as much of the spec queue as possible.
+description: Run several coding agents at once on a Furrow repo, each on its own non-overlapping spec step in its own worktree, then verify and merge what comes back. Use when asked to build ("let's get building", "keep building"), to work through the queue, to work in parallel or "use sub agents", to "run a swarm" or "use N agents", or to build as much of the spec queue as possible. Prefer it to writing your own agent prompts.
 ---
 
 # Run a swarm
@@ -24,14 +24,19 @@ that nothing else can run beside.
    - the exact territory: the step's `touches`, plus its spec file and area file;
    - never tick a `human:` criterion, never sign off (no `furrow signoff`, no sign-off PR), never
      edit a criterion's text;
+   - for a stacked step, the PR's base is the branch `claim` says it's `Stacked on`;
+   - run `furrow done` and push it before marking the PR ready, never after;
    - commit on the step branch, push, and report: claim output, files changed, tests and results,
      `furrow territory` and `furrow lint` output, decisions, and any spec problem.
 3. **As each agent reports**, run `furrow-verify` on its branch yourself, starting from the agent's
    claims but not trusting them. Merge only what passes, through the repo's PR flow, or by merging
    the branch if the owner works that way. A spec problem goes to the owner. Don't fix the spec to
    make the code pass.
-4. **After each merge**, run `furrow next --agents <free slots> --json` again. Merges unblock new
-   steps, so hand them out as soon as an agent is free instead of waiting for the whole wave.
+4. **After each merge, and each hand-back**, run `furrow next --agents <free slots> --json` again.
+   Merges unblock new steps. With `stack:` set in `.furrow.yml`, a step that's handed back (its
+   `furrow done` is pushed) unblocks too: what waits on it comes back with `stack_on`, to be built on
+   top of it. Hand work out as soon as an agent is free instead of waiting for the whole wave or
+   for the owner to merge.
 5. **Tidy:** when `furrow lint` warns that a spec is ready to archive, run `furrow archive <id>`.
    `furrow claims` lists leftover branches. `furrow release` them, or ask the owner to delete them if
    the remote doesn't let you.
@@ -40,6 +45,8 @@ that nothing else can run beside.
 
 `furrow next` says nothing is ready and no agent is out. Then report to the owner:
 - what merged, by ref, and anything an agent decided that they should know;
+- each stack waiting for review, bottom to top, with its PRs: the owner reviews from the bottom,
+  and can merge the whole stack from its top PR once every PR in it is approved;
 - `furrow review`: the `human:` checks waiting for them, each with its spec, criterion and what
   to look at, so they can ask for a sign-off PR (`furrow-signoff`) once they've checked;
 - spec problems, spec PRs waiting for the owner to merge, and blocked steps with their reasons.
