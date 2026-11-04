@@ -15,7 +15,13 @@ diff stays inside its `touches`.
 - The step is `--step`, or else the current branch read back through the config's `branch`
   pattern. Off a step branch (or detached) it exits 1: "Not on a step branch. Pass
   `--step FUR-NNNN.N`."
-- The base is `--base`, or else `<remote>/<base>`. It isn't fetched.
+- The base is `--base`, or else `<remote>/<base>`. It isn't fetched. A stacked step is the
+  exception when there's no `--base`: territory finds the step's claim commit on `HEAD` (the newest
+  `Claim <REF>:` commit with a `furrow-claim:` line). If it has a `furrow-stack:` trailer, that
+  branch is still on the remote, and its step isn't merged on `<remote>/<base>`, the parent's
+  branch is fetched and the base is `<remote>/<parent branch>`. Otherwise it's `<remote>/<base>`.
+  The report's first line names the parent: `FUR-0091.1 (stacked on step/0090-1): 9 files inside
+  its territory.`, and `--json` adds `"stack_on"`. `--base` always wins, so CI is unchanged.
 - Changed files are everything that differs between the merge base of base and `HEAD` and the
   working tree: committed, staged, unstaged, and untracked files that aren't ignored. A rename
   counts as both paths. Paths are relative to the repo root, sorted.

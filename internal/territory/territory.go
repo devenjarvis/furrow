@@ -170,10 +170,12 @@ func InSpecs(repo *spec.Repo, file string) bool {
 	return false
 }
 
-// Report is the result of a check. Every changed file is in exactly one list.
+// Report is the result of a check. Every changed file is in exactly one list. StackOn is the
+// parent's branch when the base was found from a stacked claim commit.
 type Report struct {
 	Step      string   `json:"step"`
 	Base      string   `json:"base"`
+	StackOn   string   `json:"stack_on,omitempty"`
 	Inside    []string `json:"inside"`
 	Explained []string `json:"explained"`
 	Outside   []string `json:"outside"`
@@ -213,12 +215,18 @@ func Check(g gitx.Git, repo *spec.Repo, opt Options) (*Report, error) {
 	if err != nil {
 		return nil, err
 	}
+	stackOn := ""
+	if opt.Base == "" {
+		if parent := StackBase(g, repo, st); parent != "" {
+			stackOn, base = parent, repo.Config.Remote+"/"+parent
+		}
+	}
 	files, err := ChangedFiles(g, base)
 	if err != nil {
 		return nil, err
 	}
 	explained := Explained(opt.Body)
-	rep := &Report{Step: st.Ref().String(), Base: base, Inside: []string{}, Explained: []string{}, Outside: []string{}}
+	rep := &Report{Step: st.Ref().String(), Base: base, StackOn: stackOn, Inside: []string{}, Explained: []string{}, Outside: []string{}}
 	for _, f := range files {
 		switch {
 		case Inside(repo, st, f):
@@ -230,6 +238,39 @@ func Check(g gitx.Git, repo *spec.Repo, opt Options) (*Report, error) {
 		}
 	}
 	return rep, nil
+}
+
+// StackBase returns the branch a stacked step's diff is measured from: the branch named by the
+// furrow-stack: trailer of the step's claim commit on HEAD, while that branch is on the remote and
+// its step isn't merged on <remote>/<base>. It fetches that branch into <remote>/<branch>. It
+// returns "" when the step isn't stacked, or its parent's branch is gone or merged: then the base
+// is <remote>/<base>, as for any step. Offline, it uses <remote>/<branch> if git already has it.
+func StackBase(g gitx.Git, repo *spec.Repo, st *spec.Step) string {
+	_, parent, err := claim.ClaimCommit(g, "HEAD", st.Ref())
+	if err != nil || parent == "" {
+		return ""
+	}
+	cfg := repo.Config
+	if ref, ok := claim.Parse(cfg, parent); ok {
+		if pst := repo.Step(ref); pst != nil && claim.HandedBack(g, pst, cfg.Remote+"/"+cfg.Base) {
+			return "" // merged on base: the parent's work is in base now
+		}
+	}
+	tracking := "refs/remotes/" + cfg.Remote + "/" + parent
+	out, err := g.Run("ls-remote", "--heads", cfg.Remote, "refs/heads/"+parent)
+	switch {
+	case err != nil:
+		if _, err := g.Run("rev-parse", "--verify", "-q", tracking); err != nil {
+			return ""
+		}
+		return parent
+	case out == "":
+		return "" // the parent's branch is gone
+	}
+	if _, err := g.Run("fetch", "-q", "--no-tags", cfg.Remote, "+refs/heads/"+parent+":"+tracking); err != nil {
+		return ""
+	}
+	return parent
 }
 
 // ExitCode is 0 when nothing is outside and unexplained, and 1 otherwise.
@@ -257,7 +298,11 @@ func (r *Report) Text(w io.Writer) {
 		}
 		return
 	}
-	fmt.Fprintf(w, "%s: %d %s inside its territory.\n", r.Step, len(r.Inside), noun)
+	step := r.Step
+	if r.StackOn != "" {
+		step += " (stacked on " + r.StackOn + ")"
+	}
+	fmt.Fprintf(w, "%s: %d %s inside its territory.\n", step, len(r.Inside), noun)
 	if len(r.Explained) > 0 {
 		fmt.Fprintln(w, "Outside, explained in the PR:")
 		for _, f := range r.Explained {

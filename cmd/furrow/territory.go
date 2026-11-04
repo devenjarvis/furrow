@@ -16,7 +16,7 @@ func init() {
 func runTerritory(env *Env, args []string) int {
 	fs := newFlags(env, "territory", "[--step REF | --signoff] [--base REF] [--body-file FILE] [--json]")
 	step := fs.String("step", "", "the step to check (default: read from the current branch)")
-	base := fs.String("base", "", "compare against this ref (default: <remote>/<base>)")
+	base := fs.String("base", "", "compare against this ref (default: <remote>/<base>, or <remote>/<parent branch> for a stacked step)")
 	bodyFile := fs.String("body-file", "", "the PR description; paths under \"## Territory\" are explained")
 	signoff := fs.Bool("signoff", false, "check a sign-off PR: every change is under the specs folder's changes/, archive/ or areas/")
 	asJSON := fs.Bool("json", false, "print JSON")
