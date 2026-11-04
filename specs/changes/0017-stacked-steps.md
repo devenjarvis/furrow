@@ -27,7 +27,7 @@ steps:
       - specs/areas/scheduling.md
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: furrow claim builds on the parent's branch, and territory diffs against it
     after: [1]
