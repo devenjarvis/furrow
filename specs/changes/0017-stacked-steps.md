@@ -41,7 +41,7 @@ steps:
       - specs/areas/territory.md
     covers: [AC-7, AC-8, AC-9, AC-10, AC-11]
     size: m
-    merged: false
+    merged: true
   - n: 3
     title: The skills open stacked PRs, hand back before ready, and swarm by default
     after: [1]
