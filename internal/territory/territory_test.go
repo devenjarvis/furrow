@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/devenjarvis/furrow/internal/claim"
 	"github.com/devenjarvis/furrow/internal/gitx/gittest"
 	"github.com/devenjarvis/furrow/internal/spec"
 	"github.com/devenjarvis/furrow/internal/spec/spectest"
@@ -321,5 +322,95 @@ func TestTerritorySignoff(t *testing.T) {
 	// --signoff with --step is a usage error.
 	if _, err := territory.Check(g, repo, territory.Options{Signoff: true, Step: "FUR-0007.1"}); !errors.Is(err, territory.ErrSignoffWithStep) {
 		t.Errorf("--signoff --step: err = %v", err)
+	}
+}
+
+func TestTerritoryStackBase(t *testing.T) {
+	r := spectest.New(t)
+	r.Write(".furrow.yml", spectest.Config+"stack: 3\n")
+	r.Write("internal/.keep", "")
+	r.Write("cmd/furrow/.keep", "")
+	parent := S{Num: 90, Steps: []St{{Title: "Parent", Touches: []string{"internal/a/**"}}}}
+	child := S{Num: 91, Steps: []St{{Title: "Child", After: []string{"FUR-0090.1"}, Touches: []string{"internal/b/**"}}}}
+	r.Spec(parent)
+	r.Spec(child)
+	remote := gittest.Init(t, r.Root)
+	g := gittest.Git(r.Root)
+	done := parent
+	done.Steps = []St{{Title: "Parent", Touches: []string{"internal/a/**"}, Merged: true}}
+
+	// FUR-0090.1 is claimed, built and handed back.
+	res, err := claim.Take(g, r.Load(), "FUR-0090.1", claim.Options{NoCheckout: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gittest.Must(t, r.Root, "switch", "-q", "--detach", res.SHA)
+	r.Write("internal/a/x.go", "x\n")
+	r.Write(parent.Path(), spectest.Text(done))
+	gittest.Commit(t, r.Root, "build FUR-0090.1")
+	parentTip := gittest.Must(t, r.Root, "rev-parse", "HEAD")
+	gittest.Must(t, r.Root, "push", "-q", "origin", "HEAD:refs/heads/step/0090-1")
+	gittest.Must(t, r.Root, "switch", "-q", "main")
+
+	// FUR-0091.1 stacks on it and changes one file of its own.
+	res, err = claim.Take(g, r.Load(), "FUR-0091.1", claim.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StackOn != "step/0090-1" {
+		t.Fatalf("not stacked: %+v", res)
+	}
+	r.Write("internal/b/y.go", "y\n")
+	gittest.Commit(t, r.Root, "build FUR-0091.1")
+
+	check := func(base string) *territory.Report {
+		t.Helper()
+		rep, err := territory.Check(g, r.Load(), territory.Options{Base: base})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return rep
+	}
+	rep := check("")
+	if rep.Base != "origin/step/0090-1" || rep.StackOn != "step/0090-1" ||
+		strings.Join(rep.Inside, " ") != "internal/b/y.go" || len(rep.Outside) != 0 {
+		t.Errorf("stacked: %+v", rep)
+	}
+	var b bytes.Buffer
+	rep.Text(&b)
+	if b.String() != "FUR-0091.1 (stacked on step/0090-1): 1 file inside its territory.\n" {
+		t.Errorf("text = %q", b.String())
+	}
+	data, _ := json.Marshal(rep)
+	if !strings.Contains(string(data), `"base":"origin/step/0090-1","stack_on":"step/0090-1"`) {
+		t.Errorf("json = %s", data)
+	}
+
+	// --base wins: against base, the parent's files are outside.
+	rep = check("origin/main")
+	if rep.Base != "origin/main" || rep.StackOn != "" || strings.Join(rep.Outside, " ") != "internal/a/x.go "+parent.Path() {
+		t.Errorf("--base: %+v", rep)
+	}
+	b.Reset()
+	rep.Text(&b)
+	if !strings.HasPrefix(b.String(), "FUR-0091.1: 1 file inside its territory.\n") {
+		t.Errorf("--base text = %q", b.String())
+	}
+
+	// The parent's branch is gone: the base is <remote>/<base>.
+	gittest.Must(t, remote, "branch", "-q", "-D", "step/0090-1")
+	if rep = check(""); rep.Base != "origin/main" || rep.StackOn != "" {
+		t.Errorf("parent gone: %+v", rep)
+	}
+
+	// The parent's branch is back, but the parent merged on base: the base is <remote>/<base>.
+	gittest.Must(t, r.Root, "push", "-q", "origin", parentTip+":refs/heads/step/0090-1")
+	if rep = check(""); rep.StackOn != "step/0090-1" {
+		t.Fatalf("parent back: %+v", rep)
+	}
+	gittest.Must(t, r.Root, "push", "-q", "origin", parentTip+":refs/heads/main")
+	gittest.Must(t, r.Root, "fetch", "-q", "origin", "main")
+	if rep = check(""); rep.Base != "origin/main" || rep.StackOn != "" || len(rep.Outside) != 0 {
+		t.Errorf("parent merged: %+v", rep)
 	}
 }

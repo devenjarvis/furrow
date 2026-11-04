@@ -16,9 +16,10 @@ func init() {
 }
 
 func runClaim(env *Env, args []string) int {
-	fs := newFlags(env, "claim", "<ref> [--no-checkout] [--force]")
+	fs := newFlags(env, "claim", "<ref> [--no-checkout] [--force] [--json]")
 	noCheckout := fs.Bool("no-checkout", false, "create the branch on the remote but don't switch to it")
 	force := fs.Bool("force", false, "claim even if its touches overlap a claimed step")
+	asJSON := fs.Bool("json", false, "print JSON")
 	pos, err := parseFlags(fs, args)
 	if err != nil {
 		return 2
@@ -40,11 +41,10 @@ func runClaim(env *Env, args []string) int {
 	if err != nil {
 		return fail(env, "%v", err)
 	}
-	fmt.Fprintf(env.Stdout, "Claimed %s on %s.\n", res.Ref, res.Branch)
-	if *noCheckout {
-		fmt.Fprintf(env.Stdout, "Switch to it with: git switch -c %s %s/%s\n", res.Branch, repo.Config.Remote, res.Branch)
+	if *asJSON {
+		return printJSON(env, res)
 	}
-	fmt.Fprintf(env.Stdout, "Open a draft PR titled: %s\n", res.PRTitle)
+	res.Text(env.Stdout, repo.Config.Remote, *noCheckout)
 	return 0
 }
 

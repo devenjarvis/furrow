@@ -2,6 +2,7 @@ package claim_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -249,5 +250,239 @@ func TestClaimsAges(t *testing.T) {
 	claim.StatusText(&b, statuses)
 	if !strings.Contains(b.String(), "FUR-0001.1  step/0001-1  leftover  0m  (merged: release it)") {
 		t.Errorf("text:\n%s", b.String())
+	}
+}
+
+// Stacking fixtures: FUR-0090.1 touches internal/a/**, and FUR-0091.1 comes after it and touches
+// the same files, so it can only start stacked on it.
+var (
+	parent090 = S{Num: 90, Steps: []St{{Title: "Parent", Touches: []string{"internal/a/**"}}}}
+	child091  = S{Num: 91, Steps: []St{{Title: "Child", After: []string{"FUR-0090.1"}, Touches: []string{"internal/a/**"}}}}
+)
+
+// setupStack is setup with stack: 3 in .furrow.yml.
+func setupStack(t *testing.T, specs ...S) (string, string) {
+	t.Helper()
+	r := spectest.New(t)
+	r.Write(".furrow.yml", spectest.Config+"stack: 3\n")
+	r.Write("internal/.keep", "")
+	r.Write("cmd/furrow/.keep", "")
+	for _, s := range specs {
+		r.Spec(s)
+	}
+	remote := gittest.Init(t, r.Root)
+	return r.Root, remote
+}
+
+// handBack claims FUR-0090.1 from dir and pushes furrow done's edit on top: its step marked
+// merged: true. It returns the branch's new tip.
+func handBack(t *testing.T, dir string) string {
+	t.Helper()
+	res, err := claim.Take(gittest.Git(dir), load(t, dir), "FUR-0090.1", claim.Options{NoCheckout: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := parent090
+	done.Steps = []St{{Title: "Parent", Touches: []string{"internal/a/**"}, Merged: true}}
+	return pushOnTop(t, dir, res.SHA, "step/0090-1", parent090.Path(), spectest.Text(done))
+}
+
+func TestClaimStacked(t *testing.T) {
+	dir, remote := setupStack(t, parent090, child091)
+	g := gittest.Git(dir)
+	tip := handBack(t, dir)
+	// The parent's branch moves after it's handed back: the claim builds on where it is now.
+	tip = pushOnTop(t, dir, tip, "step/0090-1", "internal/a/x.go", "x\n")
+
+	res, err := claim.Take(g, load(t, dir), "FUR-0091.1", claim.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StackOn != "step/0090-1" || res.BaseBranch != "step/0090-1" || res.Branch != "step/0091-1" {
+		t.Errorf("result = %+v", res)
+	}
+	if onRemote := gittest.Must(t, remote, "rev-parse", "refs/heads/step/0091-1"); onRemote != res.SHA {
+		t.Errorf("remote has %s, claim made %s", onRemote, res.SHA)
+	}
+	if p := gittest.Must(t, remote, "rev-parse", res.SHA+"^"); p != tip {
+		t.Errorf("claim commit's parent = %s, want the parent branch's tip %s", p, tip)
+	}
+	if diff := gittest.Must(t, dir, "diff", "--name-only", tip, res.SHA); diff != "" {
+		t.Errorf("claim commit changed files: %s", diff)
+	}
+	msg := gittest.Must(t, dir, "log", "-1", "--format=%B", res.SHA)
+	lines := strings.Split(msg, "\n")
+	if lines[0] != "Claim FUR-0091.1: Child" || len(lines) != 4 ||
+		!strings.HasPrefix(lines[2], "furrow-claim: ") || lines[3] != "furrow-stack: step/0090-1" {
+		t.Errorf("message = %q", msg)
+	}
+	if cur := gittest.Must(t, dir, "branch", "--show-current"); cur != "step/0091-1" {
+		t.Errorf("checked out %q", cur)
+	}
+
+	var b bytes.Buffer
+	res.Text(&b, "origin", false)
+	want := "Claimed FUR-0091.1 on step/0091-1.\nStacked on step/0090-1. Open the PR against that branch.\nOpen a draft PR titled: [FUR-0091.1] Child\n"
+	if b.String() != want {
+		t.Errorf("text = %q", b.String())
+	}
+	data, _ := json.Marshal(res)
+	if !strings.Contains(string(data), `"base_branch":"step/0090-1"`) {
+		t.Errorf("json = %s", data)
+	}
+
+	// An unstacked claim's base_branch is the config's base, and its text is as before.
+	plain, _ := setup(t, S{Num: 1, Steps: []St{{Title: "The step"}}})
+	res, err = claim.Take(gittest.Git(plain), load(t, plain), "FUR-0001.1", claim.Options{NoCheckout: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ = json.Marshal(res)
+	if !strings.Contains(string(data), `"base_branch":"main"`) {
+		t.Errorf("unstacked json = %s", data)
+	}
+	b.Reset()
+	res.Text(&b, "origin", true)
+	want = "Claimed FUR-0001.1 on step/0001-1.\nSwitch to it with: git switch -c step/0001-1 origin/step/0001-1\nOpen a draft PR titled: [FUR-0001.1] The step\n"
+	if b.String() != want {
+		t.Errorf("unstacked text = %q", b.String())
+	}
+	if m := gittest.Must(t, plain, "log", "-1", "--format=%B", res.SHA); strings.Contains(m, "furrow-stack") {
+		t.Errorf("unstacked message = %q", m)
+	}
+}
+
+func TestClaimStackedRace(t *testing.T) {
+	dir, remote := setupStack(t, parent090, child091)
+	handBack(t, dir)
+	a, b := gittest.Clone(t, remote), gittest.Clone(t, remote)
+	errs := make([]error, 2)
+	results := make([]*claim.Result, 2)
+	var wg sync.WaitGroup
+	for i, d := range []string{a, b} {
+		wg.Add(1)
+		go func(i int, d string) {
+			defer wg.Done()
+			repo, err := spec.LoadDir(d)
+			if err != nil {
+				errs[i] = err
+				return
+			}
+			results[i], errs[i] = claim.Take(gittest.Git(d), repo, "FUR-0091.1", claim.Options{})
+		}(i, d)
+	}
+	wg.Wait()
+	wins, lost := 0, 0
+	for i, err := range errs {
+		var ce *claim.ClaimedError
+		switch {
+		case err == nil:
+			wins++
+			if results[i].StackOn != "step/0090-1" {
+				t.Errorf("winner wasn't stacked: %+v", results[i])
+			}
+		case errors.As(err, &ce): // furrow claim exits 3 on a ClaimedError
+			lost++
+		default:
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+	if wins != 1 || lost != 1 {
+		t.Errorf("wins = %d, lost = %d; want exactly one of each", wins, lost)
+	}
+}
+
+func TestClaimStackParentGone(t *testing.T) {
+	want := "FUR-0091.1 waits on FUR-0090.1, which is no longer handed back. Run furrow next again."
+	dir, remote := setupStack(t, parent090, child091)
+	g := gittest.Git(dir)
+	tip := handBack(t, dir)
+
+	// The parent's tip no longer says merged: true.
+	pushOnTop(t, dir, tip, "step/0090-1", parent090.Path(), spectest.Text(parent090))
+	if _, err := claim.Take(g, load(t, dir), "FUR-0091.1", claim.Options{NoCheckout: true}); err == nil || err.Error() != want {
+		t.Errorf("tip not handed back: err = %v, want %q", err, want)
+	}
+	// The parent's branch is gone.
+	gittest.Must(t, dir, "push", "-q", "origin", "--delete", "refs/heads/step/0090-1")
+	if _, err := claim.Take(g, load(t, dir), "FUR-0091.1", claim.Options{NoCheckout: true}); err == nil || err.Error() != want {
+		t.Errorf("branch gone: err = %v, want %q", err, want)
+	}
+	if out := gittest.Must(t, remote, "branch", "--list", "step/0091-1"); out != "" {
+		t.Error("a refused claim still pushed a branch")
+	}
+
+	// The parent merged on base meanwhile: the step is plain ready and is claimed on base.
+	r := &spectest.Repo{T: t, Root: dir}
+	done := parent090
+	done.Steps = []St{{Title: "Parent", Touches: []string{"internal/a/**"}, Merged: true}}
+	r.Write(parent090.Path(), spectest.Text(done))
+	gittest.Commit(t, dir, "merge FUR-0090.1")
+	gittest.Must(t, dir, "push", "-q", "origin", "main")
+	res, err := claim.Take(g, load(t, dir), "FUR-0091.1", claim.Options{NoCheckout: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StackOn != "" || res.BaseBranch != "main" {
+		t.Errorf("result = %+v", res)
+	}
+	if p := gittest.Must(t, remote, "rev-parse", res.SHA+"^"); p != gittest.Must(t, remote, "rev-parse", "main") {
+		t.Error("claim commit isn't on base")
+	}
+	if m := gittest.Must(t, dir, "log", "-1", "--format=%B", res.SHA); strings.Contains(m, "furrow-stack") {
+		t.Errorf("message = %q", m)
+	}
+}
+
+func TestClaimsStackOn(t *testing.T) {
+	dir, _ := setupStack(t, parent090, child091)
+	g := gittest.Git(dir)
+	handBack(t, dir)
+	if _, err := claim.Take(g, load(t, dir), "FUR-0091.1", claim.Options{NoCheckout: true}); err != nil {
+		t.Fatal(err)
+	}
+	statuses, err := claim.Statuses(g, load(t, dir), time.Now(), 24*time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	claim.StatusText(&b, statuses)
+	wantText := "FUR-0090.1  step/0090-1  active    0m\nFUR-0091.1  step/0091-1  active    0m  on step/0090-1\n"
+	if b.String() != wantText {
+		t.Errorf("text = %q, want %q", b.String(), wantText)
+	}
+	data, _ := json.Marshal(statuses)
+	if !strings.Contains(string(data), `"state":"active","stack_on":"step/0090-1"}`) || strings.Count(string(data), "stack_on") != 1 {
+		t.Errorf("json = %s", data)
+	}
+
+	// The parent's PR closed without merging: its branch is gone.
+	gittest.Must(t, dir, "push", "-q", "origin", "--delete", "refs/heads/step/0090-1")
+	statuses, err = claim.Statuses(g, load(t, dir), time.Now(), 24*time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Reset()
+	claim.StatusText(&b, statuses)
+	if b.String() != "FUR-0091.1  step/0091-1  active    0m  orphaned (step/0090-1 is gone)\n" {
+		t.Errorf("orphaned text = %q", b.String())
+	}
+	data, _ = json.Marshal(statuses)
+	if !strings.Contains(string(data), `"stack_on":"step/0090-1","orphaned":true`) {
+		t.Errorf("orphaned json = %s", data)
+	}
+
+	// The parent merged and its branch was deleted: not orphaned.
+	r := &spectest.Repo{T: t, Root: dir}
+	done := parent090
+	done.Steps = []St{{Title: "Parent", Touches: []string{"internal/a/**"}, Merged: true}}
+	r.Write(parent090.Path(), spectest.Text(done))
+	gittest.Commit(t, dir, "merge FUR-0090.1")
+	statuses, err = claim.Statuses(g, load(t, dir), time.Now(), 24*time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(statuses) != 1 || statuses[0].Orphaned || statuses[0].StackOn != "step/0090-1" {
+		t.Errorf("merged parent: %+v", statuses)
 	}
 }
