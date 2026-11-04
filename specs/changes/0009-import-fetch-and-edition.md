@@ -29,8 +29,7 @@ steps:
       - cmd/furrow/import.go
     covers: [AC-3, AC-4]
     size: m
-    merged: false
-    blocked: "Edition's move isn't planned yet. The owner unblocks it."
+    merged: true
 ---
 
 # FUR-0009: Move Fetch and Edition onto Furrow
@@ -129,8 +128,8 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 
 - [x] AC-1: Importing a fixture copy of Fetch's specs (each status, a dependency chain, a `kind`) gives a tree `furrow lint` passes, with done specs in `archive/`, merged (test: TestImportFetch)
 - [x] AC-2: A ready spec whose only open boxes are `human:` ones comes out accepted and merged, and its boxes are listed by `furrow review` (test: TestImportFetchSignoffQueue)
-- [ ] AC-3: Importing a copy of Edition's specs gives a lint-clean tree, and its step lines become steps (test: TestImportEdition)
-- [ ] AC-4: `furrow next` on the imported Edition tree offers the same steps as `scripts/next --offline` (check: compare the two outputs)
+- [x] AC-3: Importing a copy of Edition's specs gives a lint-clean tree, and its step lines become steps (test: TestImportEdition)
+- [x] AC-4: `furrow next` on the imported Edition tree offers the same steps as `scripts/next --offline` (check: compare the two outputs)
 - [x] AC-5: An entry in touches naming the spec's own file is dropped, one naming another spec follows it, and `context` entries and links in bodies point to the new paths (test: TestImportFetchRewritesPaths)
 - [x] AC-6: Missing `--areas`, or a spec no area matches, is refused with the message naming the spec, and nothing is written. An existing area file keeps its text and gains only History lines (test: TestImportFetchAreas)
 - [x] AC-7: Each ticked `human:` box gets one "signed off by NAME (imported)" line, and without `--by` the import refuses (test: TestImportFetchSignoffLines)
@@ -174,3 +173,10 @@ in the spec's Decisions so tests named after them can still be found. Shipped sp
 - 2026-11-03: Furrow's README and template come from `scaffold.Init` run in a temp folder, because the assets aren't exported and scaffold is outside this step.
 - 2026-11-03: Every area in the areas file gets a file, even one with no archived specs yet, so lint finds each area a spec names.
 - 2026-11-03: AC-9 signed off by Deven Jarvis.
+- 2026-11-04: The owner unblocked step 2 and chose AC-n over keeping letters. Each criterion's text starts with its letter (`AC-5: S5. …`), so tests named `s5…` are still found.
+- 2026-11-04: Edition's criteria get the proof `(test: s5…)`, since Edition names tests after criteria. One is ticked when every step naming it is merged, or its spec shipped.
+- 2026-11-04: Edition's specs are numbered in file-name order, so specs: in the areas file may name a spec by its old slug as well as its id.
+- 2026-11-04: Answered open questions (Edition's "Answered" group) move to ## Decisions, since Furrow asks every open question in a decided spec for a proposed answer.
+- 2026-11-04: A paused spec's open step without a step line gets blocked: the spec's pause, because Edition never asked paused specs for step lines.
+- 2026-11-04: An Edition spec keeps its Status line as "Status when imported" and its step list as `### Steps` without checkboxes, so front matter is the only status.
+- 2026-11-04: Links in criteria are rewritten too: the import writes those criteria, so INV-4 isn't touched.

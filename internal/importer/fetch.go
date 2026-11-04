@@ -61,6 +61,7 @@ type Plan struct {
 
 	root    string
 	specs   string // the specs folder, repo-relative
+	source  string // the format imported from: "Fetch" or "Edition"
 	writes  []fileWrite
 	removes []string
 }
@@ -146,12 +147,12 @@ func Fetch(o Options) (*Plan, error) {
 	if strings.TrimSpace(o.AreasFile) == "" {
 		return nil, errors.New(NoAreas)
 	}
-	af, err := readAreas(filepath.Join(o.Root, o.AreasFile))
+	af, err := readAreas(areasPath(o.Root, o.AreasFile))
 	if err != nil {
 		return nil, err
 	}
 	specsDir := filepath.ToSlash(filepath.Clean(o.Config.Specs))
-	p := &Plan{Specs: []PlannedSpec{}, Areas: []PlannedArea{}, Problems: []string{}, root: o.Root, specs: specsDir}
+	p := &Plan{Specs: []PlannedSpec{}, Areas: []PlannedArea{}, Problems: []string{}, root: o.Root, specs: specsDir, source: "Fetch"}
 	problem := func(format string, args ...any) { p.Problems = append(p.Problems, fmt.Sprintf(format, args...)) }
 
 	entries, err := os.ReadDir(filepath.Join(o.Root, specsDir))
@@ -276,24 +277,52 @@ func Fetch(o Options) (*Plan, error) {
 			history[s.plan.Area] = append(history[s.plan.Area], fmt.Sprintf("- %s: %s (archived %s, imported)", s.id, title(s), date))
 		}
 	}
-	seenArea := map[string]bool{}
+	areaWrites, areas, err := planAreas(o.Root, specsDir, areaOrder, areaTitles, p.Specs, history)
+	if err != nil {
+		return nil, err
+	}
+	texts = append(texts, areaWrites...)
+	p.Areas = areas
+
+	rest, err := standardTree(o.Root, specsDir, o.Config.Prefix)
+	if err != nil {
+		return nil, err
+	}
+	texts = append(texts, rest...)
+	p.writes = texts
+
+	lintProblems, err := p.lint(o.Config)
+	if err != nil {
+		return nil, err
+	}
+	p.Problems = append(p.Problems, lintProblems...)
+	return p, nil
+}
+
+// planAreas plans each area file: History lines for archived specs, a new file for a listed area
+// that has none, and the file kept as it is otherwise. Listed areas come first, in file order, then
+// any other area a spec names, sorted.
+func planAreas(root, specsDir string, order []string, titles map[string]string, specs []PlannedSpec, history map[string][]string) ([]fileWrite, []PlannedArea, error) {
+	seen := map[string]bool{}
 	var extra []string
-	for _, s := range srcs {
-		if a := s.plan.Area; a != "" && !seenArea[a] {
-			seenArea[a] = true
-			if _, listed := areaTitles[a]; !listed {
+	for _, s := range specs {
+		if a := s.Area; a != "" && !seen[a] {
+			seen[a] = true
+			if _, listed := titles[a]; !listed {
 				extra = append(extra, a)
 			}
 		}
 	}
 	sort.Strings(extra)
-	for _, name := range append(areaOrder, extra...) {
+	var texts []fileWrite
+	out := []PlannedArea{}
+	for _, name := range append(append([]string{}, order...), extra...) {
 		rel := specsDir + "/areas/" + name + ".md"
-		pa := PlannedArea{Area: name, Title: areaTitles[name], File: rel, History: history[name]}
+		pa := PlannedArea{Area: name, Title: titles[name], File: rel, History: history[name]}
 		if pa.History == nil {
 			pa.History = []string{}
 		}
-		data, err := os.ReadFile(filepath.Join(o.Root, filepath.FromSlash(rel)))
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
 		switch {
 		case err == nil:
 			text := string(data)
@@ -307,39 +336,43 @@ func Fetch(o Options) (*Plan, error) {
 			}
 		case errors.Is(err, fs.ErrNotExist):
 			if pa.Title == "" {
-				continue // reported above
+				continue // reported as a problem
 			}
 			pa.Action = "create"
 			texts = append(texts, fileWrite{rel: rel, text: newArea(name, pa.Title, pa.History)})
 		default:
-			return nil, err
+			return nil, nil, err
 		}
-		p.Areas = append(p.Areas, pa)
+		out = append(out, pa)
 	}
+	return texts, out, nil
+}
 
-	// The rest of the tree: Furrow's README and template, and the folders.
-	readme, tmpl, err := furrowStandard(o.Config.Prefix)
+// standardTree is Furrow's README and template, and a .gitkeep in each folder that lacks one.
+func standardTree(root, specsDir, prefix string) ([]fileWrite, error) {
+	readme, tmpl, err := furrowStandard(prefix)
 	if err != nil {
 		return nil, err
 	}
-	texts = append(texts,
-		fileWrite{rel: specsDir + "/README.md", text: readme},
-		fileWrite{rel: specsDir + "/_template.md", text: tmpl},
-	)
+	texts := []fileWrite{
+		{rel: specsDir + "/README.md", text: readme},
+		{rel: specsDir + "/_template.md", text: tmpl},
+	}
 	for _, d := range []string{"changes", "archive", "areas"} {
 		rel := specsDir + "/" + d + "/.gitkeep"
-		if !exists(o.Root, rel) {
+		if !exists(root, rel) {
 			texts = append(texts, fileWrite{rel: rel})
 		}
 	}
-	p.writes = texts
+	return texts, nil
+}
 
-	lintProblems, err := p.lint(o.Config)
-	if err != nil {
-		return nil, err
+// areasPath is the --areas file: as given when absolute, else from the repo root.
+func areasPath(root, file string) string {
+	if filepath.IsAbs(file) {
+		return file
 	}
-	p.Problems = append(p.Problems, lintProblems...)
-	return p, nil
+	return filepath.Join(root, file)
 }
 
 func readAreas(path string) (areasFile, error) {
@@ -729,7 +762,7 @@ func writeAt(root, rel, text string) error {
 // while the plan has problems.
 func (p *Plan) Write() error {
 	if len(p.Problems) > 0 {
-		return fmt.Errorf("Nothing written: the plan has %d problem(s). Fix the source specs, in Fetch's format, first.", len(p.Problems))
+		return fmt.Errorf("Nothing written: the plan has %d problem(s). Fix the source specs, in %s's format, first.", len(p.Problems), p.source)
 	}
 	for _, w := range p.writes {
 		if err := writeAt(p.root, w.rel, w.text); err != nil {

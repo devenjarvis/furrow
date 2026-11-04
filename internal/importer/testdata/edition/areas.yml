@@ -1,0 +1,12 @@
+areas:
+  - area: mail
+    title: Mail
+    paths: [apple/Packages/EditionKit/Sources/EditionKit/Mail/**]
+  - area: subscriptions
+    title: Subscriptions
+    paths: [apple/Packages/EditionKit/Sources/EditionKit/Access/**]
+  - area: relay
+    title: The relay
+    paths: []
+specs:
+  plans: subscriptions

@@ -22,8 +22,14 @@ var importDay = time.Date(2026, 11, 3, 15, 4, 0, 0, time.UTC)
 // fixture copies testdata/fetch, a small Fetch repo, into a temp dir and returns its root.
 func fixture(t *testing.T) string {
 	t.Helper()
+	return fixtureOf(t, "fetch")
+}
+
+// fixtureOf copies testdata/<name> into a temp dir and returns its root.
+func fixtureOf(t *testing.T, name string) string {
+	t.Helper()
 	root := t.TempDir()
-	src := filepath.Join("testdata", "fetch")
+	src := filepath.Join("testdata", name)
 	err := filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err

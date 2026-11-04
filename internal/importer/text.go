@@ -35,7 +35,7 @@ func (p *Plan) Text(w io.Writer, write bool) {
 		}
 		return out
 	}
-	fmt.Fprintf(w, "%d Fetch specs: %s, %s.\n\n", len(p.Specs),
+	fmt.Fprintf(w, "%d %s specs: %s, %s.\n\n", len(p.Specs), p.source,
 		group("archive", spec.Done), group("changes", spec.Accepted, spec.Draft, spec.Paused))
 
 	for _, s := range p.Specs {
@@ -65,7 +65,18 @@ func (p *Plan) Text(w io.Writer, write bool) {
 			fmt.Fprintln(w, line)
 		}
 	}
-	fmt.Fprintf(w, "\nAlso writes %s/README.md and %s/_template.md (Furrow's, replacing Fetch's), and a .gitkeep in changes/, archive/ and areas/.\n", p.specs, p.specs)
+	fmt.Fprintf(w, "\nAlso writes %s/README.md and %s/_template.md (Furrow's, replacing %s's), and a .gitkeep in changes/, archive/ and areas/.\n", p.specs, p.specs, p.source)
+	if len(p.removes) > len(p.Specs) {
+		var others []string
+		for _, r := range p.removes {
+			if p.spec(r) == nil && !p.from(r) {
+				others = append(others, r)
+			}
+		}
+		if len(others) > 0 {
+			fmt.Fprintf(w, "Removes %s.\n", strings.Join(others, " and "))
+		}
+	}
 
 	if len(p.Problems) == 0 {
 		fmt.Fprintln(w, "\nNo problems.")
@@ -81,7 +92,7 @@ func (p *Plan) Text(w io.Writer, write bool) {
 	if len(p.Problems) == 0 {
 		fmt.Fprintln(w, "\nDry run: nothing written. Run it again with --write to write the plan.")
 	} else {
-		fmt.Fprintln(w, "\nDry run: nothing written. Fix the problems in the source specs, in Fetch's format, then run it again.")
+		fmt.Fprintf(w, "\nDry run: nothing written. Fix the problems in the source specs, in %s's format, then run it again.\n", p.source)
 	}
 }
 
@@ -94,4 +105,14 @@ func (p *Plan) Summary() string {
 		}
 	}
 	return fmt.Sprintf("Imported %d specs and wrote %d area files. Run `furrow lint`, then fill in each area's ## Behaviour.", len(p.Specs), written)
+}
+
+// from reports whether rel is a planned spec's source file.
+func (p *Plan) from(rel string) bool {
+	for _, s := range p.Specs {
+		if s.From == rel {
+			return true
+		}
+	}
+	return false
 }
