@@ -43,7 +43,7 @@ steps:
       - .claude/agents
     covers: [AC-12, AC-13, AC-14]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0018: Lean orchestrator sessions: small hand-backs, fresh verifiers, one-call status
@@ -225,9 +225,9 @@ agent into its own `.claude/agents/` and editing it.
 - [x] AC-9: `--json` prints the keys in this spec with the same facts as the text, and two runs on the same repo and clock print the same bytes. (test: TestStatusJSON)
 - [x] AC-10: With `--offline` or an unreachable remote, the claim sections say `(remote not checked)`, `claims_checked` is false, ready matches `furrow next --offline`, and it exits 0. (test: TestStatusOffline)
 - [x] AC-11: On Furrow's own repo, `furrow status --offline` prints at most 40 lines. (check: test "$(go run ./cmd/furrow status --offline | wc -l)" -le 40)
-- [ ] AC-12: `agents/furrow-builder.md` and `agents/furrow-verifier.md` exist, have no `model:` line, and each says what it returns and repeats the never-sign-off rules. (check: test -f agents/furrow-builder.md && test -f agents/furrow-verifier.md && ! grep -q "^model:" agents/furrow-builder.md agents/furrow-verifier.md)
-- [ ] AC-13: `agents/furrow-chores.md` exists with `model: sonnet` and says it returns at most 10 lines. (check: grep -q "^model: sonnet" agents/furrow-chores.md)
-- [ ] AC-14: `.claude/agents` is a link to `../agents`. (check: test "$(readlink .claude/agents)" = ../agents)
+- [x] AC-12: `agents/furrow-builder.md` and `agents/furrow-verifier.md` exist, have no `model:` line, and each says what it returns and repeats the never-sign-off rules. (check: test -f agents/furrow-builder.md && test -f agents/furrow-verifier.md && ! grep -q "^model:" agents/furrow-builder.md agents/furrow-verifier.md)
+- [x] AC-13: `agents/furrow-chores.md` exists with `model: sonnet` and says it returns at most 10 lines. (check: grep -q "^model: sonnet" agents/furrow-chores.md)
+- [x] AC-14: `.claude/agents` is a link to `../agents`. (check: test "$(readlink .claude/agents)" = ../agents)
 - [ ] AC-15: In one real swarm wave, each hand-back and each verdict the orchestrator received kept to its line limit, and the orchestrator stopped with a handoff a fresh session could start from. (human: the orchestrator's transcript of one wave, and the next session started from its handoff line)
 
 ## Out of scope
@@ -251,3 +251,5 @@ agent into its own `.claude/agents/` and editing it.
 - 2026-11-04: Chose to count claims on merged or unknown steps, and orphaned stacked claims, as leftover, matching furrow claims' leftover and orphaned states.
 - 2026-11-04: Chose to print a section header with its count only when non-empty, and an empty Waiting on the owner as `(none)`, omitting zero lines.
 - 2026-11-04: Chose to copy furrow claims' age format into internal/status rather than export it, so this step stays inside its touches.
+- 2026-11-04: Chose to leave `tools:` out of all three agents, so each inherits the session's tools, including the forge MCP tools a builder needs for its PR.
+- 2026-11-04: Chose to leave plugin.json unchanged: Claude Code finds `agents/` at a plugin's root by default, as the spec says.
