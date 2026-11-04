@@ -68,6 +68,15 @@ a waiting step that can't stack adds `"why_waiting"`.
 open, and each later wave waits on the one before. Each step shows its state and what it waits on.
 A stacked step stays in the wave its waits put it in, and its state reads `ready (stacked)`.
 
+**`furrow status [--json] [--offline]`** says where everything stands in one call, from the specs
+and the remote's branches: In progress, Handed back, Ready now (at most 5, ranked as `furrow next`
+ranks them, then `+N more: furrow next`), Waiting on the owner (human checks, specs ready to
+archive), Stale or leftover claims, and one `Next:` line, the first that applies of: release
+leftover claims, start the ready steps, review the handed-back PRs, check what `furrow review`
+lists, or write a spec. Each section is sorted by ref. `--json` gives the same facts, with every
+ready step. Offline, or with the remote unreachable, the claim sections say `(remote not checked)`
+and it exits 0. It never asks a forge.
+
 ## History
 
 - FUR-0002: Say what can start now, and what can run together (archived 2026-11-01)

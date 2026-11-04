@@ -40,3 +40,8 @@ You're the reviewer, not the author. Assume nothing is done until you've seen th
 8. Report a table: criterion, verdict (met, not met, can't tell), evidence, with each brief
    claim the diff doesn't bear out as a row of its own. Then territory, brief, invariant and
    hygiene findings with file and line. Say plainly whether it's ready to merge.
+
+Run as a sub-agent (a `furrow-verifier` started by `furrow-swarm`), your report is only the verdict
+table, the findings one line each (`findings: none` if there are none), and one last line,
+`ready to merge: yes` or `ready to merge: no`. At most 25 lines in all, with no raw command output
+except at most 10 lines of a check that failed.
