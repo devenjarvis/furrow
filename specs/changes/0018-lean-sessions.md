@@ -23,7 +23,7 @@ steps:
       - specs/areas/agents.md
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-15]
     size: s
-    merged: false
+    merged: true
   - n: 2
     title: furrow status, the state of play in one call
     after: []
