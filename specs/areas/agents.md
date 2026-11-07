@@ -54,7 +54,7 @@ Furrow ships a Claude Code plugin from the repo root. `.claude-plugin/plugin.jso
   `furrow-builder` agent per assignment. Each builder hands back in at most 15 lines: each command
   with its exit code, decisions one line each, a spec problem or `none`, and raw output only for a
   failure, at most 20 lines. Each hand-back is verified in a fresh `furrow-verifier` agent, never in
-  the orchestrator; it merges on `ready to merge: yes` and sends `no` findings back to the builder.
+  the orchestrator; it merges on `ready to merge: yes` only once every check has passed on the PR's head commit (a red check goes to `furrow-chores`, never merged), and sends `no` findings back to the builder.
   Chores (rebasing a stacked step, merging the base when only `specs/` conflicts, re-running the
   check, reading a CI failure) go to `furrow-chores`; anything else goes back to the builder. It
   hands out newly unblocked steps as slots free up and archives finished specs. With `stack:` on, a
@@ -66,8 +66,10 @@ Furrow ships a Claude Code plugin from the repo root. `.claude-plugin/plugin.jso
 
 **Agents.** The plugin ships three agent definitions in `agents/`, and this repo's `.claude/agents`
 links there. `furrow-builder` claims and builds one step and returns the 15-line hand-back;
-`furrow-verifier` runs `furrow-verify` and returns the 25-line verdict; both use the session's
-model. `furrow-chores` (`model: sonnet`) does the chores and returns at most 10 lines. Each repeats
+`furrow-verifier` runs `furrow-verify` and returns the 25-line verdict; both say `model: opus`, so
+they run on Opus whatever the session runs on. `furrow-chores` (`model: sonnet`) does the chores and
+returns at most 10 lines. The swarm's own session, the orchestrator, runs on Haiku; one on another
+model tells the owner once and carries on. Each repeats
 the rules it needs: never tick a `human:` box, never sign off, never edit a criterion's text, work
 only in its worktree. A project overrides one by copying it into its own `.claude/agents/`.
 

@@ -12,6 +12,15 @@ chores, and report to you in a few lines. You don't build or verify steps yourse
 The plugin ships the agents you start: `furrow-builder`, `furrow-verifier` and `furrow-chores`.
 Start them by name; don't write your own agent prompts.
 
+## Models
+
+The orchestrator, this session, runs on Haiku: it hands out work and reads short reports, so it
+doesn't need more. The agents set their own models in their front matter: `furrow-builder` and
+`furrow-verifier` run on Opus and `furrow-chores` on Sonnet, whatever this session runs on. If this
+session isn't on Haiku, tell the owner once, in one line, and carry on:
+`This swarm runs on <model>. /model haiku makes the orchestrator cheaper; the agents stay on Opus.`
+A project overrides an agent's model by copying the agent into its own `.claude/agents/`.
+
 ## Loop
 
 1. **Start from `furrow status`.** It says what's in progress, handed back, ready, and waiting on
@@ -46,9 +55,20 @@ Start them by name; don't write your own agent prompts.
    `none`. Raw output only for a command that failed, at most 20 lines of it.
 3. **As each builder hands back**, start a fresh `furrow-verifier` agent with the ref, the branch,
    the PR number and a worktree. Never run `furrow-verify` in your own conversation: read only the
-   verdict. On `ready to merge: yes`, merge through the repo's PR flow, or by merging the branch if
-   the owner works that way. On `ready to merge: no`, send the findings back to the step's builder.
-   A spec problem goes to the owner. Don't fix the spec to make the code pass.
+   verdict. On `ready to merge: no`, send the findings back to the step's builder. A spec problem
+   goes to the owner. Don't fix the spec to make the code pass. On `ready to merge: yes`, check CI
+   on the PR's head commit before you merge:
+   - **Every required check passed on the head commit:** merge through the repo's PR flow, or by
+     merging the branch if the owner works that way.
+   - **A check failed on the head commit:** don't merge. Send a `furrow-chores` agent to read the
+     failure. A failure in the step's code goes back to the builder, and its next hand-back gets a
+     fresh verifier. A failure the chore shows is unrelated to the diff may be re-run once on the
+     same commit; merge only when that run passes.
+   - **Checks still running:** wait for them. Never merge on an older commit's green run.
+   - **The repo has no CI:** the verifier's run of the repo's check is the gate.
+
+   A step whose fix wasn't re-verified never merges: every merge follows a fresh
+   `ready to merge: yes` on the head commit you merge.
 4. **Chores go to a `furrow-chores` agent**, with the ref, the branch, a worktree and the chore:
    rebasing a stacked step onto a parent that changed, merging the base into a step branch when
    the only conflict is in `specs/`, re-running the repo's check, and reading a CI failure. It
