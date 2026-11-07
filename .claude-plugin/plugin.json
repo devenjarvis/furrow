@@ -1,6 +1,5 @@
 {
   "name": "furrow",
-  "version": "0.1.0",
   "description": "Skills for building a repo with a swarm of coding agents: pick, claim, build, verify and write Furrow spec steps, and run many agents at once without collisions.",
   "author": { "name": "Deven Jarvis" },
   "homepage": "https://github.com/devenjarvis/furrow",

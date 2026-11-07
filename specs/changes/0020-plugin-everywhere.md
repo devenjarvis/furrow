@@ -18,7 +18,7 @@ steps:
       - README.md
     covers: [AC-1, AC-2, AC-6, AC-7]
     size: s
-    merged: false
+    merged: true
   - n: 2
     title: furrow init adds the plugin to .claude/settings.json, and furrow doctor finds copied skills
     after: []
@@ -128,8 +128,8 @@ It still exits 0. `--json` gains `"copies": [...]`, an empty list when there are
 
 ## Acceptance criteria
 
-- [ ] AC-1: `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` have no `version`. (check: ! grep -q '"version"' .claude-plugin/plugin.json .claude-plugin/marketplace.json)
-- [ ] AC-2: The README has a "Use Furrow in your repos" section with the setup script, the local settings, and the warning about copies. (check: grep -q "Use Furrow in your repos" README.md && grep -q "claude plugin install furrow@furrow" README.md)
+- [x] AC-1: `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` have no `version`. (check: ! grep -q '"version"' .claude-plugin/plugin.json .claude-plugin/marketplace.json)
+- [x] AC-2: The README has a "Use Furrow in your repos" section with the setup script, the local settings, and the warning about copies. (check: grep -q "Use Furrow in your repos" README.md && grep -q "claude plugin install furrow@furrow" README.md)
 - [x] AC-3: `furrow init` writes `.claude/settings.json` with the Furrow marketplace and plugin when there's no file, leaves a file that already enables the plugin alone, and prints the keys without editing any other file. (test: TestInitPluginSettings)
 - [x] AC-4: `furrow init` with a `.claude/settings.json` that isn't valid JSON says so, changes nothing, and exits 0. (test: TestInitPluginSettingsBadJSON)
 - [x] AC-5: `furrow doctor` lists copied `.claude/skills/furrow-*` directories and `.claude/agents/furrow-*.md` files, sorted, in its text and as `copies` in `--json`, exits 0, and works without `bin/furrow`. (test: TestDoctorCopies)
@@ -154,3 +154,5 @@ It still exits 0. `--json` gains `"copies": [...]`, an empty list when there are
 - 2026-11-07: Chose json.MarshalIndent over a literal, so `source` spans lines rather than one line as the spec shows; the content and key order match.
 - 2026-11-07: Chose to skip `git ls-remote` without `bin/furrow`, so doctor works offline; `shim` keeps its path and `latest` is empty.
 - 2026-11-07: Chose not to count links as copies: a linked `.claude/skills` or `.claude/agents`, or a linked entry, points into the repo and can't drift.
+- 2026-11-07: Chose to put "Use Furrow in your repos" right after the install commands, so it's the next thing a new user reads.
+- 2026-11-07: Chose to fold the spec into specs/areas/distribution.md in this step, since FUR-0020.2 merged first and this became the last step.

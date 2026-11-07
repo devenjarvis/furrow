@@ -20,5 +20,40 @@ go install github.com/devenjarvis/furrow/cmd/furrow@latest
 furrow init
 ```
 
+## Use Furrow in your repos
+
+Use the Claude Code plugin from `main`, and the CLI built from `main`, so the skills and the CLI
+always match.
+
+1. **Cloud sessions.** Add this to the cloud environment's setup script. It runs in each fresh
+   container, so every session gets `main`'s skills, agents and CLI together. (Cloud sessions
+   ignore plugins a repo declares in its settings, so the setup script is how they get it.)
+
+   ```sh
+   claude plugin marketplace add devenjarvis/furrow || true
+   claude plugin install furrow@furrow || true
+   GOBIN=/usr/local/bin go install github.com/devenjarvis/furrow/cmd/furrow@main || true
+   ```
+
+2. **Local sessions.** `furrow init` writes the plugin into `.claude/settings.json`. Claude Code
+   installs it once the folder is trusted, and auto-update keeps it current: the plugin has no
+   `version`, so every commit to `main` is an update.
+
+   ```json
+   {
+     "extraKnownMarketplaces": {
+       "furrow": {
+         "source": { "source": "github", "repo": "devenjarvis/furrow" },
+         "autoUpdate": true
+       }
+     },
+     "enabledPlugins": { "furrow@furrow": true }
+   }
+   ```
+
+3. **Don't copy the skills or agents into the repo.** A project's `.claude/agents/furrow-*` take
+   priority over the plugin's, so a copy hides its fixes, model pins included, and copied skills
+   show up twice, as `/furrow-swarm` and `/furrow:furrow-swarm`. `furrow doctor` lists any copies.
+
 Read `docs/product.md` for the idea and its invariants, and `specs/README.md` for the standard.
 Furrow is built with Furrow: see `specs/`.

@@ -5,7 +5,8 @@ title: Distribution
 
 # Distribution
 
-How people get Furrow: releases, Homebrew, and a pinned copy that CI can run without the network.
+How people get Furrow: the plugin and CLI from `main` in every repo, releases, Homebrew, and a pinned
+copy that CI can run without the network.
 
 ## Behaviour
 
@@ -33,6 +34,21 @@ checksum doesn't match is refused and nothing is installed. Later runs use the i
 release, the highest `v*` tag at `--repo` (default `https://github.com/devenjarvis/furrow.git`) read
 with `git ls-remote`, and says whether the pin is behind and how to move it. It exits 0 whether or
 not the pin is behind, and 1 when the tags can't be read. With `--json` it prints
-`{"shim", "pinned", "latest", "behind"}`.
+`{"shim", "pinned", "latest", "behind", "copies"}`.
+It also lists Furrow's skills and agents copied into the repo, every `.claude/skills/furrow-*`
+directory and `.claude/agents/furrow-*.md` file, sorted, and says to delete them and use the
+plugin. A symlinked `.claude/skills` or `.claude/agents`, or a linked entry, isn't a copy: it
+points into the repo and can't drift. Copies don't change the exit code. Without `bin/furrow` it
+skips the release lookup, so it works offline, and `latest` is empty.
+
+**The plugin, everywhere.** Repos use the Claude Code plugin from `main` rather than copies.
+`.claude-plugin/plugin.json` has no `version`, so every commit is an update for installs with
+auto-update on. Cloud sessions get it from the environment's setup script, which also builds the
+CLI from `main` so the two match (README, "Use Furrow in your repos"); cloud sessions ignore
+plugins a repo's settings declare. For local sessions, `furrow init` writes `.claude/settings.json`
+with the `furrow` marketplace (`devenjarvis/furrow`, `autoUpdate: true`) and `furrow@furrow`
+enabled when there's no file; leaves a file that already enables it alone; and otherwise prints
+the two keys to add, never editing a file it didn't create. A file that isn't valid JSON gets a
+note, and `init` carries on with exit 0.
 
 ## History
