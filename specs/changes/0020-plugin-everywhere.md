@@ -149,6 +149,7 @@ It still exits 0. `--json` gains `"copies": [...]`, an empty list when there are
 - Should `furrow doctor` exit 1 when it finds copies, so CI can catch them? Proposed: no, exit 0; a repo that wants it enforced can check `copies` in `--json`.
 
 ## Decisions
+
 - 2026-11-07: Chose to print the whole settings object for an existing file, because it holds exactly the two keys and pastes as valid JSON.
 - 2026-11-07: Chose json.MarshalIndent over a literal, so `source` spans lines rather than one line as the spec shows; the content and key order match.
 - 2026-11-07: Chose to skip `git ls-remote` without `bin/furrow`, so doctor works offline; `shim` keeps its path and `latest` is empty.

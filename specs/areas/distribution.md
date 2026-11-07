@@ -5,7 +5,8 @@ title: Distribution
 
 # Distribution
 
-How people get Furrow: releases, Homebrew, and a pinned copy that CI can run without the network.
+How people get Furrow: the plugin and CLI from `main` in every repo, releases, Homebrew, and a pinned
+copy that CI can run without the network.
 
 ## Behaviour
 
