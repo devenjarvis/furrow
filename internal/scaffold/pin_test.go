@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -285,11 +286,11 @@ func TestDoctor(t *testing.T) {
 		want   PinStatus
 		prints string
 	}{
-		{pin("v0.2.0"), PinStatus{Shim: "bin/furrow", Pinned: "v0.2.0", Latest: "v0.10.0", Behind: true},
+		{pin("v0.2.0"), PinStatus{Shim: "bin/furrow", Pinned: "v0.2.0", Latest: "v0.10.0", Behind: true, Copies: []string{}},
 			"bin/furrow pins v0.2.0, but v0.10.0 is out. To move the pin, delete bin/furrow and run `furrow init --pin` with furrow v0.10.0.\n"},
-		{pin("v0.10.0"), PinStatus{Shim: "bin/furrow", Pinned: "v0.10.0", Latest: "v0.10.0"},
+		{pin("v0.10.0"), PinStatus{Shim: "bin/furrow", Pinned: "v0.10.0", Latest: "v0.10.0", Copies: []string{}},
 			"bin/furrow pins v0.10.0, the latest.\n"},
-		{t.TempDir(), PinStatus{Shim: "bin/furrow", Latest: "v0.10.0"},
+		{t.TempDir(), PinStatus{Shim: "bin/furrow", Copies: []string{}},
 			"No pinned copy: bin/furrow doesn't exist. Run `furrow init --pin` to add one.\n"},
 	}
 	for _, c := range cases {
@@ -297,7 +298,7 @@ func TestDoctor(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got != c.want {
+		if !reflect.DeepEqual(got, c.want) {
 			t.Errorf("Doctor = %+v, want %+v", got, c.want)
 		}
 		var b bytes.Buffer
@@ -307,7 +308,7 @@ func TestDoctor(t *testing.T) {
 		}
 	}
 	data, _ := json.Marshal(cases[0].want)
-	if string(data) != `{"shim":"bin/furrow","pinned":"v0.2.0","latest":"v0.10.0","behind":true}` {
+	if string(data) != `{"shim":"bin/furrow","pinned":"v0.2.0","latest":"v0.10.0","behind":true,"copies":[]}` {
 		t.Errorf("JSON = %s", data)
 	}
 
@@ -316,5 +317,64 @@ func TestDoctor(t *testing.T) {
 	}
 	if _, err := Doctor(pin("v0.1.0"), git, tagRemote(t)); err == nil || !strings.Contains(err.Error(), "No releases") {
 		t.Errorf("no tags: err = %v", err)
+	}
+}
+
+// AC-5 (FUR-0020)
+func TestDoctorCopies(t *testing.T) {
+	root := t.TempDir()
+	for _, d := range []string{".claude/skills/furrow-swarm", ".claude/skills/furrow-next", ".claude/skills/mine", ".claude/agents"} {
+		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(d)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, f := range []string{".claude/skills/furrow-file", ".claude/agents/furrow-builder.md", ".claude/agents/furrow-verifier.md", ".claude/agents/furrow-notes.txt", ".claude/agents/mine.md"} {
+		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(f)), []byte("x\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// No bin/furrow and no reachable releases: doctor still reports the copies, with the pin empty.
+	git := gittest.Git(t.TempDir())
+	got, err := Doctor(root, git, filepath.Join(t.TempDir(), "missing.git"))
+	if err != nil {
+		t.Fatalf("doctor without bin/furrow should not fail: %v", err)
+	}
+	want := []string{".claude/agents/furrow-builder.md", ".claude/agents/furrow-verifier.md", ".claude/skills/furrow-next", ".claude/skills/furrow-swarm"}
+	if !reflect.DeepEqual(got.Copies, want) {
+		t.Errorf("copies = %v, want %v", got.Copies, want)
+	}
+	if got.Pinned != "" || got.Latest != "" || got.Behind {
+		t.Errorf("pin fields should be empty without bin/furrow: %+v", got)
+	}
+	var b bytes.Buffer
+	got.Text(&b)
+	wantText := "No pinned copy: bin/furrow doesn't exist. Run `furrow init --pin` to add one.\n" +
+		"Copies of Furrow's skills and agents hide the plugin's:\n" +
+		"  .claude/agents/furrow-builder.md\n" +
+		"  .claude/agents/furrow-verifier.md\n" +
+		"  .claude/skills/furrow-next\n" +
+		"  .claude/skills/furrow-swarm\n" +
+		"Delete them and use the plugin: see \"Use Furrow in your repos\" in Furrow's README.\n"
+	if b.String() != wantText {
+		t.Errorf("printed\n%s\nwant\n%s", b.String(), wantText)
+	}
+	data, _ := json.Marshal(got)
+	if !strings.Contains(string(data), `"copies":[".claude/agents/furrow-builder.md",".claude/agents/furrow-verifier.md",".claude/skills/furrow-next",".claude/skills/furrow-swarm"]`) {
+		t.Errorf("JSON = %s", data)
+	}
+
+	// None: an empty list in JSON, and nothing about copies in the text.
+	got, err = Doctor(t.TempDir(), git, filepath.Join(t.TempDir(), "missing.git"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ = json.Marshal(got)
+	if !strings.Contains(string(data), `"copies":[]`) {
+		t.Errorf("JSON with no copies = %s", data)
+	}
+	b.Reset()
+	got.Text(&b)
+	if strings.Contains(b.String(), "Copies") {
+		t.Errorf("printed copies when there are none: %s", b.String())
 	}
 }

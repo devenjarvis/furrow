@@ -15,7 +15,7 @@ func init() {
 	register("new", "Start a draft spec with the next number", runNew)
 	register("area", "Start a living spec for one part of the product", runArea)
 	register("invariants", "List the product's invariants", runInvariants)
-	register("doctor", "Say whether bin/furrow's pinned version is behind the latest release", runDoctor)
+	register("doctor", "Say whether bin/furrow's pin is behind the latest release, and list copied Furrow skills and agents", runDoctor)
 }
 
 func runInit(env *Env, args []string) int {

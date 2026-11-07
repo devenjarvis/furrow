@@ -130,10 +130,10 @@ It still exits 0. `--json` gains `"copies": [...]`, an empty list when there are
 
 - [ ] AC-1: `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` have no `version`. (check: ! grep -q '"version"' .claude-plugin/plugin.json .claude-plugin/marketplace.json)
 - [ ] AC-2: The README has a "Use Furrow in your repos" section with the setup script, the local settings, and the warning about copies. (check: grep -q "Use Furrow in your repos" README.md && grep -q "claude plugin install furrow@furrow" README.md)
-- [ ] AC-3: `furrow init` writes `.claude/settings.json` with the Furrow marketplace and plugin when there's no file, leaves a file that already enables the plugin alone, and prints the keys without editing any other file. (test: TestInitPluginSettings)
-- [ ] AC-4: `furrow init` with a `.claude/settings.json` that isn't valid JSON says so, changes nothing, and exits 0. (test: TestInitPluginSettingsBadJSON)
-- [ ] AC-5: `furrow doctor` lists copied `.claude/skills/furrow-*` directories and `.claude/agents/furrow-*.md` files, sorted, in its text and as `copies` in `--json`, exits 0, and works without `bin/furrow`. (test: TestDoctorCopies)
-- [ ] AC-6: `make check` passes. (check: make check)
+- [x] AC-3: `furrow init` writes `.claude/settings.json` with the Furrow marketplace and plugin when there's no file, leaves a file that already enables the plugin alone, and prints the keys without editing any other file. (test: TestInitPluginSettings)
+- [x] AC-4: `furrow init` with a `.claude/settings.json` that isn't valid JSON says so, changes nothing, and exits 0. (test: TestInitPluginSettingsBadJSON)
+- [x] AC-5: `furrow doctor` lists copied `.claude/skills/furrow-*` directories and `.claude/agents/furrow-*.md` files, sorted, in its text and as `copies` in `--json`, exits 0, and works without `bin/furrow`. (test: TestDoctorCopies)
+- [x] AC-6: `make check` passes. (check: make check)
 - [ ] AC-7: A fresh cloud session on an environment with the README's setup script has the `furrow:` skills and agents and `furrow` on its PATH. (human: start a session and ask it to list them)
 
 ## Out of scope
@@ -149,3 +149,7 @@ It still exits 0. `--json` gains `"copies": [...]`, an empty list when there are
 - Should `furrow doctor` exit 1 when it finds copies, so CI can catch them? Proposed: no, exit 0; a repo that wants it enforced can check `copies` in `--json`.
 
 ## Decisions
+
+- 2026-11-07: Chose to print the whole settings object for an existing file, because it holds exactly the two keys and pastes as valid JSON.
+- 2026-11-07: Chose json.MarshalIndent over a literal, so `source` spans lines rather than one line as the spec shows; the content and key order match.
+- 2026-11-07: Chose to skip `git ls-remote` without `bin/furrow`, so doctor works offline; `shim` keeps its path and `latest` is empty.
