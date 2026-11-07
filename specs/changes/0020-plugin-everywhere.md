@@ -27,7 +27,7 @@ steps:
       - cmd/furrow/scaffold.go
     covers: [AC-3, AC-4, AC-5, AC-6]
     size: m
-    merged: false
+    merged: true
 ---
 
 # FUR-0020: Every repo gets the latest Furrow plugin, with nothing copied in
