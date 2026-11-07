@@ -98,13 +98,15 @@ func PinnedVersion(shim string) string {
 	return ""
 }
 
-// PinStatus is what furrow doctor found: the pinned version, the latest release, and whether the
-// pin is behind it. Pinned is "" when the repo has no shim.
+// PinStatus is what furrow doctor found: the pinned version, the latest release, whether the
+// pin is behind it, and any copies of Furrow's skills and agents. Pinned and Latest are "" when
+// the repo has no shim.
 type PinStatus struct {
-	Shim   string `json:"shim"`
-	Pinned string `json:"pinned"`
-	Latest string `json:"latest"`
-	Behind bool   `json:"behind"`
+	Shim   string   `json:"shim"`
+	Pinned string   `json:"pinned"`
+	Latest string   `json:"latest"`
+	Behind bool     `json:"behind"`
+	Copies []string `json:"copies"`
 }
 
 // Text says where the pin stands and what to do next.
@@ -119,15 +121,28 @@ func (s PinStatus) Text(w io.Writer) {
 	default:
 		fmt.Fprintf(w, "%s pins %s. The latest release is %s.\n", s.Shim, s.Pinned, s.Latest)
 	}
+	if len(s.Copies) > 0 {
+		fmt.Fprintln(w, "Copies of Furrow's skills and agents hide the plugin's:")
+		for _, c := range s.Copies {
+			fmt.Fprintf(w, "  %s\n", c)
+		}
+		fmt.Fprintln(w, `Delete them and use the plugin: see "Use Furrow in your repos" in Furrow's README.`)
+	}
 }
 
-// Doctor compares the repo's pinned version with the latest release tag in repo, read with
-// `git ls-remote`, so it needs only git (INV-2, INV-7).
+// Doctor lists copies of Furrow's skills and agents and compares the repo's pinned version with
+// the latest release tag in repo, read with `git ls-remote`, so it needs only git (INV-2, INV-7).
+// Without a shim it doesn't read the releases, so it works offline.
 func Doctor(root string, git gitx.Git, repo string) (PinStatus, error) {
 	st := PinStatus{Shim: ShimPath}
+	var err error
+	if st.Copies, err = FindCopies(root); err != nil {
+		return st, err
+	}
 	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(ShimPath)))
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
+		return st, nil
 	case err != nil:
 		return st, err
 	default:

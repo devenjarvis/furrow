@@ -255,3 +255,4 @@ agent into its own `.claude/agents/` and editing it.
 - 2026-11-04: Chose to leave plugin.json unchanged: Claude Code finds `agents/` at a plugin's root by default, as the spec says.
 - 2026-11-04: Chose to have furrow-swarm start the shipped agents by name and keep only the hand-back contract in the brief, since each agent's body repeats the rules.
 - 2026-11-04: Chose to fold furrow status into specs/areas/scheduling.md in this last step, as FUR-0018.2 deferred it.
+- 2026-11-07: FUR-0019 supersedes AC-12's "no `model:` line": builders and verifiers now say `model: opus`, so a Haiku orchestrator doesn't run them on Haiku. AC-12's text and tick stay.

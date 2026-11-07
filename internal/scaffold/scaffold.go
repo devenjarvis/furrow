@@ -77,7 +77,8 @@ func (r InitResult) Text(w io.Writer) {
 	}
 }
 
-// Init writes Furrow's files into root without overwriting any that exist. An empty prefix means
+// Init writes Furrow's files into root without overwriting any that exist, and declares the
+// Furrow plugin in .claude/settings.json when there's no such file (pluginNote). An empty prefix means
 // DefaultPrefix of root's folder name. When .furrow.yml already exists, its settings win.
 func Init(root, prefix string) (InitResult, error) {
 	abs, err := filepath.Abs(root)
@@ -126,6 +127,13 @@ func Init(root, prefix string) (InitResult, error) {
 		if err := write(f.rel, f.content); err != nil {
 			return res, err
 		}
+	}
+	note, err := pluginNote(abs)
+	if err != nil {
+		return res, err
+	}
+	if note != "" {
+		res.Notes = append(res.Notes, note)
 	}
 	product := filepath.ToSlash(cfg.Product)
 	if data, err := os.ReadFile(filepath.Join(abs, filepath.FromSlash(product))); err == nil && !hasSection(string(data), "Invariants") {

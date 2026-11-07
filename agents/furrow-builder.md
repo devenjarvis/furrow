@@ -1,6 +1,7 @@
 ---
 name: furrow-builder
 description: Claims and builds one Furrow spec step in the worktree it is given, with the furrow-next and furrow-implement skills, and hands it back in at most 15 lines. Use from furrow-swarm, one builder per assignment from furrow next --agents N.
+model: opus
 ---
 
 # Furrow builder

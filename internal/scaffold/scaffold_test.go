@@ -68,6 +68,7 @@ func TestInit(t *testing.T) {
 			t.Errorf("%s: %v", p, err)
 		}
 	}
+	want.WriteString("wrote .claude/settings.json (the Furrow plugin)\n")
 	if first.String() != want.String() {
 		t.Errorf("first run printed\n%s\nwant\n%s", first.String(), want.String())
 	}
@@ -312,5 +313,119 @@ func TestInvariants(t *testing.T) {
 	}
 	if _, err := Invariants(filepath.Join(t.TempDir(), "missing.md")); err == nil {
 		t.Errorf("a missing product file should be an error")
+	}
+}
+
+// pluginWant is the .claude/settings.json furrow init writes, parsed.
+const pluginWant = `{"extraKnownMarketplaces":{"furrow":{"source":{"source":"github","repo":"devenjarvis/furrow"},"autoUpdate":true}},"enabledPlugins":{"furrow@furrow":true}}`
+
+func initText(t *testing.T, root string) string {
+	t.Helper()
+	res, err := Init(root, "APP")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	res.Text(&b)
+	return b.String()
+}
+
+func sameJSON(t *testing.T, got, want string) bool {
+	t.Helper()
+	var g, w any
+	if err := json.Unmarshal([]byte(got), &g); err != nil {
+		t.Fatalf("not JSON: %v\n%s", err, got)
+	}
+	if err := json.Unmarshal([]byte(want), &w); err != nil {
+		t.Fatal(err)
+	}
+	gb, _ := json.Marshal(g)
+	wb, _ := json.Marshal(w)
+	return string(gb) == string(wb)
+}
+
+// AC-3 (FUR-0020)
+func TestInitPluginSettings(t *testing.T) {
+	settings := func(root string) string { return filepath.Join(root, ".claude", "settings.json") }
+
+	// No file: init writes it, with two-space indents and a final newline.
+	root := t.TempDir()
+	out := initText(t, root)
+	if !strings.Contains(out, "wrote .claude/settings.json (the Furrow plugin)\n") {
+		t.Errorf("init printed\n%s\nwant it to say it wrote .claude/settings.json", out)
+	}
+	data, err := os.ReadFile(settings(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	if !sameJSON(t, text, pluginWant) {
+		t.Errorf("settings.json = %s, want %s", text, pluginWant)
+	}
+	if !strings.HasSuffix(text, "}\n") || !strings.Contains(text, "\n  \"extraKnownMarketplaces\": {\n    \"furrow\"") {
+		t.Errorf("settings.json isn't indented by two spaces with a final newline:\n%s", text)
+	}
+	if strings.Index(text, "extraKnownMarketplaces") > strings.Index(text, "enabledPlugins") {
+		t.Errorf("settings.json should list the marketplace before the plugin:\n%s", text)
+	}
+
+	// A file that already enables the plugin: nothing changes and nothing is said about it.
+	mine := "{\"enabledPlugins\":{\"furrow@furrow\":true},\"model\":\"opus\"}"
+	if err := os.WriteFile(settings(root), []byte(mine), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out = initText(t, root)
+	if strings.Contains(out, "settings.json") {
+		t.Errorf("init should say nothing about a file that enables the plugin, printed\n%s", out)
+	}
+	if got, _ := os.ReadFile(settings(root)); string(got) != mine {
+		t.Errorf("init changed a settings.json that enables the plugin: %s", got)
+	}
+
+	// A file without it: init prints the keys and edits nothing.
+	other := "{\n    \"model\": \"opus\"\n}\n"
+	for _, s := range []string{other, "{\"enabledPlugins\":{\"furrow@furrow\":false}}"} {
+		if err := os.WriteFile(settings(root), []byte(s), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		out = initText(t, root)
+		const head = ".claude/settings.json exists: add the Furrow plugin to it:\n"
+		i := strings.Index(out, head)
+		if i < 0 {
+			t.Fatalf("init printed\n%s\nwant it to start with %q", out, head)
+		}
+		rest := out[i+len(head):]
+		end := strings.Index(rest, "\n}\n")
+		if end < 0 || !sameJSON(t, rest[:end+3], pluginWant) {
+			t.Errorf("init should print the two keys after %q, printed\n%s", head, out)
+		}
+		if got, _ := os.ReadFile(settings(root)); string(got) != s {
+			t.Errorf("init edited a settings.json it didn't create: %s", got)
+		}
+	}
+}
+
+// AC-4 (FUR-0020)
+func TestInitPluginSettingsBadJSON(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	bad := "{\"model\": \"opus\",\n"
+	if err := os.WriteFile(path, []byte(bad), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := initText(t, root)
+	if !strings.Contains(out, ".claude/settings.json isn't valid JSON; the Furrow plugin wasn't added\n") {
+		t.Errorf("init printed\n%s\nwant it to say settings.json isn't valid JSON", out)
+	}
+	if got, _ := os.ReadFile(path); string(got) != bad {
+		t.Errorf("init changed a settings.json that isn't valid JSON: %q", got)
+	}
+	for _, p := range initPaths {
+		if _, err := os.Stat(filepath.Join(root, p)); err != nil {
+			t.Errorf("init should still write its other files: %s: %v", p, err)
+		}
 	}
 }
