@@ -81,12 +81,12 @@ AC-12. It leaves the criterion's text and its tick alone (INV-4).
 
 ## Acceptance criteria
 
-- [ ] AC-1: `agents/furrow-builder.md` and `agents/furrow-verifier.md` have `model: opus` in their front matter. (check: grep -q "^model: opus$" agents/furrow-builder.md && grep -q "^model: opus$" agents/furrow-verifier.md)
-- [ ] AC-2: `agents/furrow-chores.md` still has `model: sonnet`. (check: grep -q "^model: sonnet$" agents/furrow-chores.md)
-- [ ] AC-3: `furrow-swarm` has a `## Models` section saying the orchestrator runs on Haiku, the agents set their own models, and a session on another model says so once and carries on. (check: grep -q "^## Models" skills/furrow-swarm/SKILL.md && grep -q "/model haiku" skills/furrow-swarm/SKILL.md)
-- [ ] AC-4: `furrow-swarm` merges a step only when the verdict is `ready to merge: yes` and every check passed on the PR's head commit; a failed or running check means no merge, and a failure goes to `furrow-chores`. (check: grep -q "head commit" skills/furrow-swarm/SKILL.md)
-- [ ] AC-5: FUR-0018's `## Decisions` has a line saying FUR-0019 supersedes AC-12's "no `model:` line", and AC-12's text is unchanged. (check: grep -q "FUR-0019 supersedes" specs/changes/0018-lean-sessions.md)
-- [ ] AC-6: `make check` passes. (check: make check)
+- [x] AC-1: `agents/furrow-builder.md` and `agents/furrow-verifier.md` have `model: opus` in their front matter. (check: grep -q "^model: opus$" agents/furrow-builder.md && grep -q "^model: opus$" agents/furrow-verifier.md)
+- [x] AC-2: `agents/furrow-chores.md` still has `model: sonnet`. (check: grep -q "^model: sonnet$" agents/furrow-chores.md)
+- [x] AC-3: `furrow-swarm` has a `## Models` section saying the orchestrator runs on Haiku, the agents set their own models, and a session on another model says so once and carries on. (check: grep -q "^## Models" skills/furrow-swarm/SKILL.md && grep -q "/model haiku" skills/furrow-swarm/SKILL.md)
+- [x] AC-4: `furrow-swarm` merges a step only when the verdict is `ready to merge: yes` and every check passed on the PR's head commit; a failed or running check means no merge, and a failure goes to `furrow-chores`. (check: grep -q "head commit" skills/furrow-swarm/SKILL.md)
+- [x] AC-5: FUR-0018's `## Decisions` has a line saying FUR-0019 supersedes AC-12's "no `model:` line", and AC-12's text is unchanged. (check: grep -q "FUR-0019 supersedes" specs/changes/0018-lean-sessions.md)
+- [x] AC-6: `make check` passes. (check: make check)
 - [ ] AC-7: In one real swarm wave with the orchestrator on Haiku, the briefs were right (stacked steps included), every merge followed a `yes` verdict and green CI on the head commit, no spec or sign-off PR was merged, findings went back to builders, and the session ended with a handoff a fresh session could start from. (human: the orchestrator's transcript of one wave, and its cost against a recent Opus wave)
 
 ## Out of scope
@@ -104,3 +104,5 @@ AC-12. It leaves the criterion's text and its tick alone (INV-4).
 - Pin `opus` (the alias) or a full model ID? Proposed: the alias, so the agents follow the newest Opus without a spec change.
 
 ## Decisions
+- 2026-11-07: Chose to put the green-CI rule inside loop step 3, where merging already lived, so there's one place that says when to merge.
+- 2026-11-07: Chose to fold the models and the merge rule into specs/areas/agents.md in this step, since it is the spec's only step.

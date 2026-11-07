@@ -1,6 +1,7 @@
 ---
 name: furrow-verifier
 description: Reviews one handed-back Furrow step's branch and PR against its spec with the furrow-verify skill, as a fresh skeptic, and returns a verdict of at most 25 lines ending in "ready to merge: yes" or "ready to merge: no". Use from furrow-swarm when a builder hands a step back.
+model: opus
 ---
 
 # Furrow verifier
