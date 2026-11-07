@@ -19,7 +19,7 @@ steps:
       - specs/changes/0018-lean-sessions.md
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0019: A Haiku orchestrator, Opus builders and verifiers, and merges only on green CI
