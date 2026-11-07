@@ -78,17 +78,25 @@ func pluginNote(root string) (string, error) {
 }
 
 // FindCopies lists Furrow's skills and agents copied into the repo, sorted: every directory
-// .claude/skills/furrow-* and every file .claude/agents/furrow-*.md.
+// .claude/skills/furrow-* and every file .claude/agents/furrow-*.md. Links aren't copies: neither
+// a linked .claude/skills or .claude/agents nor a linked entry is listed.
 func FindCopies(root string) ([]string, error) {
 	copies := []string{}
 	for _, c := range []struct {
 		dir  string
 		dirs bool
 	}{{".claude/skills", true}, {".claude/agents", false}} {
-		entries, err := os.ReadDir(filepath.Join(root, filepath.FromSlash(c.dir)))
-		if errors.Is(err, fs.ErrNotExist) {
+		dir := filepath.Join(root, filepath.FromSlash(c.dir))
+		// A linked folder points into the repo, so it can't drift: it isn't a copy.
+		if info, err := os.Lstat(dir); errors.Is(err, fs.ErrNotExist) {
 			continue
 		} else if err != nil {
+			return nil, err
+		} else if !info.IsDir() {
+			continue
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
 			return nil, err
 		}
 		for _, e := range entries {
@@ -96,8 +104,9 @@ func FindCopies(root string) ([]string, error) {
 			if !strings.HasPrefix(name, "furrow-") || (!c.dirs && !strings.HasSuffix(name, ".md")) {
 				continue
 			}
-			info, err := os.Stat(filepath.Join(root, filepath.FromSlash(c.dir), name))
-			if err != nil || info.IsDir() != c.dirs {
+			// Lstat, so a linked skill or agent isn't counted either.
+			info, err := os.Lstat(filepath.Join(dir, name))
+			if err != nil || info.Mode()&fs.ModeSymlink != 0 || info.IsDir() != c.dirs || (!c.dirs && !info.Mode().IsRegular()) {
 				continue
 			}
 			copies = append(copies, c.dir+"/"+name)

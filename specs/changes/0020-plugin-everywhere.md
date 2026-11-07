@@ -153,3 +153,4 @@ It still exits 0. `--json` gains `"copies": [...]`, an empty list when there are
 - 2026-11-07: Chose to print the whole settings object for an existing file, because it holds exactly the two keys and pastes as valid JSON.
 - 2026-11-07: Chose json.MarshalIndent over a literal, so `source` spans lines rather than one line as the spec shows; the content and key order match.
 - 2026-11-07: Chose to skip `git ls-remote` without `bin/furrow`, so doctor works offline; `shim` keeps its path and `latest` is empty.
+- 2026-11-07: Chose not to count links as copies: a linked `.claude/skills` or `.claude/agents`, or a linked entry, points into the repo and can't drift.

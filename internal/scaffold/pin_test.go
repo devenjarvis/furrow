@@ -378,3 +378,60 @@ func TestDoctorCopies(t *testing.T) {
 		t.Errorf("printed copies when there are none: %s", b.String())
 	}
 }
+
+// AC-5 (FUR-0020): links aren't copies. A .claude/skills or .claude/agents that is itself a link
+// into the repo can't drift, and neither can a linked entry.
+func TestDoctorCopiesSkipsLinks(t *testing.T) {
+	git := gittest.Git(t.TempDir())
+	missing := filepath.Join(t.TempDir(), "missing.git")
+
+	// Furrow's own layout: .claude/skills -> ../skills, .claude/agents -> ../agents.
+	root := t.TempDir()
+	for _, d := range []string{"skills/furrow-swarm", "agents", ".claude"} {
+		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(d)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "agents", "furrow-builder.md"), []byte("x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range []string{"skills", "agents"} {
+		if err := os.Symlink(filepath.Join("..", l), filepath.Join(root, ".claude", l)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := Doctor(root, git, missing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Copies) != 0 {
+		t.Errorf("linked .claude/skills and .claude/agents aren't copies, got %v", got.Copies)
+	}
+
+	// Real directories holding links next to a real copy: only the copy is listed.
+	root = t.TempDir()
+	for _, d := range []string{"skills/furrow-next", "agents", ".claude/skills/furrow-swarm", ".claude/agents"} {
+		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(d)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "agents", "furrow-builder.md"), []byte("x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	links := map[string]string{
+		".claude/skills/furrow-next":       "../../skills/furrow-next",
+		".claude/agents/furrow-builder.md": "../../agents/furrow-builder.md",
+	}
+	for link, target := range links {
+		if err := os.Symlink(filepath.FromSlash(target), filepath.Join(root, filepath.FromSlash(link))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err = Doctor(root, git, missing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{".claude/skills/furrow-swarm"}; !reflect.DeepEqual(got.Copies, want) {
+		t.Errorf("copies = %v, want %v", got.Copies, want)
+	}
+}
