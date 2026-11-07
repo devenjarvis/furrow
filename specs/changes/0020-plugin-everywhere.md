@@ -18,7 +18,7 @@ steps:
       - README.md
     covers: [AC-1, AC-2, AC-6, AC-7]
     size: s
-    merged: false
+    merged: true
   - n: 2
     title: furrow init adds the plugin to .claude/settings.json, and furrow doctor finds copied skills
     after: []
