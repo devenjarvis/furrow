@@ -48,7 +48,7 @@ steps:
       - skills/furrow-verify/**
     covers: [AC-7, AC-8]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0021: Spec PRs show a mocked before and after
@@ -175,7 +175,7 @@ A mock from the spec, not real output.
 - [ ] AC-4: The template, its scaffold copy and both copies of the standard have the section, and a spec made by `furrow new` then set to accepted lints clean once its placeholders are filled (test: TestNewSpecHasBeforeAfter)
 - [x] AC-5: `furrow brief --spec` copies the spec's section byte for byte right after `## Decision`, ends it with `A mock from the spec, not real output.`, and leaves it out when the spec has none (test: TestSpecBriefBeforeAfter)
 - [x] AC-6: On an amendment whose section changed since the merge base, the copy starts with `Changed in this PR.` (test: TestSpecBriefBeforeAfterChanged)
-- [ ] AC-7: `furrow-write` asks for the mock, and `furrow-implement` and `furrow-verify` treat it as the target, with a difference explained under "Spec problem" or reported as a finding (check: grep -q "Before and after" skills/furrow-write/SKILL.md && grep -q "Before and after" skills/furrow-implement/SKILL.md && grep -q "Before and after" skills/furrow-verify/SKILL.md)
+- [x] AC-7: `furrow-write` asks for the mock, and `furrow-implement` and `furrow-verify` treat it as the target, with a difference explained under "Spec problem" or reported as a finding (check: grep -q "Before and after" skills/furrow-write/SKILL.md && grep -q "Before and after" skills/furrow-implement/SKILL.md && grep -q "Before and after" skills/furrow-verify/SKILL.md)
 - [ ] AC-8: A spec written with the skills has a mock the owner can judge on a phone without opening the spec (human: open the next spec PR written after this merges, and read its `## Before and after` on a phone)
 - [x] AC-9: `furrow brief --check --spec` reports a missing `## Before and after` when the spec has one, and nothing for its contents (test: TestCheckSpecBeforeAfter)
 - [ ] AC-10: `furrow import fetch|edition` writes `imported: fetch` or `imported: edition`, and its output, with no `## Before and after`, passes `furrow lint` with a warning for each spec that has an unmerged step (test: TestImportMarksSpecs)
@@ -197,4 +197,5 @@ A mock from the spec, not real output.
 ## Decisions
 
 - 2026-11-13: Imported specs have no mock, so the rule broke `furrow import --write`. Owner chose an `imported:` marker that turns the missing section into a warning, over dropping the requirement.
+- 2026-11-13: Chose to put the mock-as-target rule beside the "show it" bullet in furrow-implement, because that is where real output meets the mock.
 - 2026-11-13: Chose to copy the mock without its surrounding blank lines and to count a mock added by an amendment as changed, since both read as the author meant.

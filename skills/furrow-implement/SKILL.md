@@ -6,7 +6,8 @@ description: Build a claimed Furrow spec step end to end, with tests first, insi
 # Build a claimed step
 
 You're on the step's branch (`furrow claim` put you there). The spec's `## What` is the contract.
-Its acceptance criteria are what you prove.
+Its acceptance criteria are what you prove. Its `## Before and after`, if it has one, is the
+target: build so the part of the mock your step delivers is what a user really sees.
 
 1. **Tests first.** For each criterion the step `covers` that has a `(test: Name)`, write that test,
    with that name, and watch it fail. Use the repo's fakes and fixtures. Tests never touch the
@@ -40,6 +41,9 @@ Its acceptance criteria are what you prove.
    - One "show it" under the After line: for a CLI, the command and its output; for a UI, the
      screenshot; for a library, a call and its result. Paste real output, as an excerpt of at most
      15 lines showing only the part that changed. With nothing to show: `No visible effect.`
+     It should look like the part of the spec's `## Before and after` this step delivers. Where
+     the code can't or shouldn't match the mock, say how and why under "Spec problem" in the PR;
+     never differ quietly.
    - `## Review this`: at most 3 numbered items, each a place in the code where a decision was
      made (`` `file` `name` ``) and the question to ask about it. The file list stays folded.
    - `## Needs you`: each invariant's line says how this diff touches it, or `Not touched.`

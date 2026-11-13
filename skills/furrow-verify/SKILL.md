@@ -22,6 +22,9 @@ You're the reviewer, not the author. Assume nothing is done until you've seen th
    - **Behaviour**: Before and After say what the code does, not what the author meant it to do.
      Re-run the "show it" command when it's cheap and compare its output; it should show only
      the part that changed.
+   - **Before and after**: compare the step's real output with the part of the spec's
+     `## Before and after` mock it delivers. A difference the PR doesn't explain under
+     "Spec problem" is a finding.
    - **Review this**: each item names code that exists in the diff, and asks a real question.
    - **Diagram**: every node and edge exists in the code. It has a caption and a `Legend:` line,
      at most 8 nodes, is a mermaid `flowchart TD`, and shows behaviour, not a call graph.
