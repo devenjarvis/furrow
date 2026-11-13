@@ -553,3 +553,100 @@ func TestSpecBriefAmendmentCalls(t *testing.T) {
 		}
 	}
 }
+
+// mock is a Before and after section's body, with a fenced "## " line that mustn't end it.
+const mock = "**Before:** It prints nothing.\n\n```\n$ furrow thing\n## Decision\n```\n\n" +
+	"**After:** It prints the thing.\n\n```\n$ furrow thing\nthing  \n```"
+
+// withMock puts a ## Before and after section with body into s, right before its criteria.
+func withMock(s spectest.Spec, body string) spectest.Spec {
+	s.Body = strings.Replace(s.Body, "## Acceptance criteria", "## Before and after\n\n"+body+"\n\n## Acceptance criteria", 1)
+	return s
+}
+
+func TestSpecBriefBeforeAfter(t *testing.T) {
+	// A new spec with a mock: the section comes right after Decision, copied byte for byte.
+	r, _ := specRepo(t)
+	r.Spec(withMock(draft(questions, "", nil), mock))
+	b := buildSpec(t, r, brief.SpecOptions{Offline: true})
+	want := []string{"Decision", "Before and after", "Your calls", "Plan", "Collisions", "What it costs later"}
+	if got := specHeadings(b); !reflect.DeepEqual(got, want) {
+		t.Errorf("headings = %v\nwant       %v", got, want)
+	}
+	if got := specSection(t, b, "Before and after"); got != mock+"\n\n"+brief.MockNote {
+		t.Errorf("Before and after =\n%q\nwant\n%q", got, mock+"\n\n"+brief.MockNote)
+	}
+	if brief.MockNote != "A mock from the spec, not real output." {
+		t.Errorf("MockNote = %q", brief.MockNote)
+	}
+	if !strings.Contains(b.Markdown(), "## Decision\n\n**Commits us to:**") ||
+		!strings.Contains(b.Markdown(), "## Before and after\n\n"+mock+"\n\n"+brief.MockNote+"\n\n## Your calls\n") {
+		t.Errorf("markdown:\n%s", b.Markdown())
+	}
+
+	// A spec with no mock gets no section.
+	r, _ = specRepo(t)
+	r.Spec(draft(questions, "", nil))
+	for _, h := range specHeadings(buildSpec(t, r, brief.SpecOptions{Offline: true})) {
+		if h == "Before and after" {
+			t.Error("a spec with no mock has a Before and after section")
+		}
+	}
+
+	// An amendment that leaves the mock alone copies it with no "Changed in this PR."
+	r, _ = specRepo(t, withMock(draft(questions, "", nil), mock))
+	r.Spec(withMock(draft(questions, "- 2026-11-03: Chose A because B.\n", nil), mock))
+	if got := specSection(t, buildSpec(t, r, brief.SpecOptions{Offline: true}), "Before and after"); got != mock+"\n\n"+brief.MockNote {
+		t.Errorf("unchanged mock in an amendment =\n%s", got)
+	}
+}
+
+func TestSpecBriefBeforeAfterChanged(t *testing.T) {
+	// The branch rewrites the mock's After.
+	r, _ := specRepo(t, withMock(draft(questions, "", nil), mock))
+	changed := strings.Replace(mock, "It prints the thing.", "It prints the thing twice.", 1)
+	r.Spec(withMock(draft(questions, "", nil), changed))
+	want := brief.MockChanged + "\n\n" + changed + "\n\n" + brief.MockNote
+	if got := specSection(t, buildSpec(t, r, brief.SpecOptions{Offline: true}), "Before and after"); got != want {
+		t.Errorf("changed mock =\n%q\nwant\n%q", got, want)
+	}
+	if brief.MockChanged != "Changed in this PR." {
+		t.Errorf("MockChanged = %q", brief.MockChanged)
+	}
+
+	// The branch adds a mock to a spec that had none: that's a change too.
+	r, _ = specRepo(t, draft(questions, "", nil))
+	r.Spec(withMock(draft(questions, "", nil), mock))
+	if got := specSection(t, buildSpec(t, r, brief.SpecOptions{Offline: true}), "Before and after"); !strings.HasPrefix(got, brief.MockChanged+"\n\n") {
+		t.Errorf("added mock =\n%s", got)
+	}
+}
+
+func TestCheckSpecBeforeAfter(t *testing.T) {
+	// A mock that holds a placeholder and a long line: --check doesn't read its contents.
+	r, _ := specRepo(t)
+	odd := "**Before:** <!-- furrow: something --> " + strings.Repeat("word ", 30) + "\n\n**After:** No visible effect."
+	r.Spec(withMock(draft("", "", nil), odd))
+	b := buildSpec(t, r, brief.SpecOptions{Offline: true})
+	decision := "**Commits us to:** a thing.\n**Instead of:** the other thing."
+	filledIn := strings.Replace(b.Markdown(), specSection(t, b, "Decision"), decision, 1)
+	if rep := brief.CheckSpec(b, filledIn); !rep.OK || len(rep.Problems) != 0 {
+		t.Errorf("filled-in brief with a mock: %+v", rep)
+	}
+
+	// Without the section, --check reports it missing.
+	cut := strings.Replace(filledIn, "## Before and after\n\n"+specSection(t, b, "Before and after")+"\n\n", "", 1)
+	want := []string{"No `## Before and after` section. Run `furrow brief --spec FUR-0007` and paste it."}
+	if rep := brief.CheckSpec(b, cut); rep.OK || !reflect.DeepEqual(rep.Problems, want) {
+		t.Errorf("brief with no Before and after: %+v", rep)
+	}
+
+	// A spec with no mock doesn't ask for one.
+	r, _ = specRepo(t)
+	r.Spec(draft("", "", nil))
+	b = buildSpec(t, r, brief.SpecOptions{Offline: true})
+	filledIn = strings.Replace(b.Markdown(), specSection(t, b, "Decision"), decision, 1)
+	if rep := brief.CheckSpec(b, filledIn); !rep.OK {
+		t.Errorf("brief for a spec with no mock: %+v", rep)
+	}
+}
