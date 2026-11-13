@@ -22,6 +22,7 @@ import (
 // Section headings of a spec's brief, in the order it has them.
 const (
 	Decision        = "Decision"
+	BeforeAndAfter  = "Before and after"
 	YourCalls       = "Your calls"
 	Answered        = "Answered"
 	Plan            = "Plan"
@@ -50,6 +51,12 @@ const PlanLegend = "Legend: each box is a step, with its size (s or m). An arrow
 
 // YourCallsIntro opens ## Your calls.
 const YourCallsIntro = "Merging accepts each proposed answer. To overrule one, reply to this PR with its number, like \"Q2: no, keep it\", or comment on its line. One reply can answer several."
+
+// MockNote ends ## Before and after, so nobody takes the spec's mock for real output.
+const MockNote = "A mock from the spec, not real output."
+
+// MockChanged opens ## Before and after on an amendment whose mock changed since the merge base.
+const MockChanged = "Changed in this PR."
 
 // ErrSpecAndStep means --spec and --step were both given. furrow brief exits 2 on it.
 var ErrSpecAndStep = errors.New("Pass `--spec` or `--step`, not both.")
@@ -137,6 +144,13 @@ func BuildSpec(g gitx.Git, repo *spec.Repo, opt SpecOptions) (*SpecBrief, error)
 
 	b := &SpecBrief{Spec: s.ID, Base: base, Plan: []PlanWave{}, Collisions: []Collision{}, ChangedCriteria: []CriterionChange{}}
 	b.add(Decision, decisionPlaceholder)
+	if m, ok := Mock(string(raw)); ok {
+		md := m + "\n\n" + MockNote
+		if was, had := Mock(old); existed && (!had || was != m) {
+			md = MockChanged + "\n\n" + md
+		}
+		b.add(BeforeAndAfter, md)
+	}
 	qs := OpenQuestions(string(raw))
 	if existed {
 		qs = newQuestions(OpenQuestions(old), qs)
@@ -210,6 +224,26 @@ func findSpec(repo *spec.Repo, id string) (*spec.Spec, error) {
 		return nil, fmt.Errorf("%s is archived. Change it with a new spec.", s.ID)
 	}
 	return s, nil
+}
+
+// Mock returns the body of "## Before and after" in a spec file's raw text, byte for byte but for
+// the blank lines around it, and whether the spec has the section. A "## " line in a code fence
+// doesn't end it.
+func Mock(raw string) (string, bool) {
+	for _, p := range split(raw)[1:] {
+		if p.heading != BeforeAndAfter {
+			continue
+		}
+		lines := strings.Split(p.text, "\n")
+		for len(lines) > 0 && strings.TrimSpace(lines[0]) == "" {
+			lines = lines[1:]
+		}
+		for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+			lines = lines[:len(lines)-1]
+		}
+		return strings.Join(lines, "\n"), true
+	}
+	return "", false
 }
 
 // OpenQuestions reads the top-level items of "## Open questions" in a spec file's raw text,
@@ -657,8 +691,9 @@ func CheckSpecFile(g gitx.Git, repo *spec.Repo, opt SpecOptions, file string) (*
 
 // CheckSpec reads text, a filled-in spec brief, against b: every section present, no placeholder
 // left, and ## Decision with a Commits us to and an Instead of line of at most 25 words each, and
-// at most 80 words in all. Problems are in b's section order, then any placeholder
-// outside b's sections, in text order.
+// at most 80 words in all. ## Before and after is the spec's own mock, so only its presence is
+// checked. Problems are in b's section order, then any placeholder outside b's sections, in text
+// order.
 func CheckSpec(b *SpecBrief, text string) *Report {
 	parts := split(text)
 	byHeading := map[string]string{}
@@ -675,6 +710,9 @@ func CheckSpec(b *SpecBrief, text string) *Report {
 		if !ok {
 			rep.add("No `## %s` section. Run `furrow brief --spec %s` and paste it.", s.Heading, b.Spec)
 			continue
+		}
+		if s.Heading == BeforeAndAfter {
+			continue // the spec's own mock: only its presence is checked
 		}
 		if strings.Contains(body, Placeholder) {
 			rep.add("`## %s` still has a placeholder. Write it.", s.Heading)

@@ -36,7 +36,7 @@ steps:
       - specs/areas/brief.md
     covers: [AC-5, AC-6, AC-9]
     size: s
-    merged: false
+    merged: true
   - n: 3
     title: Skills write the mock, build to it, and check against it
     after: []
@@ -164,11 +164,11 @@ A mock from the spec, not real output.
 - [ ] AC-2: Lint reports a missing `**Before:**` or `**After:**` line, and either line over 20 words after its label (test: TestLintBeforeAfterLines)
 - [ ] AC-3: Lint reports a side with no code block or image, accepting `Nothing yet.` for Before and `No visible effect.` for After, which also excuses Before (test: TestLintBeforeAfterShowsIt)
 - [ ] AC-4: The template, its scaffold copy and both copies of the standard have the section, and a spec made by `furrow new` then set to accepted lints clean once its placeholders are filled (test: TestNewSpecHasBeforeAfter)
-- [ ] AC-5: `furrow brief --spec` copies the spec's section byte for byte right after `## Decision`, ends it with `A mock from the spec, not real output.`, and leaves it out when the spec has none (test: TestSpecBriefBeforeAfter)
-- [ ] AC-6: On an amendment whose section changed since the merge base, the copy starts with `Changed in this PR.` (test: TestSpecBriefBeforeAfterChanged)
+- [x] AC-5: `furrow brief --spec` copies the spec's section byte for byte right after `## Decision`, ends it with `A mock from the spec, not real output.`, and leaves it out when the spec has none (test: TestSpecBriefBeforeAfter)
+- [x] AC-6: On an amendment whose section changed since the merge base, the copy starts with `Changed in this PR.` (test: TestSpecBriefBeforeAfterChanged)
 - [x] AC-7: `furrow-write` asks for the mock, and `furrow-implement` and `furrow-verify` treat it as the target, with a difference explained under "Spec problem" or reported as a finding (check: grep -q "Before and after" skills/furrow-write/SKILL.md && grep -q "Before and after" skills/furrow-implement/SKILL.md && grep -q "Before and after" skills/furrow-verify/SKILL.md)
 - [ ] AC-8: A spec written with the skills has a mock the owner can judge on a phone without opening the spec (human: open the next spec PR written after this merges, and read its `## Before and after` on a phone)
-- [ ] AC-9: `furrow brief --check --spec` reports a missing `## Before and after` when the spec has one, and nothing for its contents (test: TestCheckSpecBeforeAfter)
+- [x] AC-9: `furrow brief --check --spec` reports a missing `## Before and after` when the spec has one, and nothing for its contents (test: TestCheckSpecBeforeAfter)
 
 ## Out of scope
 
@@ -185,4 +185,6 @@ A mock from the spec, not real output.
 - Should Before and After allow ASCII wireframes for UI, or require images? Proposed: allow both; a fenced wireframe is reviewable in plain text and needs no tooling before the code exists.
 
 ## Decisions
+
 - 2026-11-13: Chose to put the mock-as-target rule beside the "show it" bullet in furrow-implement, because that is where real output meets the mock.
+- 2026-11-13: Chose to copy the mock without its surrounding blank lines and to count a mock added by an amendment as changed, since both read as the author meant.
