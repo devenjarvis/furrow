@@ -36,7 +36,7 @@ steps:
       - specs/areas/brief.md
     covers: [AC-5, AC-6, AC-9]
     size: s
-    merged: false
+    merged: true
   - n: 3
     title: Skills write the mock, build to it, and check against it
     after: []
