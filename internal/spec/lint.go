@@ -99,6 +99,15 @@ func Lint(r *Repo) []Problem {
 				add(f, "missing section \"## %s\"", h)
 			}
 		}
+		if needsBeforeAfter(s) {
+			if !has(s.Sections, BeforeAndAfter) {
+				add(f, "missing section \"## %s\"", BeforeAndAfter)
+			} else {
+				for _, p := range beforeAfterProblems(SectionText(s.Body, BeforeAndAfter)) {
+					add(f, "%s", p)
+				}
+			}
+		}
 		// 5. Criteria.
 		if len(s.Criteria) == 0 {
 			add(f, "no acceptance criteria (lines like \"- [ ] AC-1: … (test: …)\")")

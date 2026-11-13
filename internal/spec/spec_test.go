@@ -206,7 +206,7 @@ func TestListStatus(t *testing.T) {
 
 // questionsBody is a fixture body with an open-questions section after the given text.
 func questionsBody(questions string) string {
-	return "# FUR-0001: Spec 1\n\n## Why\n\nBecause.\n\n## What\n\nThis.\n\n## Acceptance criteria\n\n- [ ] AC-1: It works (test: TestWorks)\n\n## Out of scope\n\n- That.\n\n## Open questions\n\n" + questions + "\n## Decisions\n"
+	return "# FUR-0001: Spec 1\n\n## Why\n\nBecause.\n\n## What\n\nThis.\n\n## Before and after\n\n" + spectest.BeforeAfter + "\n## Acceptance criteria\n\n- [ ] AC-1: It works (test: TestWorks)\n\n## Out of scope\n\n- That.\n\n## Open questions\n\n" + questions + "\n## Decisions\n"
 }
 
 // lineOf is the 1-based line of the first line in text that starts with prefix.

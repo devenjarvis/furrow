@@ -99,9 +99,13 @@ type Spec struct {
 	Steps       []Step   // default: one step
 	Criteria    []string // full lines; default: one unticked test criterion
 	Decisions   string   // lines under ## Decisions
+	BeforeAfter string   // the ## Before and after section's text; default: a valid mock, "-" for none
 	Body        string   // replaces the whole body when set
 	Archived    bool
 }
+
+// BeforeAfter is the ## Before and after text a fixture spec has by default: a mock lint accepts.
+const BeforeAfter = "**Before:** It doesn't.\n\n```\n$ x\nnothing\n```\n\n**After:** It does.\n\n```\n$ x\nsomething\n```\n"
 
 // Path is where the spec is written.
 func (s Spec) Path() string {
@@ -212,8 +216,17 @@ func Text(s Spec) string {
 		b.WriteString(s.Body)
 		return b.String()
 	}
-	fmt.Fprintf(&b, "# %s: %s\n\n## Why\n\nBecause.\n\n## What\n\nThis.\n\n## Acceptance criteria\n\n%s\n\n## Out of scope\n\n- That.\n\n## Decisions\n\n%s",
-		s.ID, s.Title, strings.Join(s.Criteria, "\n"), s.Decisions)
+	switch s.BeforeAfter {
+	case "":
+		s.BeforeAfter = BeforeAfter
+	case "-":
+		s.BeforeAfter = ""
+	}
+	if s.BeforeAfter != "" {
+		s.BeforeAfter = "## Before and after\n\n" + strings.TrimRight(s.BeforeAfter, "\n") + "\n\n"
+	}
+	fmt.Fprintf(&b, "# %s: %s\n\n## Why\n\nBecause.\n\n## What\n\nThis.\n\n%s## Acceptance criteria\n\n%s\n\n## Out of scope\n\n- That.\n\n## Decisions\n\n%s",
+		s.ID, s.Title, s.BeforeAfter, strings.Join(s.Criteria, "\n"), s.Decisions)
 	if s.Decisions != "" && !strings.HasSuffix(s.Decisions, "\n") {
 		b.WriteString("\n")
 	}
