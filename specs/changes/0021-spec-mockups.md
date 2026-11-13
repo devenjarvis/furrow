@@ -24,7 +24,9 @@ steps:
       - specs/_template.md
       - specs/README.md
       - specs/areas/specs.md
-    covers: [AC-1, AC-2, AC-3, AC-4]
+      - internal/importer/**
+      - specs/areas/scaffolding.md
+    covers: [AC-1, AC-2, AC-3, AC-4, AC-10]
     size: m
     merged: false
   - n: 2
@@ -84,6 +86,13 @@ passes. When it is required, lint reports, each with the file:
 - `**After:** in "## Before and after" is 27 words. Keep it to 20.` (and the same for Before);
 - `"## Before and after" doesn't show the change. Add a code block or image under **After:**, or
   say "No visible effect."`; and the same for Before, which also accepts `Nothing yet.`.
+
+**Imported specs.** `furrow import fetch|edition` writes `imported: fetch` or `imported: edition`
+in each spec's front matter, after `human_review`. A spec with an `imported:` key that would get
+`missing section "## Before and after"` gets it as a warning instead of an error, so `import
+--write` still writes and every file it writes still passes `furrow lint`. Once such a spec has the
+section, it is checked like any other. An `imported:` value other than `fetch` or `edition` is an
+error.
 
 Words are counted as `furrow brief --check` counts them for `## Behaviour`: after the label, on
 its line, with inline code counted and HTML comments not.
@@ -160,7 +169,7 @@ A mock from the spec, not real output.
 
 ## Acceptance criteria
 
-- [ ] AC-1: Lint requires `## Before and after` in an accepted or paused spec with an unmerged step, and not in a draft, a spec with every step merged, or an area (test: TestLintBeforeAfterRequired)
+- [ ] AC-1: Lint requires `## Before and after` in an accepted or paused spec with an unmerged step, and not in a draft, a spec with every step merged, or an area; a spec with `imported:` gets a warning instead (test: TestLintBeforeAfterRequired)
 - [ ] AC-2: Lint reports a missing `**Before:**` or `**After:**` line, and either line over 20 words after its label (test: TestLintBeforeAfterLines)
 - [ ] AC-3: Lint reports a side with no code block or image, accepting `Nothing yet.` for Before and `No visible effect.` for After, which also excuses Before (test: TestLintBeforeAfterShowsIt)
 - [ ] AC-4: The template, its scaffold copy and both copies of the standard have the section, and a spec made by `furrow new` then set to accepted lints clean once its placeholders are filled (test: TestNewSpecHasBeforeAfter)
@@ -169,6 +178,7 @@ A mock from the spec, not real output.
 - [ ] AC-7: `furrow-write` asks for the mock, and `furrow-implement` and `furrow-verify` treat it as the target, with a difference explained under "Spec problem" or reported as a finding (check: grep -q "Before and after" skills/furrow-write/SKILL.md && grep -q "Before and after" skills/furrow-implement/SKILL.md && grep -q "Before and after" skills/furrow-verify/SKILL.md)
 - [ ] AC-8: A spec written with the skills has a mock the owner can judge on a phone without opening the spec (human: open the next spec PR written after this merges, and read its `## Before and after` on a phone)
 - [x] AC-9: `furrow brief --check --spec` reports a missing `## Before and after` when the spec has one, and nothing for its contents (test: TestCheckSpecBeforeAfter)
+- [ ] AC-10: `furrow import fetch|edition` writes `imported: fetch` or `imported: edition`, and its output, with no `## Before and after`, passes `furrow lint` with a warning for each spec that has an unmerged step (test: TestImportMarksSpecs)
 
 ## Out of scope
 
@@ -186,4 +196,5 @@ A mock from the spec, not real output.
 
 ## Decisions
 
+- 2026-11-13: Imported specs have no mock, so the rule broke `furrow import --write`. Owner chose an `imported:` marker that turns the missing section into a warning, over dropping the requirement.
 - 2026-11-13: Chose to copy the mock without its surrounding blank lines and to count a mock added by an amendment as changed, since both read as the author meant.
