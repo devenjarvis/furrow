@@ -22,6 +22,12 @@ description: Turn an idea into a draft Furrow spec, split into steps that can ru
      answers; a line under it starting `Legend:` saying what a box, an arrow and each colour mean
      (one meaning per arrow, or a label on each, like `-->|reads|`); at most 8 nodes, drawn
      `flowchart TD`, split or left out if bigger; behaviour or data flow, not a call graph.
+   - **Before and after**: write it before the steps. It mocks what a user or caller sees today
+     and once every step is merged, for an owner judging on a phone. A `**Before:**` line and an
+     `**After:**` line, at most 20 words each, and under each a fenced block: a terminal session
+     for a CLI, an ASCII wireframe (or an image) for a screen, a call and its result for a
+     library. Mock only the part that changes. A Before for something new may be `Nothing yet.`;
+     a change nobody can see says `No visible effect.` after `**After:**` and needs no block.
    - **Acceptance criteria**: `- [ ] AC-n: … (test: Name)`, `(check: command)` or
      `(human: what to look at)`. Observable, one behaviour each.
    - **Out of scope**: what a reasonable agent might do and mustn't.
