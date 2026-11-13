@@ -46,7 +46,7 @@ steps:
       - skills/furrow-verify/**
     covers: [AC-7, AC-8]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0021: Spec PRs show a mocked before and after
