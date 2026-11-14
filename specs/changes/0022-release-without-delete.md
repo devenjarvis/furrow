@@ -168,7 +168,7 @@ FUR-0004.1  Prove a step's diff stays inside its touches
 - [ ] AC-8: Two agents claiming the same released branch: exactly one succeeds and the other exits 3 with the "already claimed" message. (test: TestClaimReleasedBranchRace)
 - [ ] AC-9: `furrow claims` shows a released branch as `released` with its note, and `--json` gives `"state": "released"`. (test: TestClaimsShowsReleased)
 - [ ] AC-10: `furrow release --json` prints `ref`, `branch`, `released` and `how`. (test: TestReleaseJSON)
-- [ ] AC-11: No skill tells an agent to ask the owner to delete a claim branch; each says to run `furrow release`. (check: ! grep -rn "ask the owner to delete" skills/)
+- [x] AC-11: No skill tells an agent to ask the owner to delete a claim branch; each says to run `furrow release`. (check: ! grep -rn "ask the owner to delete" skills/)
 - [ ] AC-12: In a Claude Code cloud session, release a claimed step, see `furrow next` offer it again, and claim it. (human: run it in a cloud session on a throwaway step)
 
 ## Out of scope
@@ -196,3 +196,5 @@ FUR-0004.1  Prove a step's diff stays inside its touches
   read a tip without a cache (INV-1).
 
 ## Decisions
+
+- 2026-11-14: Step 2 edits only the swarm's Tidy lines, the one place any skill sent branch deletes to the owner; `specs/areas/agents.md` is left as is, since it never mentioned deleting.
