@@ -62,3 +62,4 @@ Every file these commands write passes `furrow lint`.
 ## History
 
 - FUR-0006: Start Furrow in a repo, and start new specs and areas (archived 2026-11-01)
+- FUR-0009: Move Fetch and Edition onto Furrow (archived 2026-11-14)
