@@ -31,7 +31,7 @@ steps:
       - specs/areas/agents.md
     covers: [AC-11]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0022: Release a claim where branches can't be deleted
