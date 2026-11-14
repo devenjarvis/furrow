@@ -79,8 +79,9 @@ A project overrides an agent's model by copying the agent into its own `.claude/
    `furrow done` is pushed) unblocks too: what waits on it comes back with `stack_on`, to be built on
    top of it. Hand work out as soon as an agent is free, within the wave.
 6. **Tidy:** when `furrow lint` warns that a spec is ready to archive, run `furrow archive <id>`.
-   `furrow claims` lists leftover branches. `furrow release` them, or ask the owner to delete them if
-   the remote doesn't let you.
+   `furrow claims` lists leftover branches. `furrow release` them: where the remote won't delete a
+   branch, furrow marks it released instead. The owner can delete a released branch later, but
+   needn't.
 
 ## Hand off
 
