@@ -67,6 +67,27 @@ func TestLintBeforeAfterRequired(t *testing.T) {
 		})
 	}
 
+	// An imported spec gets a warning instead, and is checked like any other once it has one.
+	imported := map[string]string{
+		"fetch":   "warning: specs/changes/0001-spec-1.md: " + missingBA,
+		"edition": "warning: specs/changes/0001-spec-1.md: " + missingBA,
+	}
+	for kind, want := range imported {
+		got := beforeAfterProblems(t, spectest.Spec{Num: 1, Imported: kind, Body: withSection("-")})
+		if len(got) != 1 || got[0] != want {
+			t.Errorf("imported: %s: problems = %q, want %q", kind, got, want)
+		}
+	}
+	got := beforeAfterProblems(t, spectest.Spec{Num: 1, Imported: "fetch", Body: withSection("**Before:** a\n\n**After:** b\n")})
+	if len(got) != 2 || !strings.HasPrefix(got[0], "error: ") || !strings.HasPrefix(got[1], "error: ") {
+		t.Errorf("imported spec with a section: %q", got)
+	}
+	r0 := spectest.New(t)
+	r0.Spec(spectest.Spec{Num: 1, Imported: "jira"})
+	if msgs := lintMessages(r0.Load()); len(msgs) != 1 || msgs[0] != `error: specs/changes/0001-spec-1.md: imported must be fetch or edition, found "jira"` {
+		t.Errorf("unknown imported: %q", msgs)
+	}
+
 	// An area is never asked for one.
 	r := spectest.New(t)
 	for _, m := range lintMessages(r.Load()) {
@@ -76,7 +97,7 @@ func TestLintBeforeAfterRequired(t *testing.T) {
 	}
 
 	// A heading inside a code block doesn't count, and one there doesn't end the section.
-	got := beforeAfterProblems(t, spectest.Spec{Num: 1, Body: withSection("-") + "\n" + fence + "\n## Before and after\n" + fence + "\n"})
+	got = beforeAfterProblems(t, spectest.Spec{Num: 1, Body: withSection("-") + "\n" + fence + "\n## Before and after\n" + fence + "\n"})
 	if len(got) != 1 || !strings.HasSuffix(got[0], missingBA) {
 		t.Errorf("heading in a code block: %q", got)
 	}

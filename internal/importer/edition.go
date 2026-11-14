@@ -617,6 +617,7 @@ func edText(s *edSource, steps []edPlannedStep, moved map[string]string, o Optio
 	line("area: %s", yamlString(s.plan.Area))
 	line("priority: %s", priority)
 	line("human_review: required")
+	line("imported: edition")
 	line("invariants: []")
 	blockList(&b, "context", context, "")
 	if len(steps) == 0 {

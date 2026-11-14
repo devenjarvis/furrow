@@ -96,6 +96,7 @@ type Spec struct {
 	Priority    string // default: p1
 	HumanReview string // default: optional, or required with Invariants
 	Invariants  []string
+	Imported    string   // the imported: key, written after human_review when set
 	Steps       []Step   // default: one step
 	Criteria    []string // full lines; default: one unticked test criterion
 	Decisions   string   // lines under ## Decisions
@@ -185,8 +186,12 @@ func Text(s Spec) string {
 		}
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "---\nid: %s\ntitle: %s\nstatus: %s\narea: %s\npriority: %s\nhuman_review: %s\ninvariants: %s\ncontext: []\nsteps:\n",
-		s.ID, s.Title, s.Status, s.Area, s.Priority, s.HumanReview, list(s.Invariants))
+	fmt.Fprintf(&b, "---\nid: %s\ntitle: %s\nstatus: %s\narea: %s\npriority: %s\nhuman_review: %s\n",
+		s.ID, s.Title, s.Status, s.Area, s.Priority, s.HumanReview)
+	if s.Imported != "" {
+		fmt.Fprintf(&b, "imported: %s\n", s.Imported)
+	}
+	fmt.Fprintf(&b, "invariants: %s\ncontext: []\nsteps:\n", list(s.Invariants))
 	for i, st := range s.Steps {
 		n := i + 1
 		if st.Title == "" {

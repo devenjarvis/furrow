@@ -169,16 +169,16 @@ A mock from the spec, not real output.
 
 ## Acceptance criteria
 
-- [ ] AC-1: Lint requires `## Before and after` in an accepted or paused spec with an unmerged step, and not in a draft, a spec with every step merged, or an area; a spec with `imported:` gets a warning instead (test: TestLintBeforeAfterRequired)
-- [ ] AC-2: Lint reports a missing `**Before:**` or `**After:**` line, and either line over 20 words after its label (test: TestLintBeforeAfterLines)
-- [ ] AC-3: Lint reports a side with no code block or image, accepting `Nothing yet.` for Before and `No visible effect.` for After, which also excuses Before (test: TestLintBeforeAfterShowsIt)
-- [ ] AC-4: The template, its scaffold copy and both copies of the standard have the section, and a spec made by `furrow new` then set to accepted lints clean once its placeholders are filled (test: TestNewSpecHasBeforeAfter)
+- [x] AC-1: Lint requires `## Before and after` in an accepted or paused spec with an unmerged step, and not in a draft, a spec with every step merged, or an area; a spec with `imported:` gets a warning instead (test: TestLintBeforeAfterRequired)
+- [x] AC-2: Lint reports a missing `**Before:**` or `**After:**` line, and either line over 20 words after its label (test: TestLintBeforeAfterLines)
+- [x] AC-3: Lint reports a side with no code block or image, accepting `Nothing yet.` for Before and `No visible effect.` for After, which also excuses Before (test: TestLintBeforeAfterShowsIt)
+- [x] AC-4: The template, its scaffold copy and both copies of the standard have the section, and a spec made by `furrow new` then set to accepted lints clean once its placeholders are filled (test: TestNewSpecHasBeforeAfter)
 - [x] AC-5: `furrow brief --spec` copies the spec's section byte for byte right after `## Decision`, ends it with `A mock from the spec, not real output.`, and leaves it out when the spec has none (test: TestSpecBriefBeforeAfter)
 - [x] AC-6: On an amendment whose section changed since the merge base, the copy starts with `Changed in this PR.` (test: TestSpecBriefBeforeAfterChanged)
 - [x] AC-7: `furrow-write` asks for the mock, and `furrow-implement` and `furrow-verify` treat it as the target, with a difference explained under "Spec problem" or reported as a finding (check: grep -q "Before and after" skills/furrow-write/SKILL.md && grep -q "Before and after" skills/furrow-implement/SKILL.md && grep -q "Before and after" skills/furrow-verify/SKILL.md)
 - [ ] AC-8: A spec written with the skills has a mock the owner can judge on a phone without opening the spec (human: open the next spec PR written after this merges, and read its `## Before and after` on a phone)
 - [x] AC-9: `furrow brief --check --spec` reports a missing `## Before and after` when the spec has one, and nothing for its contents (test: TestCheckSpecBeforeAfter)
-- [ ] AC-10: `furrow import fetch|edition` writes `imported: fetch` or `imported: edition`, and its output, with no `## Before and after`, passes `furrow lint` with a warning for each spec that has an unmerged step (test: TestImportMarksSpecs)
+- [x] AC-10: `furrow import fetch|edition` writes `imported: fetch` or `imported: edition`, and its output, with no `## Before and after`, passes `furrow lint` with a warning for each spec that has an unmerged step (test: TestImportMarksSpecs)
 
 ## Out of scope
 
@@ -199,3 +199,6 @@ A mock from the spec, not real output.
 - 2026-11-13: Imported specs have no mock, so the rule broke `furrow import --write`. Owner chose an `imported:` marker that turns the missing section into a warning, over dropping the requirement.
 - 2026-11-13: Chose to put the mock-as-target rule beside the "show it" bullet in furrow-implement, because that is where real output meets the mock.
 - 2026-11-13: Chose to copy the mock without its surrounding blank lines and to count a mock added by an amendment as changed, since both read as the author meant.
+- 2026-11-14: Chose to make section headings inside fenced code not count, because this spec's own mock has `## Decision` in a code block.
+- 2026-11-14: Chose each label's side to run to the next label's line, so a block above **Before:** shows neither side.
+- 2026-11-14: Chose to give spectest fixtures a valid mock by default, so tests change only what they're about.

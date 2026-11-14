@@ -105,7 +105,11 @@ can't hide in a code block. It exits 0 when complete and 1 otherwise, and never 
 1. `## Decision`: two lines, `**Commits us to:**` (what accepting this means we build) and
    `**Instead of:**` (the main alternative it rejects, and why), each a placeholder for at most 25
    words.
-2. `## Your calls`: "Merging accepts each proposed answer…", then each top-level item of
+2. `## Before and after`, when the spec has one: the spec's section copied byte for byte, without
+   its surrounding blank lines, then `A mock from the spec, not real output.` It has no
+   placeholder. On an amendment whose section changed since the merge base (or was added), the
+   copy starts with `Changed in this PR.` A spec with none gets no such section.
+3. `## Your calls`: "Merging accepts each proposed answer…", then each top-level item of
    `## Open questions` in file order, numbered `Q1`, `Q2`, …, with its `Proposed:` text on the next
    line. Items with no proposal keep their numbers but come first, under
    `Needs an answer before merging:`. On an amendment, a question already in the spec at the merge
@@ -114,20 +118,20 @@ can't hide in a code block. It exits 0 when complete and 1 otherwise, and never 
    GitHub remote (https, with or without a user, or ssh), the question links to its line in the
    PR's diff, `https://github.com/<owner>/<repo>/pull/<N>/files#diff-<sha256 of path>R<line>`;
    otherwise it's followed by `(<spec file>:<line>)`.
-3. `## Answered`, when `## Decisions` gained `Owner chose` lines since the merge base: those lines.
-4. `## Plan`: a mermaid `flowchart TD` of the unmerged steps, one `subgraph` per wave numbered as
+4. `## Answered`, when `## Decisions` gained `Owner chose` lines since the merge base: those lines.
+5. `## Plan`: a mermaid `flowchart TD` of the unmerged steps, one `subgraph` per wave numbered as
    `furrow graph` numbers them, worked out as if the spec were accepted. Each step is
    `S<n>["<n>. <title> (<size>)"]`, with an edge from each unmerged `after` step; another spec's
    step is a node named by its ref, above the waves. Then the fixed `Legend:` line. With every step
    merged: `Every step is merged.`
-5. `## Collisions`: each unmerged step whose `touches` overlap another accepted spec's unmerged
+6. `## Collisions`: each unmerged step whose `touches` overlap another accepted spec's unmerged
    step, as `- FUR-0011.1 and FUR-0009.2 (claimed) both touch cmd/furrow/brief.go.`, claims read
    from the remote's branches. With `--offline`, or a remote it can't reach, collisions are headed
    `(claims not checked)`. With none: `None.`
-6. `## What it costs later`: the spec's invariants, `human_review: required`, each unticked
+7. `## What it costs later`: the spec's invariants, `human_review: required`, each unticked
    `human:` criterion with `Sign off by: <proof>`, and the unmerged step count by size, as
    `8 steps: 2 m, 6 s.` (`0 steps to build.` with none left)
-7. `## Changed criteria`, when the spec file exists at the merge base: under "Only a person changes
+8. `## Changed criteria`, when the spec file exists at the merge base: under "Only a person changes
    a criterion (INV-4).", each criterion added, removed or reworded (`Was:` and `Now:`), or
    `None.`
 
@@ -135,7 +139,8 @@ The spec brief has no Proof block: that belongs to a step brief.
 
 `--check FILE --spec ID` checks a spec brief the same way: every section, no placeholder, a
 `## Decision` with both lines ("`## Decision` needs a `**Commits us to:**` and an `**Instead of:**`
-line."), each at most 25 words after its label, and at most 80 words in all. `--spec` with `--step`, and `--pr` or `--offline` without `--spec`,
+line."), each at most 25 words after its label, and at most 80 words in all, and a
+`## Before and after` when the spec has one, without checking what's in it. `--spec` with `--step`, and `--pr` or `--offline` without `--spec`,
 exit 2. An archived spec exits 1: "FUR-0005 is archived. Change it with a new spec." An unknown
 one exits 1: "no spec FUR-0099". `--json` prints `{"spec", "base", "sections", "plan",
 "collisions", "changed_criteria"}`, lists never `null`.

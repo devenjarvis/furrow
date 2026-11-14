@@ -489,10 +489,11 @@ func furrowText(s *source, moved map[string]string, specsDir, by, date string) s
 	line("area: %s", yamlString(s.plan.Area))
 	line("priority: %s", yamlString(f.scalar("priority")))
 	line("human_review: %s", yamlString(f.scalar("human_review")))
+	line("imported: fetch")
 	line("invariants: []")
 	blockList(&b, "context", context, "")
 	known := map[string]bool{"id": true, "title": true, "status": true, "kind": true, "priority": true, "size": true,
-		"depends_on": true, "touches": true, "context": true, "human_review": true, "area": true, "invariants": true, "steps": true}
+		"depends_on": true, "touches": true, "context": true, "human_review": true, "imported": true, "area": true, "invariants": true, "steps": true}
 	for _, k := range f.keys {
 		if known[k] {
 			continue

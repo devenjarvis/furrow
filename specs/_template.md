@@ -29,6 +29,22 @@ Two to four sentences. What does someone get, and why now?
 
 The behaviour, precisely: commands, flags, output, files and failure modes.
 
+## Before and after
+
+**Before:** What a user or caller sees today, in at most 20 words.
+
+```
+$ the-command
+what it prints today
+```
+
+**After:** What they see once every step is merged, in at most 20 words.
+
+```
+$ the-command
+what it will print
+```
+
 ## Acceptance criteria
 
 - [ ] AC-1: <observable outcome> (test: TestName)

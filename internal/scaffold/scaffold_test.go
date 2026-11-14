@@ -429,3 +429,49 @@ func TestInitPluginSettingsBadJSON(t *testing.T) {
 		}
 	}
 }
+
+// FUR-0021 AC-4
+func TestNewSpecHasBeforeAfter(t *testing.T) {
+	for _, f := range []string{"../../specs/_template.md", "assets/_template.md", "../../specs/README.md", "assets/README.md"} {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(data)
+		what, ba, ac := strings.Index(text, "## What"), strings.Index(text, "## Before and after"), strings.Index(text, "## Acceptance criteria")
+		if strings.HasSuffix(f, "_template.md") && !(what >= 0 && what < ba && ba < ac) {
+			t.Errorf("%s: no \"## Before and after\" between \"## What\" and \"## Acceptance criteria\"", f)
+		}
+		if strings.HasSuffix(f, "README.md") && !strings.Contains(text, "| `## Before and after` |") {
+			t.Errorf("%s: no \"## Before and after\" row in the body-sections table", f)
+		}
+	}
+
+	// furrow new, set to accepted with its placeholders filled, lints clean, with either template.
+	for _, own := range []bool{false, true} {
+		r := spectest.New(t)
+		if own {
+			tmpl, err := os.ReadFile("../../specs/_template.md")
+			if err != nil {
+				t.Fatal(err)
+			}
+			r.Write("specs/_template.md", string(tmpl))
+		}
+		got, err := New(r.Load(), "widgets", "Widgets", "core")
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := r.Read(got.File)
+		text = strings.Replace(text, "status: draft", "status: accepted", 1)
+		text = strings.Replace(text, "path/to/area/**", "internal/widgets/**", 1)
+		r.Write(got.File, text)
+		if errs := lintErrors(t, r.Root); len(errs) != 0 {
+			t.Errorf("own template %v: lint after filling in: %v", own, errs)
+		}
+		// Without the section it's required.
+		r.Write(got.File, strings.Replace(text, "## Before and after", "## Mock", 1))
+		if errs := lintErrors(t, r.Root); len(errs) != 1 || !strings.Contains(errs[0], `missing section "## Before and after"`) {
+			t.Errorf("own template %v: without the section: %v", own, errs)
+		}
+	}
+}

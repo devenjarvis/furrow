@@ -41,6 +41,7 @@ type Spec struct {
 	Area        string   `yaml:"area"`
 	Priority    string   `yaml:"priority"`
 	HumanReview string   `yaml:"human_review"`
+	Imported    string   `yaml:"imported"` // fetch or edition: written by furrow import
 	Invariants  []string `yaml:"invariants"`
 	Context     []string `yaml:"context"`
 	Steps       []*Step  `yaml:"steps"`

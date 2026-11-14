@@ -37,6 +37,19 @@ exist and force human review, sign-off lines for ticked `human:` boxes, done mea
 well-formed areas. It warns when an accepted spec is complete and ready to archive. It exits 1
 on any error.
 
+**Before and after.** An `accepted` or `paused` spec with an unmerged step has a
+`## Before and after` section: a mock, written by hand, of what a user sees now and will see. It
+needs a `**Before:**` and an `**After:**` line, at most 20 words each after the label on its line
+(inline code counted, HTML comments not), and a fenced code block or an image under each, up to
+the next label. A Before may say `Nothing yet.` instead, and `No visible effect.` under After
+excuses both sides. Labels and headings inside fenced code don't count. Lint reports
+`missing section "## Before and after"`, `"## Before and after" needs a **Before:** and an
+**After:** line`, `**After:** in "## Before and after" is 27 words. Keep it to 20.`, and
+`"## Before and after" doesn't show the change. Add a code block or image under **After:**, or
+say "No visible effect."` (Before's says "Nothing yet."). A draft, a spec with every step merged
+and an area never need one. A spec with `imported: fetch` or `imported: edition` gets the missing
+section as a warning; any other `imported:` value is an error.
+
 **Deciding a spec.** A spec's PR is opened with `status: accepted`. The unmerged PR is the
 proposal, and merging it is the decision: `furrow next` runs from the base branch and never sees
 an unmerged spec. Closing the PR is the owner saying no. `draft` means parked: kept but never
