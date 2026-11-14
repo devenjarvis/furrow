@@ -27,8 +27,9 @@ files it creates or adds `## History` lines to, and its problems, writes nothing
 there are problems. `--write` refuses while there are any. Specs that are done go to `archive/`
 with every step merged; the rest go to `changes/`. The areas file names each area, its title and
 the paths it covers, and may map specs to areas under `specs:`; a spec no area matches is a
-problem. It writes Furrow's `specs/README.md` and `specs/_template.md`, and moves files with plain
-file operations, never git.
+problem. Each spec it writes has `imported: fetch` or `imported: edition` after `human_review`,
+so lint warns, rather than errs, that it has no `## Before and after`. It writes Furrow's
+`specs/README.md` and `specs/_template.md`, and moves files with plain file operations, never git.
 
 - `fetch` reads `specs/NNNN-*.md` with Fetch's front matter. Each spec becomes one step, its
   `depends_on` the step's `after`. A ticked `human:` box gets an "(imported)" sign-off line from

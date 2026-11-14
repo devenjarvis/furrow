@@ -41,6 +41,7 @@ type Spec struct {
 	Area        string   `yaml:"area"`
 	Priority    string   `yaml:"priority"`
 	HumanReview string   `yaml:"human_review"`
+	Imported    string   `yaml:"imported"` // fetch or edition: written by furrow import
 	Invariants  []string `yaml:"invariants"`
 	Context     []string `yaml:"context"`
 	Steps       []*Step  `yaml:"steps"`
@@ -227,23 +228,48 @@ func splitFrontMatter(text string) (string, string, error) {
 	return text[4 : 4+end], text[4+end+5:], nil
 }
 
-var heading = regexp.MustCompile(`(?m)^## (.+?)\s*$`)
+var heading = regexp.MustCompile(`^## (.+?)\s*$`)
 
+// sections lists the "## " headings outside fenced code blocks, in order.
 func sections(body string) []string {
 	var out []string
-	for _, m := range heading.FindAllStringSubmatch(body, -1) {
-		out = append(out, m[1])
+	code := codeLines(strings.Split(body, "\n"))
+	for i, l := range strings.Split(body, "\n") {
+		if m := heading.FindStringSubmatch(l); m != nil && !code[i] {
+			out = append(out, m[1])
+		}
 	}
 	return out
 }
 
-// SectionText returns the text under "## name", up to the next "## " heading.
+// codeLines reports, for each line, whether it's inside a fenced code block, its fences included.
+func codeLines(lines []string) []bool {
+	out := make([]bool, len(lines))
+	open := ""
+	for i, l := range lines {
+		f := fence(l)
+		switch {
+		case open == "" && f != "":
+			open = f
+		case open != "" && strings.HasPrefix(f, open) && strings.TrimSpace(l) == f:
+			open = ""
+		case open == "":
+			continue
+		}
+		out[i] = true
+	}
+	return out
+}
+
+// SectionText returns the text under "## name", up to the next "## " heading. Headings inside
+// fenced code blocks don't count.
 func SectionText(body, name string) string {
 	lines := strings.Split(body, "\n")
+	code := codeLines(lines)
 	var out []string
 	in := false
-	for _, l := range lines {
-		if strings.HasPrefix(l, "## ") {
+	for i, l := range lines {
+		if strings.HasPrefix(l, "## ") && !code[i] {
 			if in {
 				break
 			}

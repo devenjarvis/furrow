@@ -15,6 +15,7 @@ var (
 	priorities    = []string{"p0", "p1", "p2"}
 	reviews       = []string{"required", "optional"}
 	sizes         = []string{"", "s", "m", "l"}
+	importers     = []string{"fetch", "edition"} // the values of imported:
 	requiredHeads = []string{"Why", "What", "Acceptance criteria", "Out of scope"}
 	tbd           = regexp.MustCompile(`\bTBD\b`)
 	fenced        = regexp.MustCompile("(?s)```.*?```")
@@ -97,6 +98,21 @@ func Lint(r *Repo) []Problem {
 		for _, h := range requiredHeads {
 			if !has(s.Sections, h) {
 				add(f, "missing section \"## %s\"", h)
+			}
+		}
+		if s.Imported != "" && !has(importers, s.Imported) {
+			add(f, "imported must be fetch or edition, found %q", s.Imported)
+		}
+		if needsBeforeAfter(s) {
+			switch {
+			case has(s.Sections, BeforeAndAfter):
+				for _, p := range beforeAfterProblems(SectionText(s.Body, BeforeAndAfter)) {
+					add(f, "%s", p)
+				}
+			case s.Imported != "":
+				warn(f, "missing section \"## %s\"", BeforeAndAfter)
+			default:
+				add(f, "missing section \"## %s\"", BeforeAndAfter)
 			}
 		}
 		// 5. Criteria.

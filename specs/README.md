@@ -93,11 +93,21 @@ merging the bottom PR moves the next one onto the base. Plain ready steps are of
 | --- | --- | --- |
 | `## Why` | yes | Two to four sentences: the reason this exists, for a user. |
 | `## What` | yes | The behaviour, precisely. Commands, flags, output, files, failure modes. |
+| `## Before and after` | while any step is unmerged | A mock of what a user sees now and will see: a `**Before:**` and an `**After:**` line, at most 20 words each, each with a code block or image under it. |
 | `## Acceptance criteria` | yes | `- [ ] AC-1: … (test: …)`. Observable, each with its proof. |
 | `## Out of scope` | yes | What a reasonable agent might do and must not. |
 | `## Open questions` | if any | Questions for the owner. In a decided spec each one says `Proposed: …`, and that stands unless the owner overrules it before merging. |
 | `## Decisions` | grows | `- 2026-11-01: Chose X because Y.` Written while building. |
 | `## Notes for the agent` | optional | Gotchas, prior art, fixtures. |
+
+`## Before and after` is required in an `accepted` or `paused` spec while any step is unmerged;
+a draft, a spec with every step merged, and an area never need one. It is a mock, written by
+hand, not real output: a terminal session for a CLI, an ASCII wireframe for a screen, or a call
+and its result for a library, in a fenced code block or an image under each line. A Before for
+something new may say `Nothing yet.` instead, and a change nobody can see says
+`No visible effect.` after `**After:**` and needs no block on either side. A spec written by
+`furrow import` (`imported: fetch` or `imported: edition`) gets a warning, not an error, until it
+has one. The spec's brief copies it for the owner, and agents build and verify against it.
 
 A ticked `human:` criterion needs a line in `## Decisions`, written by `furrow signoff` in a
 sign-off PR: `- 2026-11-01: AC-4 signed off by Deven.` Merging that PR is the sign-off.
