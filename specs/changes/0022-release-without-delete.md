@@ -22,7 +22,7 @@ steps:
       - specs/areas/claims.md
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-12]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: The skills release claims without asking the owner to delete branches
     after: []
