@@ -76,8 +76,9 @@ If `furrow claim` said `Stacked on <branch>`, your branch sits on the parent ste
 - If the parent merged and GitHub didn't rebase yours, rebase onto the base:
   `git rebase --onto origin/<base> <old parent tip>`. `furrow territory` listing the parent's files
   as outside is the sign.
-- If the parent's PR was closed without merging, stop and tell the owner: your step was built on
-  work that isn't coming.
+- If the parent's PR was closed without merging, stop and report it under "Spec problem": your
+  step was built on work that isn't coming. In a swarm, the hand-back carries it to the
+  orchestrator, which parks it.
 
 ## When the spec is wrong
 

@@ -106,14 +106,14 @@ Start a new session with: Run furrow status, then furrow-swarm.
 
 ## Acceptance criteria
 
-- [ ] AC-1: furrow-swarm no longer stops at a wave boundary or at a token count. (check: ! grep -Eq "200K|wave has merged" skills/furrow-swarm/SKILL.md)
-- [ ] AC-2: furrow-swarm says to run `furrow status` after the conversation is compacted, before handing out more work. (check: grep -Eq "compact.*furrow status|furrow status.*compact" skills/furrow-swarm/SKILL.md)
-- [ ] AC-3: furrow-swarm says the orchestrator never stops to ask the owner while work can move, and parks what only the owner can settle. (check: grep -q "Park, don't ask" skills/furrow-swarm/SKILL.md)
-- [ ] AC-4: furrow-swarm lists the five kinds of parked work, including a step that came back `no` three times. (check: grep -q "three times" skills/furrow-swarm/SKILL.md)
-- [ ] AC-5: furrow-swarm releases a parked step whose problem is the step itself, and keeps the claim otherwise. (check: grep -q "furrow release <ref>" skills/furrow-swarm/SKILL.md)
-- [ ] AC-6: furrow-swarm stops only when nothing is offered, no agent is out and no PR waits on CI or a verifier, and its report starts with a Parked section. (check: grep -q "^- no step PR is waiting on its CI or on a verifier" skills/furrow-swarm/SKILL.md && grep -q "Parked" skills/furrow-swarm/SKILL.md)
-- [ ] AC-7: furrow-implement reports a closed parent PR under Spec problem instead of telling the owner. (check: ! grep -q "stop and tell the owner" skills/furrow-implement/SKILL.md)
-- [ ] AC-8: The agents area describes the new stop rule and no longer mentions a wave boundary or 200K tokens. (check: ! grep -Eq "200K|wave boundary" specs/areas/agents.md)
+- [x] AC-1: furrow-swarm no longer stops at a wave boundary or at a token count. (check: ! grep -Eq "200K|wave has merged" skills/furrow-swarm/SKILL.md)
+- [x] AC-2: furrow-swarm says to run `furrow status` after the conversation is compacted, before handing out more work. (check: grep -Eq "compact.*furrow status|furrow status.*compact" skills/furrow-swarm/SKILL.md)
+- [x] AC-3: furrow-swarm says the orchestrator never stops to ask the owner while work can move, and parks what only the owner can settle. (check: grep -q "Park, don't ask" skills/furrow-swarm/SKILL.md)
+- [x] AC-4: furrow-swarm lists the five kinds of parked work, including a step that came back `no` three times. (check: grep -q "three times" skills/furrow-swarm/SKILL.md)
+- [x] AC-5: furrow-swarm releases a parked step whose problem is the step itself, and keeps the claim otherwise. (check: grep -q "furrow release <ref>" skills/furrow-swarm/SKILL.md)
+- [x] AC-6: furrow-swarm stops only when nothing is offered, no agent is out and no PR waits on CI or a verifier, and its report starts with a Parked section. (check: grep -q "^- no step PR is waiting on its CI or on a verifier" skills/furrow-swarm/SKILL.md && grep -q "Parked" skills/furrow-swarm/SKILL.md)
+- [x] AC-7: furrow-implement reports a closed parent PR under Spec problem instead of telling the owner. (check: ! grep -q "stop and tell the owner" skills/furrow-implement/SKILL.md)
+- [x] AC-8: The agents area describes the new stop rule and no longer mentions a wave boundary or 200K tokens. (check: ! grep -Eq "200K|wave boundary" specs/areas/agents.md)
 - [ ] AC-9: A real swarm ran at least two waves in one session without asking the owner anything, and its report listed what it parked. (human: the orchestrator's transcript, from the first `furrow next` to the report)
 
 ## Out of scope
@@ -143,3 +143,7 @@ Start a new session with: Run furrow status, then furrow-swarm.
   spec's own AC-9 run, which still ends with a handoff; their text stays as it is (INV-4).
 
 ## Decisions
+
+- 2026-11-14: Chose to hold the parked list, not unanswered questions, in the handoff, since the orchestrator no longer asks the owner anything.
+- 2026-11-14: Chose to keep "spec problems" in the report's last line, as the spec says the rest of the report stays; Parked comes first.
+- 2026-11-14: Chose to claim with `--force`: step/0022-2 is a leftover branch of FUR-0022.2, already merged in PR #62.
