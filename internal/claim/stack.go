@@ -88,13 +88,11 @@ func trailer(msg, key string) (string, bool) {
 	return "", false
 }
 
-// ReadStack fetches the claim branches and fills in what stacking needs on each claim: whether
-// its tip has the step handed back, and the branch its claim commit is stacked on. Claims for
-// steps the repo doesn't know are returned as they are. It returns ErrRemote when the fetch fails.
+// ReadStack fills in what stacking needs on each claim: whether its tip has the step handed back,
+// and the branch its claim commit is stacked on. It reads the tips List fetched into
+// refs/furrow/claims/, so it doesn't reach the remote. Claims for steps the repo doesn't know are
+// returned as they are.
 func ReadStack(g gitx.Git, repo *spec.Repo, claims []schedule.Claim) ([]schedule.Claim, error) {
-	if err := FetchClaims(g, repo.Config, claims); err != nil {
-		return nil, err
-	}
 	out := make([]schedule.Claim, len(claims))
 	for i, c := range claims {
 		out[i] = c

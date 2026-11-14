@@ -158,16 +158,16 @@ FUR-0004.1  Prove a step's diff stays inside its touches
 
 ## Acceptance criteria
 
-- [ ] AC-1: Against a remote with `receive.denyDeletes=true`, `furrow release` pushes a release commit (tree unchanged, parent the old tip, a `furrow-release:` trailer) and prints the "marked it released" message. (test: TestReleaseMarksWhenDeleteRefused)
-- [ ] AC-2: Against a remote that allows deletes, `furrow release` still deletes the branch. (test: TestReleaseDeletes)
-- [ ] AC-3: Releasing a step whose branch is already released, or doesn't exist, exits 0 and says it isn't claimed. (test: TestReleaseAlreadyReleased)
-- [ ] AC-4: When the branch moves between `ls-remote` and the release push, `furrow release` exits 1 with the "moved while furrow was releasing it" message and pushes nothing. (test: TestReleaseLeaseLost)
-- [ ] AC-5: `claim.List` leaves out a branch whose tip is a release commit and keeps one with a release commit deeper in its history; `claim.ListAll` returns both, with `Released` set. (test: TestListDropsReleased)
-- [ ] AC-6: After a release commit, `furrow next` offers the step again. (test: TestNextOffersReleasedStep)
-- [ ] AC-7: Against a remote with `receive.denyDeletes=true` and `receive.denyNonFastForwards=true`, `furrow claim` on a released step succeeds; the claim commit's first parent is base, its second the released tip, its tree base's, and `git diff origin/main...HEAD` is empty. (test: TestClaimReleasedBranch)
-- [ ] AC-8: Two agents claiming the same released branch: exactly one succeeds and the other exits 3 with the "already claimed" message. (test: TestClaimReleasedBranchRace)
-- [ ] AC-9: `furrow claims` shows a released branch as `released` with its note, and `--json` gives `"state": "released"`. (test: TestClaimsShowsReleased)
-- [ ] AC-10: `furrow release --json` prints `ref`, `branch`, `released` and `how`. (test: TestReleaseJSON)
+- [x] AC-1: Against a remote with `receive.denyDeletes=true`, `furrow release` pushes a release commit (tree unchanged, parent the old tip, a `furrow-release:` trailer) and prints the "marked it released" message. (test: TestReleaseMarksWhenDeleteRefused)
+- [x] AC-2: Against a remote that allows deletes, `furrow release` still deletes the branch. (test: TestReleaseDeletes)
+- [x] AC-3: Releasing a step whose branch is already released, or doesn't exist, exits 0 and says it isn't claimed. (test: TestReleaseAlreadyReleased)
+- [x] AC-4: When the branch moves between `ls-remote` and the release push, `furrow release` exits 1 with the "moved while furrow was releasing it" message and pushes nothing. (test: TestReleaseLeaseLost)
+- [x] AC-5: `claim.List` leaves out a branch whose tip is a release commit and keeps one with a release commit deeper in its history; `claim.ListAll` returns both, with `Released` set. (test: TestListDropsReleased)
+- [x] AC-6: After a release commit, `furrow next` offers the step again. (test: TestNextOffersReleasedStep)
+- [x] AC-7: Against a remote with `receive.denyDeletes=true` and `receive.denyNonFastForwards=true`, `furrow claim` on a released step succeeds; the claim commit's first parent is base, its second the released tip, its tree base's, and `git diff origin/main...HEAD` is empty. (test: TestClaimReleasedBranch)
+- [x] AC-8: Two agents claiming the same released branch: exactly one succeeds and the other exits 3 with the "already claimed" message. (test: TestClaimReleasedBranchRace)
+- [x] AC-9: `furrow claims` shows a released branch as `released` with its note, and `--json` gives `"state": "released"`. (test: TestClaimsShowsReleased)
+- [x] AC-10: `furrow release --json` prints `ref`, `branch`, `released` and `how`. (test: TestReleaseJSON)
 - [ ] AC-11: No skill tells an agent to ask the owner to delete a claim branch; each says to run `furrow release`. (check: ! grep -rn "ask the owner to delete" skills/)
 - [ ] AC-12: In a Claude Code cloud session, release a claimed step, see `furrow next` offer it again, and claim it. (human: run it in a cloud session on a throwaway step)
 
@@ -196,3 +196,9 @@ FUR-0004.1  Prove a step's diff stays inside its touches
   read a tip without a cache (INV-1).
 
 ## Decisions
+
+- 2026-11-14: Chose a `claim.Listed` type (a `schedule.Claim` plus `Released`) for `ListAll` over a field on `schedule.Claim`, to keep the change inside `internal/claim`.
+- 2026-11-14: Chose a new `claim.StatusesAll` for `furrow claims` and kept `Statuses` without released branches, so `furrow status` sees them as free without changing `internal/status`.
+- 2026-11-14: Chose to read the tip before the delete, so releasing a released branch pushes nothing, and a fetched tip unlike `ls-remote`'s counts as moved.
+- 2026-11-14: Chose to treat a released branch as gone for stacking: a claim stacked on it shows orphaned, and a released line in `furrow claims` shows no stack.
+- 2026-11-14: Chose to prove AC-6 by building the schedule from `claim.List`, as `furrow next` does, since tests in `cmd/furrow` are outside this step's touches.
