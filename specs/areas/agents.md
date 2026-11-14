@@ -58,11 +58,18 @@ Furrow ships a Claude Code plugin from the repo root. `.claude-plugin/plugin.jso
   Chores (rebasing a stacked step, merging the base when only `specs/` conflicts, re-running the
   check, reading a CI failure) go to `furrow-chores`; anything else goes back to the builder. It
   hands out newly unblocked steps as slots free up and archives finished specs. With `stack:` on, a
-  hand-back frees work too: what waits on it is handed out stacked on it. It stops at a wave
-  boundary, when nothing can start until the owner acts, or past about 200K tokens, with a handoff of
-  at most 10 lines holding only what the repo doesn't (unanswered questions, blockers outside
-  Furrow) and ending `Start a new session with: Run furrow status, then furrow-swarm.` Then it
-  reports what waits on the owner, each stack bottom to top, since the owner reviews from the bottom.
+  hand-back frees work too: what waits on it is handed out stacked on it. It runs wave after wave
+  in one session; after a compaction it runs `furrow status` before handing out more. It never
+  stops to ask the owner while work can move: it parks, in one line each, what only the owner can
+  settle (a spec problem, a closed parent PR, a step that came back `no` three times, a CI failure
+  a chore can't explain or that fails its one re-run, a blocker outside Furrow), keeps a parked
+  step's claim, and runs `furrow release <ref>` when the problem is the step itself. It stops only
+  when `furrow next` offers nothing that doesn't overlap a parked claim, no agent is out, and no
+  step PR waits on CI or a verifier, with a handoff of at most 10 lines holding only what the repo
+  doesn't (the parked list, blockers outside Furrow) and ending `Start a new session with: Run
+  furrow status, then furrow-swarm.` Its report starts with **Parked**, each ref with what the
+  owner needs to do, then what waits on the owner, each stack bottom to top, since the owner
+  reviews from the bottom.
 
 **Agents.** The plugin ships three agent definitions in `agents/`, and this repo's `.claude/agents`
 links there. `furrow-builder` claims and builds one step and returns the 15-line hand-back;

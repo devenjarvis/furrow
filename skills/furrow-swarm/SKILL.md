@@ -6,7 +6,8 @@ description: Run several coding agents at once on a Furrow repo, each on its own
 # Run a swarm
 
 You're the orchestrator. Furrow decides what can run together. You hand out work, read what comes
-back, and keep the queue moving. Keep your own conversation small: agents build, verify and do
+back, and keep the queue moving, wave after wave, in this one session, until only the owner can
+unblock what's left. Keep your own conversation small: agents build, verify and do
 chores, and report to you in a few lines. You don't build or verify steps yourself.
 
 The plugin ships the agents you start: `furrow-builder`, `furrow-verifier` and `furrow-chores`.
@@ -56,8 +57,8 @@ A project overrides an agent's model by copying the agent into its own `.claude/
 3. **As each builder hands back**, start a fresh `furrow-verifier` agent with the ref, the branch,
    the PR number and a worktree. Never run `furrow-verify` in your own conversation: read only the
    verdict. On `ready to merge: no`, send the findings back to the step's builder. A spec problem
-   goes to the owner. Don't fix the spec to make the code pass. On `ready to merge: yes`, check CI
-   on the PR's head commit before you merge:
+   is parked (see "Park, don't ask"). Don't fix the spec to make the code pass. On
+   `ready to merge: yes`, check CI on the PR's head commit before you merge:
    - **Every required check passed on the head commit:** merge through the repo's PR flow, or by
      merging the branch if the owner works that way.
    - **A check failed on the head commit:** don't merge. Send a `furrow-chores` agent to read the
@@ -72,38 +73,59 @@ A project overrides an agent's model by copying the agent into its own `.claude/
 4. **Chores go to a `furrow-chores` agent**, with the ref, the branch, a worktree and the chore:
    rebasing a stacked step onto a parent that changed, merging the base into a step branch when
    the only conflict is in `specs/`, re-running the repo's check, and reading a CI failure. It
-   reports at most 10 lines. A conflict outside `specs/`, a failure it can't explain, and anything
-   else go back to the step's builder.
+   reports at most 10 lines. A conflict outside `specs/` and anything else go back to the step's
+   builder. A CI failure it can't explain, or one that fails again after its one re-run, is parked.
 5. **After each merge, and each hand-back**, run `furrow next --agents <free slots> --json` again.
    Merges unblock new steps. With `stack:` set in `.furrow.yml`, a step that's handed back (its
    `furrow done` is pushed) unblocks too: what waits on it comes back with `stack_on`, to be built on
-   top of it. Hand work out as soon as an agent is free, within the wave.
+   top of it. Hand work out as soon as an agent is free, and keep going across as many waves as
+   the queue has: a merged wave is no reason to stop, and neither is a long conversation.
 6. **Tidy:** when `furrow lint` warns that a spec is ready to archive, run `furrow archive <id>`.
    `furrow claims` lists leftover branches. `furrow release` them: where the remote won't delete a
    branch, furrow marks it released instead. The owner can delete a released branch later, but
    needn't.
 
-## Hand off
+## Compaction
 
-Stop, instead of carrying on into the next wave, when any of these holds:
+Claude Code summarises the conversation as it gets long. After it's compacted, run `furrow status`
+before you hand out anything else, and rebuild the state of play from it and from the agents still
+out. Everything you need is in the repo and the remote (INV-1); only chat is lost. Keep the
+parked list (below) in your summary.
 
-- a wave has merged and `furrow next` offers new work, so the next wave starts in a fresh session;
-- nothing can start until the owner acts: a review, a sign-off, a spec to merge;
-- the conversation is over about 200K tokens, when the tool shows it.
+## Park, don't ask
 
-Wait for the agents that are out, then write a handoff of at most 10 lines. Hold only what the repo
-doesn't: questions put to the owner in chat and not yet answered, and anything blocked outside
-Furrow (a secret, a sign-in, a broken tool). End it with exactly this line:
+While any work can still move, never stop to ask the owner a question and never wait for an
+answer. What only the owner can settle is **parked**: note it in one line in a parked list you keep
+in this conversation, leave that step alone, and carry on with everything else. Park:
+
+- a spec problem a builder reports;
+- a step whose parent's PR was closed without merging;
+- a step that has come back `ready to merge: no` three times (its builder has had three fixes);
+- a CI failure a `furrow-chores` agent can't explain, or that fails again after its one re-run;
+- anything blocked outside Furrow: a secret, a sign-in, a broken tool.
+
+A parked step keeps its claim, so no one else picks it up, unless the problem is the step itself
+(a spec problem, a closed parent): then run `furrow release <ref>`, so it reads as free once the
+owner fixes it. The model line under `## Models` isn't a question: it's a line in the report.
+
+## Stop when
+
+Stop only when every one of these holds:
+
+- `furrow next` offers nothing (or nothing that doesn't overlap a parked step's claim);
+- no builder, verifier or chores agent is out;
+- no step PR is waiting on its CI or on a verifier.
+
+Then write a handoff of at most 10 lines. Hold only what the repo doesn't: the parked list, and
+anything blocked outside Furrow (a secret, a sign-in, a broken tool). End it with exactly this
+line:
 
 ```
 Start a new session with: Run furrow status, then furrow-swarm.
 ```
 
-Then give the "Stop when" report below.
-
-## Stop when
-
-`furrow next` says nothing is ready and no agent is out, or you've handed off. Report to the owner:
+Then report to the owner:
+- **Parked**, first: one line each, with the ref and what the owner needs to do;
 - what merged, by ref, and anything an agent decided that they should know;
 - each stack waiting for review, bottom to top, with its PRs: the owner reviews from the bottom,
   and can merge the whole stack from its top PR once every PR in it is approved;
