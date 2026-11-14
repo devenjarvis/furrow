@@ -22,7 +22,7 @@ steps:
       - specs/areas/agents.md
     covers: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9]
     size: s
-    merged: false
+    merged: true
 ---
 
 # FUR-0023: Swarms keep going until only the owner can unblock them
