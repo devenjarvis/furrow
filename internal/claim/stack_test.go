@@ -104,9 +104,13 @@ func TestHandedBack(t *testing.T) {
 		t.Errorf("main has no claim commit, got %s", sha)
 	}
 
+	// ReadStack reads the tips List fetched, so it doesn't need the remote.
 	bad := *repo
 	bad.Config.Remote = filepath.Join(t.TempDir(), "missing.git")
-	if _, err := claim.ReadStack(g, &bad, claims); !errors.Is(err, claim.ErrRemote) {
+	if again, err := claim.ReadStack(g, &bad, claims); err != nil || len(again) != len(got) {
+		t.Errorf("ReadStack without the remote = %d claims, %v", len(again), err)
+	}
+	if _, err := claim.List(g, bad.Config); !errors.Is(err, claim.ErrRemote) {
 		t.Errorf("unreachable remote: err = %v, want ErrRemote", err)
 	}
 }

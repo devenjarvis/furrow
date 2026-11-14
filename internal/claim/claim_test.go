@@ -199,21 +199,27 @@ func TestClaimRefusals(t *testing.T) {
 	}
 }
 
-func TestRelease(t *testing.T) {
+func TestReleaseDeletes(t *testing.T) {
 	dir, remote := setup(t, S{Num: 1})
 	g := gittest.Git(dir)
 	if _, err := claim.Take(g, load(t, dir), "FUR-0001.1", claim.Options{NoCheckout: true}); err != nil {
 		t.Fatal(err)
 	}
-	branch, existed, err := claim.Release(g, load(t, dir), "FUR-0001.1")
-	if err != nil || !existed || branch != "step/0001-1" {
-		t.Fatalf("release = %q %v %v", branch, existed, err)
+	res, err := claim.Release(g, load(t, dir), "FUR-0001.1")
+	if err != nil || !res.Released || res.How != "deleted" || res.Branch != "step/0001-1" {
+		t.Fatalf("release = %+v %v", res, err)
 	}
 	if out := gittest.Must(t, remote, "branch", "--list", "step/0001-1"); out != "" {
 		t.Error("branch still on the remote")
 	}
-	if _, existed, err := claim.Release(g, load(t, dir), "FUR-0001.1"); err != nil || existed {
-		t.Errorf("releasing an unclaimed step: %v %v", existed, err)
+	var b bytes.Buffer
+	res.Text(&b, "origin")
+	if b.String() != "Released FUR-0001.1: deleted step/0001-1 on origin.\n" {
+		t.Errorf("text = %q", b.String())
+	}
+	res, err = claim.Release(g, load(t, dir), "FUR-0001.1")
+	if err != nil || res.Released || res.How != "" {
+		t.Errorf("releasing an unclaimed step: %+v %v", res, err)
 	}
 }
 

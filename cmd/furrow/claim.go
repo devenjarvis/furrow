@@ -11,8 +11,8 @@ import (
 
 func init() {
 	register("claim", "Take a step: create its branch on the remote and check it out", runClaim)
-	register("release", "Give a step back: delete its branch on the remote", runRelease)
-	register("claims", "List claimed steps with their age: active, stale or leftover", runClaims)
+	register("release", "Give a step back: delete its branch on the remote, or mark it released", runRelease)
+	register("claims", "List claimed steps with their age: active, stale, leftover or released", runClaims)
 }
 
 func runClaim(env *Env, args []string) int {
@@ -49,7 +49,8 @@ func runClaim(env *Env, args []string) int {
 }
 
 func runRelease(env *Env, args []string) int {
-	fs := newFlags(env, "release", "<ref>")
+	fs := newFlags(env, "release", "<ref> [--json]")
+	asJSON := fs.Bool("json", false, "print JSON")
 	pos, err := parseFlags(fs, args)
 	if err != nil {
 		return 2
@@ -62,15 +63,14 @@ func runRelease(env *Env, args []string) int {
 	if !ok {
 		return 1
 	}
-	branch, existed, err := claim.Release(gitx.Git{Dir: repo.Root}, repo, pos[0])
+	res, err := claim.Release(gitx.Git{Dir: repo.Root}, repo, pos[0])
 	if err != nil {
 		return fail(env, "%v", err)
 	}
-	if !existed {
-		fmt.Fprintf(env.Stdout, "%s isn't claimed (no %s on %s).\n", pos[0], branch, repo.Config.Remote)
-		return 0
+	if *asJSON {
+		return printJSON(env, res)
 	}
-	fmt.Fprintf(env.Stdout, "Released %s: deleted %s on %s.\n", pos[0], branch, repo.Config.Remote)
+	res.Text(env.Stdout, repo.Config.Remote)
 	return 0
 }
 
@@ -85,7 +85,7 @@ func runClaims(env *Env, args []string) int {
 	if !ok {
 		return 1
 	}
-	statuses, err := claim.Statuses(gitx.Git{Dir: repo.Root}, repo, env.Now(), *stale)
+	statuses, err := claim.StatusesAll(gitx.Git{Dir: repo.Root}, repo, env.Now(), *stale)
 	if err != nil {
 		return fail(env, "%v", err)
 	}

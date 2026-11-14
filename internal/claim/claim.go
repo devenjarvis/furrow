@@ -60,8 +60,84 @@ func Parse(cfg config.Config, branch string) (spec.Ref, bool) {
 	return spec.Ref{Spec: cfg.Prefix + "-" + m[re.SubexpIndex("num")], Step: n}, true
 }
 
-// List reads every claim branch on the remote, sorted by ref.
+// Listed is a claim branch on the remote. Released means its tip is a release commit: the step is
+// free, exactly as if the branch were gone.
+type Listed struct {
+	schedule.Claim
+	Released bool
+}
+
+// List reads the claims on the remote, sorted by ref: every claim branch but the released ones.
+// It fetches the claim branches into refs/furrow/claims/ to read their tips.
 func List(g gitx.Git, cfg config.Config) ([]schedule.Claim, error) {
+	all, err := ListAll(g, cfg)
+	if err != nil {
+		return nil, err
+	}
+	return held(all), nil
+}
+
+// held drops the released branches.
+func held(all []Listed) []schedule.Claim {
+	var out []schedule.Claim
+	for _, l := range all {
+		if !l.Released {
+			out = append(out, l.Claim)
+		}
+	}
+	return out
+}
+
+// ListAll reads every claim branch on the remote, released ones included, sorted by ref. It
+// fetches them into refs/furrow/claims/ (one fetch, and none when there are none) and marks a
+// branch Released when its tip is a release commit (IsRelease).
+func ListAll(g gitx.Git, cfg config.Config) ([]Listed, error) {
+	heads, err := lsClaims(g, cfg)
+	if err != nil {
+		return nil, err
+	}
+	out := []Listed{}
+	if len(heads) == 0 {
+		return out, nil
+	}
+	if err := FetchClaims(g, cfg, heads); err != nil {
+		return nil, err
+	}
+	msgs, err := tipMessages(g)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range heads {
+		released := false
+		// The batched messages rule out most tips; only a release-shaped one costs a git call.
+		if releaseMessage(msgs[ClaimsRef(c.Branch)], c.Ref) {
+			if released, err = IsRelease(g, ClaimsRef(c.Branch), c.Ref); err != nil {
+				return nil, err
+			}
+		}
+		out = append(out, Listed{Claim: c, Released: released})
+	}
+	return out, nil
+}
+
+// tipMessages reads the message of every fetched claim tip, by ref, in one git process.
+func tipMessages(g gitx.Git) (map[string]string, error) {
+	out, err := g.Run("for-each-ref", "--format=%(refname)%00%(contents)%1e", "refs/furrow/claims/")
+	if err != nil {
+		return nil, err
+	}
+	msgs := map[string]string{}
+	for _, rec := range strings.Split(out, "\x1e") {
+		name, msg, ok := strings.Cut(strings.TrimSpace(rec), "\x00")
+		if ok {
+			msgs[name] = msg
+		}
+	}
+	return msgs, nil
+}
+
+// lsClaims asks the remote for its claim branches, sorted by ref, without reading their tips.
+func lsClaims(g gitx.Git, cfg config.Config) ([]schedule.Claim, error) {
 	lines, err := g.Lines("ls-remote", "--heads", cfg.Remote)
 	if err != nil {
 		return nil, fmt.Errorf("%w %s: %v", ErrRemote, cfg.Remote, err)
@@ -120,7 +196,9 @@ func (r *Result) Text(w io.Writer, remote string, noCheckout bool) {
 // must be clean. It pushes a claim commit, unique to this claim, to a new branch on the remote
 // with an empty lease, so the push fails if the branch exists. With the config's stack above 0 it
 // reads the claim tips, and a step that stacks on a handed-back step gets its claim commit on the
-// tip of the parent's branch, with a furrow-stack: trailer naming it.
+// tip of the parent's branch, with a furrow-stack: trailer naming it. A step whose branch is
+// released is claimed again: the claim commit gets the released tip as its second parent, and the
+// push leases on that tip, so it's a fast-forward and exactly one agent wins.
 func Take(g gitx.Git, repo *spec.Repo, text string, opt Options) (*Result, error) {
 	cfg := repo.Config
 	st, err := repo.StepRef(text)
@@ -133,9 +211,15 @@ func Take(g gitx.Git, repo *spec.Repo, text string, opt Options) (*Result, error
 	if _, err := g.Run("fetch", "-q", cfg.Remote, cfg.Base); err != nil {
 		return nil, fmt.Errorf("%w %s: %v", ErrRemote, cfg.Remote, err)
 	}
-	claims, err := List(g, cfg)
+	all, err := ListAll(g, cfg)
 	if err != nil {
 		return nil, err
+	}
+	claims, released := held(all), ""
+	for _, l := range all {
+		if l.Released && l.Branch == branch {
+			released = l.SHA
+		}
 	}
 	if cfg.Stack > 0 {
 		if claims, err = ReadStack(g, repo, claims); err != nil {
@@ -159,7 +243,7 @@ func Take(g gitx.Git, repo *spec.Repo, text string, opt Options) (*Result, error
 
 	onto, baseBranch, stackOn := cfg.Remote+"/"+cfg.Base, cfg.Base, ""
 	if item != nil && item.Stacked() {
-		// ReadStack fetched the parent's tip just now, so a branch that moved since next is
+		// ListAll fetched the parent's tip just now, so a branch that moved since next is
 		// built on where it is.
 		stackOn = item.StackOn.Branch
 		onto, baseBranch = ClaimsRef(stackOn), stackOn
@@ -176,11 +260,17 @@ func Take(g gitx.Git, repo *spec.Repo, text string, opt Options) (*Result, error
 	if stackOn != "" {
 		msg += fmt.Sprintf("\n%s: %s", StackTrailer, stackOn)
 	}
-	sha, err := g.Run("commit-tree", base+"^{tree}", "-p", base, "-m", msg)
+	parents := []string{"-p", base}
+	if released != "" {
+		// The released tip is the second parent, so the push is a fast-forward; the tree is
+		// still base's, so the branch starts where a fresh claim would.
+		parents = append(parents, "-p", released)
+	}
+	sha, err := g.Run(append(append([]string{"commit-tree", base + "^{tree}"}, parents...), "-m", msg)...)
 	if err != nil {
 		return nil, err
 	}
-	_, err = g.Run("push", "-q", cfg.Remote, sha+":refs/heads/"+branch, "--force-with-lease=refs/heads/"+branch+":")
+	_, err = g.Run("push", "-q", cfg.Remote, sha+":refs/heads/"+branch, "--force-with-lease=refs/heads/"+branch+":"+released)
 	if err != nil {
 		var gerr *gitx.Error
 		if errors.As(err, &gerr) && (strings.Contains(gerr.Stderr, "stale info") || strings.Contains(gerr.Stderr, "already exists") || strings.Contains(gerr.Stderr, "rejected")) {
@@ -287,26 +377,6 @@ func waiting(repo *spec.Repo, claims []schedule.Claim, it *schedule.Item) error 
 	return fmt.Errorf("%s waits on %s.", ref, strings.Join(names, ", "))
 }
 
-// Release deletes a step's claim branch. It reports whether there was one.
-func Release(g gitx.Git, repo *spec.Repo, text string) (string, bool, error) {
-	st, err := repo.StepRef(text)
-	if err != nil {
-		return "", false, err
-	}
-	branch := Branch(repo.Config, st.Ref())
-	out, err := g.Run("ls-remote", "--heads", repo.Config.Remote, "refs/heads/"+branch)
-	if err != nil {
-		return branch, false, fmt.Errorf("%w %s: %v", ErrRemote, repo.Config.Remote, err)
-	}
-	if out == "" {
-		return branch, false, nil
-	}
-	if _, err := g.Run("push", "-q", repo.Config.Remote, "--delete", "refs/heads/"+branch); err != nil {
-		return branch, false, err
-	}
-	return branch, true, nil
-}
-
 // Status is one claim with its age, for furrow claims. StackOn is the branch a stacked claim is
 // built on; Orphaned means that branch is gone and its step isn't merged.
 type Status struct {
@@ -314,31 +384,40 @@ type Status struct {
 	Branch     string `json:"branch"`
 	SHA        string `json:"sha"`
 	AgeSeconds int64  `json:"age_seconds"`
-	State      string `json:"state"` // active, stale or leftover
+	State      string `json:"state"` // active, stale, leftover or released
 	StackOn    string `json:"stack_on,omitempty"`
 	Orphaned   bool   `json:"orphaned,omitempty"`
 }
 
 // Statuses lists every claim with its age: the time since its branch's last commit, and the
 // branch it's stacked on, read from its claim commit. It fetches the claim branches into
-// refs/furrow/claims/ to read them.
+// refs/furrow/claims/ to read them. Released branches aren't claims, so they're left out.
 func Statuses(g gitx.Git, repo *spec.Repo, now time.Time, stale time.Duration) ([]Status, error) {
-	claims, err := List(g, repo.Config)
+	return statuses(g, repo, now, stale, false)
+}
+
+// StatusesAll is Statuses with the released branches too, in state released, so furrow claims
+// shows the owner what to delete. A released claim is never stale or leftover.
+func StatusesAll(g gitx.Git, repo *spec.Repo, now time.Time, stale time.Duration) ([]Status, error) {
+	return statuses(g, repo, now, stale, true)
+}
+
+func statuses(g gitx.Git, repo *spec.Repo, now time.Time, stale time.Duration, withReleased bool) ([]Status, error) {
+	all, err := ListAll(g, repo.Config)
 	if err != nil {
 		return nil, err
 	}
 	out := []Status{}
-	if len(claims) == 0 {
-		return out, nil
-	}
-	if err := FetchClaims(g, repo.Config, claims); err != nil {
-		return nil, err
-	}
 	onRemote := map[string]bool{}
-	for _, c := range claims {
-		onRemote[c.Branch] = true
+	for _, l := range all {
+		// A released branch counts as gone, so a claim stacked on it is orphaned.
+		onRemote[l.Branch] = !l.Released
 	}
-	for _, c := range claims {
+	for _, l := range all {
+		if l.Released && !withReleased {
+			continue
+		}
+		c := l.Claim
 		tip := ClaimsRef(c.Branch)
 		ct, err := g.Run("log", "-1", "--format=%ct", tip)
 		if err != nil {
@@ -347,6 +426,11 @@ func Statuses(g gitx.Git, repo *spec.Repo, now time.Time, stale time.Duration) (
 		secs, _ := strconv.ParseInt(ct, 10, 64)
 		age := now.Sub(time.Unix(secs, 0))
 		s := Status{Ref: c.Ref.String(), Branch: c.Branch, SHA: c.SHA, AgeSeconds: int64(age / time.Second), State: "active"}
+		if l.Released {
+			s.State = "released"
+			out = append(out, s)
+			continue
+		}
 		st := repo.Step(c.Ref)
 		switch {
 		case st != nil && spec.StepMerged(st):
@@ -400,6 +484,8 @@ func StatusText(w io.Writer, statuses []Status) {
 			note = "  (merged: release it)"
 		case "stale":
 			note = "  (no commits lately: check on it, or release it)"
+		case "released":
+			note = "  (released: delete the branch when you can)"
 		}
 		fmt.Fprintf(w, "%-*s  %-*s  %-8s  %s%s%s\n", rw, s.Ref, bw, s.Branch, s.State, age(time.Duration(s.AgeSeconds)*time.Second), stack, note)
 	}
