@@ -1,7 +1,7 @@
 ---
 id: FUR-0009
 title: Move Fetch and Edition onto Furrow
-status: accepted
+status: done
 area: scaffolding
 priority: p1
 human_review: required
