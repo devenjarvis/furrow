@@ -28,7 +28,7 @@ steps:
       - specs/areas/scaffolding.md
     covers: [AC-1, AC-2, AC-3, AC-4, AC-10]
     size: m
-    merged: false
+    merged: true
   - n: 2
     title: The spec brief shows the mock
     after: []
