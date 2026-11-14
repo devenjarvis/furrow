@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/devenjarvis/furrow/internal/gitx"
@@ -16,6 +17,47 @@ import (
 // ReleaseTrailer marks a release commit; its value is a nonce. A claim branch whose tip is a
 // release commit is released: furrow treats its step as unclaimed.
 const ReleaseTrailer = "furrow-release"
+
+var nonceRe = regexp.MustCompile(`^[0-9a-f]{16}$`)
+
+// releaseMessage reports whether msg is a release commit's message for ref: its subject is
+// "Release <ref>" and its last paragraph has a furrow-release: trailer with a 16-hex nonce. A
+// line elsewhere that merely mentions the trailer doesn't count.
+func releaseMessage(msg string, ref spec.Ref) bool {
+	paras := strings.Split(strings.TrimSpace(strings.ReplaceAll(msg, "\r\n", "\n")), "\n\n")
+	if len(paras) < 2 || strings.TrimSpace(paras[0]) != "Release "+ref.String() {
+		return false
+	}
+	for _, line := range strings.Split(paras[len(paras)-1], "\n") {
+		if v, ok := strings.CutPrefix(strings.TrimSpace(line), ReleaseTrailer+":"); ok && nonceRe.MatchString(strings.TrimSpace(v)) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsRelease reports whether rev is a release commit for ref, as the spec defines one: exactly one
+// parent, the same tree as that parent, the subject "Release <ref>", and a furrow-release: trailer
+// with a 16-hex nonce in the message's last paragraph. Only a branch whose tip passes is released.
+func IsRelease(g gitx.Git, rev string, ref spec.Ref) (bool, error) {
+	out, err := g.Run("log", "-1", "--format=%P%x00%T%x00%B", rev)
+	if err != nil {
+		return false, err
+	}
+	parts := strings.SplitN(out, "\x00", 3)
+	if len(parts) != 3 || !releaseMessage(parts[2], ref) {
+		return false, nil
+	}
+	parents := strings.Fields(parts[0])
+	if len(parents) != 1 {
+		return false, nil
+	}
+	tree, err := g.Run("rev-parse", parents[0]+"^{tree}")
+	if err != nil {
+		return false, err
+	}
+	return tree == parts[1], nil
+}
 
 // Released is how furrow release gave a step back. How is "deleted" when the branch was deleted,
 // "marked" when the remote refused and furrow pushed a release commit, and "" when there was
@@ -71,11 +113,11 @@ func Release(g gitx.Git, repo *spec.Repo, text string) (*Released, error) {
 	if fetched, err := g.Run("rev-parse", ClaimsRef(branch)); err != nil || fetched != tip {
 		return nil, moved
 	}
-	msg, err := g.Run("log", "-1", "--format=%B", tip)
+	was, err := IsRelease(g, tip, st.Ref())
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := trailer(msg, ReleaseTrailer); ok {
+	if was {
 		res.WasReleased = true
 		return res, nil
 	}
@@ -88,7 +130,7 @@ func Release(g gitx.Git, repo *spec.Repo, text string) (*Released, error) {
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
-	msg = fmt.Sprintf("Release %s\n\n%s: %s", ref, ReleaseTrailer, hex.EncodeToString(nonce))
+	msg := fmt.Sprintf("Release %s\n\n%s: %s", ref, ReleaseTrailer, hex.EncodeToString(nonce))
 	sha, err := g.Run("commit-tree", tip+"^{tree}", "-p", tip, "-m", msg)
 	if err != nil {
 		return nil, err

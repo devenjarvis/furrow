@@ -360,3 +360,54 @@ func TestReleaseJSON(t *testing.T) {
 		}
 	}
 }
+
+// TestListKeepsLookalikes: only a tip that is a release commit by the spec's definition releases
+// a step. Commits that merely mention the trailer leave the claim live.
+func TestListKeepsLookalikes(t *testing.T) {
+	dir, remote := setup(t, S{Num: 1, Steps: []St{{}, {}, {}, {}}})
+	cloudRemote(t, remote)
+	g := gittest.Git(dir)
+	nonce := "furrow-release: 0123456789abcdef"
+	// commit makes a commit on parent, with a tree from changed (or the parent's), and pushes it.
+	commit := func(branch, parent, tree, msg string) {
+		sha := gittest.Must(t, dir, "commit-tree", tree, "-p", parent, "-m", msg)
+		gittest.Must(t, dir, "push", "-q", "origin", sha+":refs/heads/"+branch)
+	}
+	changed := func(from string) string {
+		gittest.Must(t, dir, "switch", "-q", "--detach", from)
+		if err := os.WriteFile(filepath.Join(dir, "internal", "x.go"), []byte("x\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		gittest.Must(t, dir, "add", "-A")
+		tree := gittest.Must(t, dir, "write-tree")
+		gittest.Must(t, dir, "reset", "-q", "--hard")
+		gittest.Must(t, dir, "switch", "-q", "main")
+		return tree
+	}
+	for n := 1; n <= 4; n++ {
+		ref := "FUR-0001." + string(rune('0'+n))
+		branch := "step/0001-" + string(rune('0'+n))
+		c := pushClaim(t, dir, "main", ref, branch, "")
+		switch n {
+		case 1: // live work whose body quotes the spec
+			commit(branch, c, changed(c), "Document releasing\n\nfurrow-release: is the trailer\n\n"+nonce)
+		case 2: // an empty commit whose subject isn't "Release <ref>"
+			commit(branch, c, c+"^{tree}", "Notes\n\n"+nonce)
+		case 3: // an empty commit naming another step
+			commit(branch, c, c+"^{tree}", "Release FUR-0001.1\n\n"+nonce)
+		case 4: // the right message, but it changes the tree
+			commit(branch, c, changed(c), "Release FUR-0001.4\n\n"+nonce)
+		}
+	}
+	claims, err := claim.List(g, load(t, dir).Config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(claims) != 4 {
+		t.Errorf("List = %+v, want all four claims live", claims)
+	}
+	rel, err := claim.Release(g, load(t, dir), "FUR-0001.1")
+	if err != nil || rel.How != "marked" {
+		t.Errorf("release of a live claim = %+v %v, want it marked", rel, err)
+	}
+}

@@ -16,7 +16,9 @@ A claim branch whose tip is a **release commit** is released: furrow treats its 
 exactly as if the branch were gone. A release commit changes nothing (its tree is its parent's),
 its parent is the branch's tip, and its message is `Release FUR-0004.1`, a blank line, and a
 `furrow-release: <16 hex chars>` nonce trailer (`claim.ReleaseTrailer`). Only the tip counts: a
-release commit deeper in a branch's history means nothing. Every push furrow makes is a
+release commit deeper in a branch's history means nothing. A tip is a release commit only when all of
+this holds (`claim.IsRelease`): one parent, that parent's tree, the subject `Release <ref>` for
+the branch's step, and the trailer, with a 16-hex value, in the message's last paragraph. Every push furrow makes is a
 fast-forward or an empty-lease create, so it works where an agent can push commits but can't delete
 branches or force-push.
 

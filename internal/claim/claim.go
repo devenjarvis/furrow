@@ -90,7 +90,7 @@ func held(all []Listed) []schedule.Claim {
 
 // ListAll reads every claim branch on the remote, released ones included, sorted by ref. It
 // fetches them into refs/furrow/claims/ (one fetch, and none when there are none) and marks a
-// branch Released when its tip has a furrow-release: trailer.
+// branch Released when its tip is a release commit (IsRelease).
 func ListAll(g gitx.Git, cfg config.Config) ([]Listed, error) {
 	heads, err := lsClaims(g, cfg)
 	if err != nil {
@@ -108,7 +108,13 @@ func ListAll(g gitx.Git, cfg config.Config) ([]Listed, error) {
 		return nil, err
 	}
 	for _, c := range heads {
-		_, released := trailer(msgs[ClaimsRef(c.Branch)], ReleaseTrailer)
+		released := false
+		// The batched messages rule out most tips; only a release-shaped one costs a git call.
+		if releaseMessage(msgs[ClaimsRef(c.Branch)], c.Ref) {
+			if released, err = IsRelease(g, ClaimsRef(c.Branch), c.Ref); err != nil {
+				return nil, err
+			}
+		}
 		out = append(out, Listed{Claim: c, Released: released})
 	}
 	return out, nil
@@ -237,7 +243,7 @@ func Take(g gitx.Git, repo *spec.Repo, text string, opt Options) (*Result, error
 
 	onto, baseBranch, stackOn := cfg.Remote+"/"+cfg.Base, cfg.Base, ""
 	if item != nil && item.Stacked() {
-		// ReadStack fetched the parent's tip just now, so a branch that moved since next is
+		// ListAll fetched the parent's tip just now, so a branch that moved since next is
 		// built on where it is.
 		stackOn = item.StackOn.Branch
 		onto, baseBranch = ClaimsRef(stackOn), stackOn

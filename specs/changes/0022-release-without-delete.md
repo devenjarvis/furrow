@@ -203,3 +203,4 @@ FUR-0004.1  Prove a step's diff stays inside its touches
 - 2026-11-14: Chose to treat a released branch as gone for stacking: a claim stacked on it shows orphaned, and a released line in `furrow claims` shows no stack.
 - 2026-11-14: Chose to prove AC-6 by building the schedule from `claim.List`, as `furrow next` does, since tests in `cmd/furrow` are outside this step's touches.
 - 2026-11-14: Step 2 edits only the swarm's Tidy lines, the one place any skill sent branch deletes to the owner; `specs/areas/agents.md` is left as is, since it never mentioned deleting.
+- 2026-11-14: Made "release commit" precise in `claim.IsRelease`: one parent, its tree, subject `Release <ref>`, and a 16-hex `furrow-release:` trailer in the last paragraph, so quotes can't free live steps.
